@@ -8,6 +8,7 @@ import {
   paintFabric,
   paintFur,
   paintGlow,
+  paintGold,
   paintMetal,
   paintScale,
   paintSkin,
@@ -179,22 +180,86 @@ function headTiles(face: string): Record<string, string> {
 
 function buildQuadruped(spec: CreatureSpec): ModelBuilder {
   const b = new ModelBuilder(`creature_${spec.key}`);
-  const sizeScale = spec.size === 'large' ? 1.25 : spec.size === 'small' ? 0.82 : 1;
-  const legH = Math.round(7 * sizeScale);
-  const bodyH = Math.round(7 * sizeScale);
-  const bodyW = Math.round(9 * sizeScale);
-  const bodyL = Math.round(15 * sizeScale);
+  const key = spec.key;
+  const style = spec.style ?? 'cow';
+  const sizeScale = spec.size === 'large' ? 1.18 : spec.size === 'small' ? 0.84 : 1;
+
+  // Per-species silhouettes. Values are in model pixels before the 1/16 world scale.
+  let legH = 7.5, bodyH = 8.5, bodyW = 9.5, bodyL = 15.5, legT = 2.6;
+  let headW = 6.5, headH = 7, headL = 7.5;
+  if (style === 'cow') {
+    if (key === 'horse') {
+      legH = 10.8; bodyH = 10.2; bodyW = 10.8; bodyL = 19.5; legT = 3.2;
+      headW = 5.8; headH = 6.0; headL = 10.0;
+    } else {
+      legH = 8.8; bodyH = 10.2; bodyW = 13.8; bodyL = 17.6; legT = 3.9;
+      headW = 8.8; headH = 8.2; headL = 8.8;
+    }
+  } else if (style === 'pig') {
+    if (key === 'boar') {
+      legH = 6.6; bodyH = 9.6; bodyW = 11.8; bodyL = 15.6; legT = 3.6;
+      headW = 8.6; headH = 8.0; headL = 7.4;
+    } else {
+      legH = 5.2; bodyH = 9.2; bodyW = 11.8; bodyL = 13.8; legT = 3.3;
+      headW = 8.4; headH = 8.0; headL = 6.6;
+    }
+  } else if (style === 'sheep') {
+    legH = 5.0; bodyH = 8.8; bodyW = 14.2; bodyL = 15.4; legT = 3.2;
+    headW = 9.0; headH = 7.4; headL = 6.6;
+  } else if (style === 'wolf') {
+    if (key === 'bear') {
+      legH = 6.4; bodyH = 11.0; bodyW = 12.5; bodyL = 17.2; legT = 4.2;
+      headW = 8.8; headH = 8.0; headL = 7.6;
+    } else if (key === 'fox') {
+      legH = 6.8; bodyH = 7.4; bodyW = 7.8; bodyL = 12.8; legT = 2.2;
+      headW = 6.0; headH = 5.8; headL = 7.6;
+    } else {
+      legH = 8.6; bodyH = 8.4; bodyW = 9.2; bodyL = 16.0; legT = 2.7;
+      headW = 6.8; headH = 6.6; headL = 8.0;
+    }
+  }
+
+  const S = sizeScale;
+  legH = Math.round(legH * S * 10) / 10;
+  bodyH = Math.round(bodyH * S * 10) / 10;
+  bodyW = Math.round(bodyW * S * 10) / 10;
+  bodyL = Math.round(bodyL * S * 10) / 10;
+  legT = Math.round(legT * S * 10) / 10;
+  headW = Math.round(headW * S * 10) / 10;
+  headH = Math.round(headH * S * 10) / 10;
+  headL = Math.round(headL * S * 10) / 10;
+
   const bodyY = legH;
   const bodyTop = legH + bodyH;
-  const headH = Math.round(7 * sizeScale);
+  const front = bodyL / 2;
+  const wool = style === 'sheep';
+  const headBaseY = key === 'horse' ? bodyTop + 2.4 : wool ? bodyTop - 3.6 : bodyTop - 2.2;
+  const headTop = headBaseY + headH;
+  const headFront = front - 2.2 + headL;
+  const bodyTile = wool ? 'wool' : 'body';
+  const faceBase = wool ? '#6f675d' : spec.base;
 
   b.tile('body', paintFur(spec.base, spec.dark, spec.light, 61));
   b.tile('belly', paintFur(spec.belly ?? spec.light, spec.dark, shadeHex(spec.base, 0.25), 62));
-  b.tile('face', paintAnimalFace({ base: spec.base, snout: spec.snout ?? spec.dark, eye: spec.eye, eyeGlow: spec.eyeGlow, style: spec.style, seed: 63 }));
-  b.tile('hoof', paintFur(spec.dark, '#28221d', spec.base, 64));
-  b.tile('horn', paintCloth('#d7ccb0', '#f3ecd9', 65));
+  b.tile('face', paintAnimalFace({ base: faceBase, snout: spec.snout ?? spec.dark, eye: spec.eye, eyeGlow: spec.eyeGlow, style: spec.style, seed: 63 }));
+  b.tile('hoof', paintFur(spec.dark, '#241f1b', spec.base, 64));
+  b.tile('horn', paintCloth('#d9cfb5', '#f5eeda', 65));
+  b.tile('mane', paintFur(spec.dark, shadeHex(spec.dark, -0.18), spec.base, 70));
   b.tile('tooth', (ctx) => { ctx.fillStyle = '#eee7d4'; ctx.fillRect(0, 0, 16, 16); ctx.fillStyle = '#c8bfa9'; ctx.fillRect(0, 12, 16, 4); });
-  b.tile('nose', paintAnimalFace({ base: spec.snout ?? spec.dark, snout: spec.snout ?? spec.dark, eye: spec.eye, style: spec.style, seed: 66 }));
+  b.tile('nose', paintFur(spec.snout ?? spec.dark, shadeHex(spec.snout ?? spec.dark, -0.2), spec.base, 66));
+  if (wool) b.tile('wool', paintWool(spec.base, spec.dark, 69));
+  b.tile('snout', (ctx) => {
+    paintSkin(spec.snout ?? spec.dark, 73, false)(ctx);
+    ctx.fillStyle = 'rgba(70,38,38,0.8)';
+    ctx.fillRect(4, 6, 2, 3);
+    ctx.fillRect(10, 6, 2, 3);
+    ctx.fillStyle = 'rgba(255,255,255,0.16)';
+    ctx.fillRect(2, 2, 12, 2);
+  });
+  if (key === 'cow') {
+    b.tile('udder', paintSkin('#e8aaa6', 74, false));
+    b.tile('bell', paintGold(75));
+  }
   if (spec.spots) {
     b.tile('spots', (ctx) => {
       paintFur(spec.base, spec.dark, spec.light, 67)(ctx);
@@ -208,74 +273,177 @@ function buildQuadruped(spec: CreatureSpec): ModelBuilder {
   }
 
   b.bone('root', [0, 0, 0]);
-  b.bone('body', [0, bodyY, 0], 'root');
-  b.bone('head', [0, bodyTop - 2, bodyL / 2 - 1], 'body');
-  b.bone('tail', [0, bodyTop - 1, -bodyL / 2], 'body');
+  b.bone('body', [0, bodyY + bodyH * 0.5, 0], 'root');
+  b.bone('head', [0, headBaseY, front - 1.6], 'body');
+  b.bone('tail', [0, bodyTop - 2, -bodyL / 2], 'body');
 
-  b.cube('body', 'torso', [-bodyW / 2, bodyY, -bodyL / 2], [bodyW / 2, bodyTop, bodyL / 2], spec.spots ? { south: 'spots', north: 'spots', east: 'spots', west: 'spots', up: 'spots', down: 'belly' } : animalBodyTiles(spec.base, spec.belly ?? spec.light, spec.dark, spec.light));
-  b.cube('head', 'head', [-bodyW / 2 + 0.5, bodyTop - 3, bodyL / 2 - 1], [bodyW / 2 - 0.5, bodyTop - 3 + headH, bodyL / 2 - 1 + headH], headTiles('face'));
-  b.cube('head', 'snout', [-2.1, bodyTop - 2.3, bodyL / 2 - 1 + headH - 0.2], [2.1, bodyTop + 0.8, bodyL / 2 - 1 + headH + 2.4], 'nose');
-  b.cube('head', 'ear_r', [-bodyW / 2 + 0.3, bodyTop - 3 + headH - 0.5, bodyL / 2], [-bodyW / 2 + 2.2, bodyTop - 3 + headH + 2.8, bodyL / 2 + 1.6], 'body');
-  b.cube('head', 'ear_l', [bodyW / 2 - 2.2, bodyTop - 3 + headH - 0.5, bodyL / 2], [bodyW / 2 - 0.3, bodyTop - 3 + headH + 2.8, bodyL / 2 + 1.6], 'body');
+  const torsoFaces = spec.spots
+    ? { south: 'spots', north: 'spots', east: 'spots', west: 'spots', up: 'spots', down: 'belly' }
+    : wool
+      ? { south: 'wool', north: 'wool', east: 'wool', west: 'wool', up: 'wool', down: 'belly' }
+      : animalBodyTiles(spec.base, spec.belly ?? spec.light, spec.dark, spec.light);
+  b.cube('body', 'torso', [-bodyW / 2, bodyY, -bodyL / 2], [bodyW / 2, bodyTop, bodyL / 2], torsoFaces, wool ? { inflate: 0.7 } : undefined);
+  // Shoulder and rump masses break up the log-shaped torso.
+  b.cube('body', 'shoulder', [-bodyW / 2 - 0.35, bodyY + 0.6, front - 5.4], [bodyW / 2 + 0.35, bodyTop - 0.7, front - 0.6], bodyTile);
+  b.cube('body', 'rump', [-bodyW / 2 - 0.25, bodyY + 0.4, -bodyL / 2 + 0.4], [bodyW / 2 + 0.25, bodyTop - 1.3, -bodyL / 2 + 5.2], bodyTile);
+  if (wool) {
+    // Fluffy clumps so sheep read as wool, not a painted box.
+    b.cube('body', 'wool_top', [-bodyW / 2 + 0.6, bodyTop - 0.4, -bodyL / 2 + 2], [bodyW / 2 - 0.6, bodyTop + 1.5, bodyL / 2 - 2.4], 'wool', { inflate: 0.5 });
+    b.cube('body', 'wool_r', [-bodyW / 2 - 1.2, bodyY + 2, -bodyL / 2 + 3], [-bodyW / 2 + 0.7, bodyTop - 1.4, bodyL / 2 - 3], 'wool', { inflate: 0.4 });
+    b.cube('body', 'wool_l', [bodyW / 2 - 0.7, bodyY + 2, -bodyL / 2 + 3], [bodyW / 2 + 1.2, bodyTop - 1.4, bodyL / 2 - 3], 'wool', { inflate: 0.4 });
+  }
+  if (key === 'horse') {
+    b.cube('body', 'neck', [-headW / 2 - 0.5, bodyTop - 1.4, front - 4.4], [headW / 2 + 0.5, headBaseY + 2.2, front + 0.4], 'body', {
+      rotation: [18, 0, 0], origin: [0, bodyTop - 1.4, front - 1],
+    });
+    b.cube('body', 'mane', [-0.9, bodyTop - 1.2, front - 2.2], [0.9, headBaseY + 2.6, front - 0.6], 'mane', {
+      rotation: [18, 0, 0], origin: [0, bodyTop - 1.4, front - 1],
+    });
+  } else if (style !== 'sheep') {
+    b.cube('body', 'neck', [-headW / 2 + 0.4, bodyTop - 2.2, front - 2.8], [headW / 2 - 0.4, headBaseY + headH * 0.42, front + 1.1], 'body');
+  }
+  if (style === 'pig' || style === 'wolf') {
+    b.cube('body', 'chest', [-bodyW / 2 + 0.2, bodyY + 0.8, front - 4.8], [bodyW / 2 - 0.2, bodyY + bodyH * 0.55, front - 0.4], 'belly');
+  }
+  if (key === 'boar') {
+    b.cube('body', 'mane_hump', [-2.2, bodyTop - 1.4, front - 6.5], [2.2, bodyTop + 2.4, front - 1], 'mane');
+  }
+  if (key === 'bear') {
+    b.cube('body', 'hump', [-bodyW / 2 + 1.2, bodyTop - 1.4, front - 6], [bodyW / 2 - 1.2, bodyTop + 2.2, front - 1], 'body');
+  }
+  if (key === 'cow') {
+    b.cube('body', 'udder', [-2.4, bodyY - 1.7, -bodyL / 2 + 3.4], [2.4, bodyY + 0.4, -bodyL / 2 + 8], 'udder');
+    b.cube('body', 'bell', [-1.25, headBaseY - 2.1, front - 1.2], [1.25, headBaseY + 0.2, front + 0.35], 'bell');
+    b.cube('body', 'collar', [-headW / 2 + 0.3, headBaseY - 0.7, front - 1.9], [headW / 2 - 0.3, headBaseY + 0.2, front + 0.4], 'mane');
+  }
+
+  const faceTiles = { south: 'face', north: bodyTile, east: bodyTile, west: bodyTile, up: bodyTile, down: 'belly' };
+  b.cube('head', 'head', [-headW / 2, headBaseY, front - 2.2], [headW / 2, headTop, headFront], faceTiles);
+  if (wool) {
+    b.cube('head', 'wool_cap', [-headW / 2 + 0.2, headBaseY + headH * 0.83, front - 2.4], [headW / 2 - 0.2, headTop + 0.8, headFront - 0.6], 'wool', { inflate: 0.2 });
+  }
+  const snoutW = style === 'pig' ? headW * 0.62 : headW * 0.5;
+  const snoutH = style === 'pig' ? headH * 0.42 : headH * 0.34;
+  const snoutZ = headFront;
+  const snoutTile = style === 'pig' ? 'snout' : 'nose';
+  b.cube('head', 'muzzle', [-snoutW / 2, headBaseY + headH * 0.14, snoutZ - 0.4], [snoutW / 2, headBaseY + headH * 0.14 + snoutH, snoutZ + 1.9], snoutTile);
+  b.cube('head', 'nose', [-snoutW * 0.2, headBaseY + headH * 0.16 + snoutH * 0.55, snoutZ + 1.85], [snoutW * 0.2, headBaseY + headH * 0.16 + snoutH * 0.92, snoutZ + 2.15], 'hoof');
+
+  const earTile = wool ? 'mane' : 'body';
+  if (style === 'wolf' || key === 'bear') {
+    const earH = key === 'bear' ? 2.2 : key === 'fox' ? 4.2 : 3.3;
+    for (const side of [-1, 1]) {
+      b.cube('head', `ear_${side}`, [side * (headW / 2 - 1.1) - 0.8, headTop - 1.1, headFront - 3.3], [side * (headW / 2 - 1.1) + 0.8, headTop + earH, headFront - 1.2], earTile, {
+        rotation: [0, 0, side * (key === 'bear' ? -10 : -16)],
+        origin: [side * (headW / 2 - 1.1), headTop - 1, headFront - 2],
+      });
+    }
+  } else if (key === 'horse') {
+    for (const side of [-1, 1]) {
+      b.cube('head', `ear_${side}`, [side * (headW / 2 - 0.9) - 0.6, headTop - 0.6, headFront - 2.4], [side * (headW / 2 - 0.9) + 0.6, headTop + 2.4, headFront - 0.6], 'body', {
+        rotation: [0, 0, side * -8], origin: [side * (headW / 2 - 0.9), headTop - 0.5, headFront - 1.4],
+      });
+    }
+  } else {
+    // Broad floppy ears for cows, pigs, sheep.
+    const droop = style === 'pig' ? 34 : style === 'sheep' ? 30 : 18;
+    for (const side of [-1, 1]) {
+      b.cube('head', `ear_${side}`, [side * (headW / 2 - 0.1), headTop - 2.6, headFront - 3.4], [side * (headW / 2 + 2.5), headTop - 0.3, headFront - 1.2], earTile, {
+        rotation: [0, 0, side * droop], origin: [side * (headW / 2), headTop - 1.4, headFront - 2.2],
+      });
+    }
+  }
   if (spec.horns) {
-    b.cube('head', 'horn_r', [-bodyW / 2 + 0.4, bodyTop - 3 + headH - 0.2, bodyL / 2 + 0.3], [-bodyW / 2 + 2, bodyTop - 3 + headH + 3.4, bodyL / 2 + 2], 'horn', { rotation: [0, 0, -20], origin: [-bodyW / 2 + 1, bodyTop - 3 + headH, bodyL / 2 + 1] });
-    b.cube('head', 'horn_l', [bodyW / 2 - 2, bodyTop - 3 + headH - 0.2, bodyL / 2 + 0.3], [bodyW / 2 - 0.4, bodyTop - 3 + headH + 3.4, bodyL / 2 + 2], 'horn', { rotation: [0, 0, 20], origin: [bodyW / 2 - 1, bodyTop - 3 + headH, bodyL / 2 + 1] });
+    for (const side of [-1, 1]) {
+      b.cube('head', `horn_base_${side}`, [side * (headW / 2 - 1.7) - 0.75, headTop - 0.8, headFront - 2.8], [side * (headW / 2 - 0.2), headTop + 1.8, headFront - 1.1], 'horn', {
+        rotation: [0, 0, side * -26], origin: [side * (headW / 2 - 1.1), headTop - 0.6, headFront - 2],
+      });
+      b.cube('head', `horn_tip_${side}`, [side * (headW / 2 - 2.2) - 0.5, headTop + 1.2, headFront - 2.4], [side * (headW / 2 - 1.2), headTop + 3.3, headFront - 1.3], 'horn', {
+        rotation: [0, 0, side * -62], origin: [side * (headW / 2 - 1.2), headTop + 1.5, headFront - 1.8],
+      });
+    }
   }
   if (spec.tusks) {
-    b.cube('head', 'tusk_r', [-2.6, bodyTop - 2.4, bodyL / 2 + headH + 2], [-1.7, bodyTop - 0.2, bodyL / 2 + headH + 2.8], 'tooth');
-    b.cube('head', 'tusk_l', [1.7, bodyTop - 2.4, bodyL / 2 + headH + 2], [2.6, bodyTop - 0.2, bodyL / 2 + headH + 2.8], 'tooth');
+    for (const side of [-1, 1]) {
+      b.cube('head', `tusk_${side}`, [side * snoutW * 0.32 - 0.45, headBaseY + headH * 0.35, snoutZ + 1.2], [side * snoutW * 0.32 + 0.45, headBaseY + headH * 0.78, snoutZ + 2], 'tooth', {
+        rotation: [0, 0, side * -16], origin: [side * snoutW * 0.32, headBaseY + headH * 0.35, snoutZ + 1.5],
+      });
+    }
   }
-  b.cube('tail', 'tail', [-1, bodyTop - 3, -bodyL / 2 - 4], [1, bodyTop + 1, -bodyL / 2 + 0.5], 'body', { rotation: [-24, 0, 0], origin: [0, bodyTop, -bodyL / 2] });
 
+  // Tails: thin with a tuft for cattle, long for horses, bushy for canines.
+  if (key === 'horse') {
+    b.cube('tail', 'tail', [-1.2, bodyTop - 10, -bodyL / 2 - 1.6], [1.2, bodyTop + 0.4, -bodyL / 2 + 0.4], 'mane', { rotation: [-22, 0, 0], origin: [0, bodyTop - 1, -bodyL / 2] });
+  } else if (style === 'wolf') {
+    const tailLen = key === 'fox' ? 6.5 : 5.6;
+    b.cube('tail', 'tail', [-1.5, bodyTop - 4.6, -bodyL / 2 - tailLen], [1.5, bodyTop - 0.6, -bodyL / 2 + 0.4], 'mane', { rotation: [-28, 0, 0], origin: [0, bodyTop - 0.8, -bodyL / 2] });
+    b.cube('tail', 'tail_tip', [-1.2, bodyTop - 5.4, -bodyL / 2 - tailLen - 1.4], [1.2, bodyTop - 3.4, -bodyL / 2 - tailLen + 0.8], key === 'fox' ? 'belly' : 'mane', { rotation: [-28, 0, 0], origin: [0, bodyTop - 0.8, -bodyL / 2] });
+  } else if (style === 'pig') {
+    b.cube('tail', 'tail_1', [-0.6, bodyTop - 2.2, -bodyL / 2 - 1.8], [0.6, bodyTop - 0.2, -bodyL / 2 + 0.3], 'body', { rotation: [-40, 0, 0], origin: [0, bodyTop - 1, -bodyL / 2] });
+    b.cube('tail', 'tail_2', [-0.6, bodyTop - 1.4, -bodyL / 2 - 3], [0.6, bodyTop + 1.2, -bodyL / 2 - 1.5], 'body', { rotation: [-95, 0, 0], origin: [0, bodyTop - 1, -bodyL / 2] });
+  } else if (wool) {
+    b.cube('tail', 'tail', [-1.1, bodyTop - 3.2, -bodyL / 2 - 1.1], [1.1, bodyTop - 0.5, -bodyL / 2 + 0.3], 'wool', { rotation: [-26, 0, 0], origin: [0, bodyTop - 1, -bodyL / 2] });
+  } else {
+    // Cow and boar: rope tail with a dark tuft.
+    b.cube('tail', 'tail', [-0.65, bodyTop - 5.6, -bodyL / 2 - 0.6], [0.65, bodyTop + 0.4, -bodyL / 2 + 0.4], 'body', { rotation: [-24, 0, 0], origin: [0, bodyTop - 1, -bodyL / 2] });
+    b.cube('tail', 'tail_tuft', [-1.1, bodyTop - 6.4, -bodyL / 2 - 1.6], [1.1, bodyTop - 3.6, -bodyL / 2 + 0.1], 'mane', { rotation: [-24, 0, 0], origin: [0, bodyTop - 1, -bodyL / 2] });
+  }
+
+  const legX = bodyW / 2 - legT * 0.72;
+  const legZFront = front - legT * 0.95;
+  const legZBack = -front + legT * 0.95;
   const legs: Array<[string, number, number]> = [
-    ['leg_fl', -bodyW / 2 + 1.4, bodyL / 2 - 3],
-    ['leg_fr', bodyW / 2 - 1.4, bodyL / 2 - 3],
-    ['leg_bl', -bodyW / 2 + 1.4, -bodyL / 2 + 3],
-    ['leg_br', bodyW / 2 - 1.4, -bodyL / 2 + 3],
+    ['leg_fl', -legX, legZFront],
+    ['leg_fr', legX, legZFront],
+    ['leg_bl', -legX, legZBack],
+    ['leg_br', legX, legZBack],
   ];
   for (const [name, x, z] of legs) {
     b.bone(name, [x, legH, z], 'root');
-    b.cube(name, name, [x - 1.35, 0, z - 1.35], [x + 1.35, legH, z + 1.35], { south: 'body', north: 'body', east: 'body', west: 'body', up: 'belly', down: 'hoof' });
+    b.cube(name, `${name}_upper`, [x - legT / 2, 1.35, z - legT / 2], [x + legT / 2, legH + 1.6, z + legT / 2], wool ? 'wool' : 'body', { inflate: 0.08 });
+    b.cube(name, `${name}_hoof`, [x - legT / 2 - 0.12, 0, z - legT / 2 - 0.12], [x + legT / 2 + 0.12, 1.5, z + legT / 2 + 0.12], 'hoof');
   }
 
-  const legSwing = 26;
-  b.anim({ name: 'idle', length: 2.8, loop: 'loop', channels: {
-    head: { rotation: { '0': [0, 0, 0], '1.4': [4, 6, 0], '2.1': [-2, -4, 0], '2.8': [0, 0, 0] } },
-    tail: { rotation: { '0': [-24, 0, 0], '0.7': [-24, 10, 0], '1.4': [-24, 0, 0], '2.1': [-24, -10, 0], '2.8': [-24, 0, 0] } },
-    body: { position: { '0': [0, 0, 0], '1.4': [0, 0.25, 0], '2.8': [0, 0, 0] } },
+  const legSwing = key === 'fox' ? 30 : style === 'sheep' ? 22 : 24;
+  b.anim({ name: 'idle', length: 3.2, loop: 'loop', channels: {
+    body: { scale: { '0': [1, 1, 1], '1.6': [1.014, 1.01, 1.014], '3.2': [1, 1, 1] }, rotation: { '0': [0, 0, 0], '1.6': [0, 0, 0.6], '3.2': [0, 0, 0] } },
+    head: { rotation: { '0': [0, 0, 0], '0.9': [-1, 5, 0], '1.9': [2, -3, 0], '3.2': [0, 0, 0] } },
+    tail: { rotation: { '0': [0, 0, 0], '0.8': [0, 8, 0], '1.6': [0, 0, 0], '2.4': [0, -8, 0], '3.2': [0, 0, 0] } },
   } });
   b.anim({ name: 'walk', length: 1.05, loop: 'loop', channels: {
     leg_fl: { rotation: { '0': [legSwing, 0, 0], '0.525': [-legSwing, 0, 0], '1.05': [legSwing, 0, 0] } },
     leg_br: { rotation: { '0': [legSwing, 0, 0], '0.525': [-legSwing, 0, 0], '1.05': [legSwing, 0, 0] } },
     leg_fr: { rotation: { '0': [-legSwing, 0, 0], '0.525': [legSwing, 0, 0], '1.05': [-legSwing, 0, 0] } },
     leg_bl: { rotation: { '0': [-legSwing, 0, 0], '0.525': [legSwing, 0, 0], '1.05': [-legSwing, 0, 0] } },
-    head: { rotation: { '0': [0, 0, 0], '0.525': [2, 0, 0], '1.05': [0, 0, 0] } },
+    body: { rotation: { '0': [0, 0, 1.2], '0.525': [0, 0, -1.2], '1.05': [0, 0, 1.2] } },
+    head: { rotation: { '0': [1.5, 0, 0], '0.525': [-1.5, 0, 0], '1.05': [1.5, 0, 0] } },
+    tail: { rotation: { '0': [0, 4, 0], '0.525': [0, -4, 0], '1.05': [0, 4, 0] } },
   } });
-  b.anim({ name: 'run', length: 0.65, loop: 'loop', channels: {
-    leg_fl: { rotation: { '0': [45, 0, 0], '0.325': [-45, 0, 0], '0.65': [45, 0, 0] } },
-    leg_br: { rotation: { '0': [45, 0, 0], '0.325': [-45, 0, 0], '0.65': [45, 0, 0] } },
-    leg_fr: { rotation: { '0': [-45, 0, 0], '0.325': [45, 0, 0], '0.65': [-45, 0, 0] } },
-    leg_bl: { rotation: { '0': [-45, 0, 0], '0.325': [45, 0, 0], '0.65': [-45, 0, 0] } },
-    body: { position: { '0': [0, 0, 0], '0.16': [0, 0.5, 0], '0.325': [0, 0, 0], '0.48': [0, 0.5, 0], '0.65': [0, 0, 0] } },
+  b.anim({ name: 'run', length: 0.66, loop: 'loop', channels: {
+    leg_fl: { rotation: { '0': [42, 0, 0], '0.33': [-42, 0, 0], '0.66': [42, 0, 0] } },
+    leg_br: { rotation: { '0': [42, 0, 0], '0.33': [-42, 0, 0], '0.66': [42, 0, 0] } },
+    leg_fr: { rotation: { '0': [-38, 0, 0], '0.33': [38, 0, 0], '0.66': [-38, 0, 0] } },
+    leg_bl: { rotation: { '0': [-38, 0, 0], '0.33': [38, 0, 0], '0.66': [-38, 0, 0] } },
+    body: { rotation: { '0': [4, 0, 0], '0.165': [5, 0, 1.6], '0.33': [3, 0, 0], '0.495': [5, 0, -1.6], '0.66': [4, 0, 0] } },
+    head: { rotation: { '0': [-4, 0, 0], '0.33': [-6, 0, 0], '0.66': [-4, 0, 0] } },
+    tail: { rotation: { '0': [-6, 3, 0], '0.33': [-10, -3, 0], '0.66': [-6, 3, 0] } },
   } });
-  b.anim({ name: 'attack', length: 0.55, loop: 'once', channels: {
-    head: { rotation: { '0': [0, 0, 0], '0.16': [18, 0, 0], '0.32': [-12, 0, 0], '0.55': [0, 0, 0] } },
-    body: { position: { '0': [0, 0, 0], '0.16': [0, 0, 2.4], '0.32': [0, 0, 0], '0.55': [0, 0, 0] } },
-    leg_fl: { rotation: { '0': [0, 0, 0], '0.16': [-20, 0, 0], '0.55': [0, 0, 0] } },
-    leg_fr: { rotation: { '0': [0, 0, 0], '0.16': [-20, 0, 0], '0.55': [0, 0, 0] } },
+  b.anim({ name: 'attack', length: 0.6, loop: 'once', channels: {
+    head: { rotation: { '0': [0, 0, 0], '0.18': [22, 0, 0], '0.34': [-14, 0, 0], '0.6': [0, 0, 0] }, position: { '0': [0, 0, 0], '0.18': [0, 0, 2.2], '0.6': [0, 0, 0] } },
+    body: { rotation: { '0': [0, 0, 0], '0.18': [6, 0, 0], '0.34': [-3, 0, 0], '0.6': [0, 0, 0] } },
+    leg_fl: { rotation: { '0': [0, 0, 0], '0.18': [-20, 0, 0], '0.6': [0, 0, 0] } },
+    leg_fr: { rotation: { '0': [0, 0, 0], '0.18': [-20, 0, 0], '0.6': [0, 0, 0] } },
+    tail: { rotation: { '0': [0, 0, 0], '0.18': [-12, 0, 0], '0.6': [0, 0, 0] } },
   } });
-  b.anim({ name: 'hurt', length: 0.35, loop: 'once', channels: {
-    head: { rotation: { '0': [0, 0, 0], '0.12': [-16, 0, 10], '0.35': [0, 0, 0] } },
-    body: { rotation: { '0': [0, 0, 0], '0.12': [0, 0, -5], '0.35': [0, 0, 0] } },
+  b.anim({ name: 'hurt', length: 0.4, loop: 'once', channels: {
+    head: { rotation: { '0': [0, 0, 0], '0.14': [-18, 0, 9], '0.4': [0, 0, 0] } },
+    body: { rotation: { '0': [0, 0, 0], '0.14': [0, 0, -5], '0.4': [0, 0, 0] } },
+    leg_fl: { rotation: { '0': [0, 0, 0], '0.14': [16, 0, 0], '0.4': [0, 0, 0] } },
   } });
-  b.anim({ name: 'death', length: 1.1, loop: 'hold', channels: {
-    root: { rotation: { '0': [0, 0, 0], '0.55': [0, 0, -82], '1.1': [0, 0, -88] }, position: { '0': [0, 0, 0], '1.1': [0, -2, 0] } },
-    head: { rotation: { '0': [0, 0, 0], '0.5': [-25, 0, 0], '1.1': [-35, 0, 0] } },
-  } });
-  b.anim({ name: 'sit', length: 2, loop: 'loop', channels: {
-    body: { rotation: { '0': [0, 0, 12], '2': [0, 0, 12] }, position: { '0': [0, -2, 0], '2': [0, -2, 0] } },
-    head: { rotation: { '0': [-10, 0, 0], '2': [-10, 0, 0] } },
-    tail: { rotation: { '0': [-10, 20, 0], '1': [-10, -10, 0], '2': [-10, 20, 0] } },
+  b.anim({ name: 'death', length: 1.2, loop: 'hold', channels: {
+    root: { rotation: { '0': [0, 0, 0], '0.6': [0, 0, -84], '1.2': [0, 0, -89] }, position: { '0': [0, 0, 0], '0.6': [0, bodyW * 0.28, 0], '1.2': [0, bodyW * 0.42, 0] } },
+    head: { rotation: { '0': [0, 0, 0], '0.6': [-20, 0, 0], '1.2': [-30, 0, 0] } },
+    tail: { rotation: { '0': [0, 0, 0], '0.6': [8, 0, 0], '1.2': [12, 0, 0] } },
   } });
   return b;
 }

@@ -447,6 +447,8 @@ export function paintAnimalFace(opts: {
       return;
     }
     if (style === 'sheep') {
+      px(ctx, 3, 5, '#f2ecdf', 3, 3);
+      px(ctx, 10, 5, '#f2ecdf', 3, 3);
       px(ctx, 4, 6, '#2a2522', 2, 2);
       px(ctx, 10, 6, '#2a2522', 2, 2);
       px(ctx, 6, 10, opts.snout, 4, 3);
