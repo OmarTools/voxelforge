@@ -19,6 +19,9 @@ import { PublishUI } from './PublishUI';
 import { TouchControls } from './TouchControls';
 import { type CameraMode, cameraModeLabel, isCameraMode } from './CameraModes';
 import { ScriptRuntime, type ScriptHost, type ScriptPlayerSnapshot } from '../scripting/ScriptRuntime';
+import { RaceSystem } from './RaceSystem';
+import { PostFX } from '../render/PostFX';
+import { WorldFX } from '../render/WorldFX';
 import { emptyScriptProject, type ScriptProject } from '../scripting/ScriptTypes';
 import { DialogueUI, Menus, loadSettings, openShop, saveSettings, type GameSettings } from './Menus';
 import {
@@ -218,6 +221,8 @@ export class Game {
   readonly input: Input;
   readonly particles: Particles;
   readonly sky: Sky;
+  readonly postfx: PostFX;
+  worldFx: WorldFX | null = null;
   readonly menus: Menus;
   readonly root: HTMLElement;
 
@@ -252,6 +257,7 @@ export class Game {
   readonly scripts: ScriptRuntime;
   cameraMode: CameraMode = 'first';
   vehicleStyle: 'kart' | 'car' = 'kart';
+  race: RaceSystem | null = null;
 
   studioProps: StudioProp[] = [];
   studioAssets: StudioAsset[] = [];
@@ -272,6 +278,7 @@ export class Game {
   private mapOverlay: HTMLDivElement | null = null;
   private victoryShown = false;
   private victoryTimer = 0;
+  private raceFinishTimer = 0;
   private autosaveTimer = 0;
   private mobTimer = 24;
   private checkpointFx = 0;
@@ -296,6 +303,7 @@ export class Game {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setClearColor(0x0a1418, 1);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.postfx = new PostFX(this.renderer, this.scene, this.camera);
 
     this.atlas = new TextureAtlas();
     this.audio = new AudioSystem();
@@ -850,6 +858,38 @@ export class Game {
     this.world.update(spawnX, spawnZ, 0);
     report(0.92, 'Warming the renderer', 'Building chunk meshes');
     await frame();
+    this.worldFx?.dispose();
+    this.worldFx = null;
+    const preset = template.fx?.post
+      ?? (template.key === 'racing' ? 'racing' : template.key === 'city' ? 'neon' : template.key === 'horror' ? 'horror' : 'default');
+    this.postfx.setPreset(preset);
+    if (template.fx) {
+      this.worldFx = new WorldFX(this.scene, template.fx, this.baseY);
+    }
+    this.raceFinishTimer = 0;
+    if (template.race) {
+      const config = template.race;
+      this.race = new RaceSystem(
+        this.scene,
+        this.player,
+        this.audio,
+        {
+          laps: config.laps,
+          rx: config.rx,
+          rz: config.rz,
+          startAngle: config.startAngle ?? Math.PI + 0.25,
+          gateRadius: config.gateRadius ?? 6.2,
+          baseY: this.baseY,
+        },
+        {
+          banner: (kicker, big, sub, duration) => this.hud.showWaveBanner(kicker, big, sub, duration),
+          toast: (message, kind) => this.toast(message, kind),
+          onFinish: () => {
+            this.raceFinishTimer = 5.2;
+          },
+        },
+      );
+    }
     this.hud.setInteractHint(null);
     this.hud.setBreakProgress(0);
     report(1, 'Ready', template.name);
@@ -1054,6 +1094,14 @@ export class Game {
     this.renderer.setSize(width, height);
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
+    this.postfx.setSize(width, height);
+  }
+
+  private renderFrame(dt: number): void {
+    const speed = this.started && this.player
+      ? Math.min(1, this.template.race ? Math.abs(this.player.vehicleSpeed) / 28 : this.player.sprinting ? 0.16 : 0)
+      : 0;
+    this.postfx.render(dt, { speed, underwater: Boolean(this.player?.underwater) });
   }
 
   private tick = (): void => {
@@ -1065,6 +1113,7 @@ export class Game {
         this.sky.update(dt, this.camera.position);
         this.world.update(this.camera.position.x, this.camera.position.z, dt);
         this.particles.update(dt);
+        this.worldFx?.update(dt);
         this.studio.update(dt);
         this.audio.update(dt, {
           night: this.sky.isNight,
@@ -1076,13 +1125,13 @@ export class Game {
         this.updateSession(dt);
       } else {
         this.input.endFrame();
-        this.renderer.render(this.scene, this.camera);
+        this.renderFrame(dt);
         return;
       }
     } else {
       this.renderMenuBackdrop(dt);
     }
-    this.renderer.render(this.scene, this.camera);
+    this.renderFrame(dt);
     this.input.endFrame();
   };
 
@@ -1119,8 +1168,19 @@ export class Game {
     }
 
     const before = player.position.clone();
-    player.update(dt, input, { paused: false });
+    player.update(dt, input, { paused: this.race?.controlsLocked ?? false });
     this.stats.distance += before.distanceTo(player.position);
+
+    if (this.race) {
+      this.race.update(dt);
+      if (this.raceFinishTimer > 0) {
+        this.raceFinishTimer = Math.max(0, this.raceFinishTimer - dt);
+        if (this.raceFinishTimer === 0 && !this.ended) {
+          const state = this.race.hud();
+          this.endGame(true, 'Race Complete', `P${state.finishPosition} of ${state.total} · ${this.formatRaceTime(state.finishTime)}`);
+        }
+      }
+    }
 
     const previousTime = this.sky.time;
     this.sky.advance(dt);
@@ -1134,6 +1194,7 @@ export class Game {
 
     this.entities.update(dt);
     this.particles.update(dt);
+    this.worldFx?.update(dt);
 
     this.attackCooldown = Math.max(0, this.attackCooldown - dt);
     this.useCooldown = Math.max(0, this.useCooldown - dt);
@@ -1936,6 +1997,13 @@ export class Game {
     this.endGame(false, 'You Died', `${source} · Day ${this.dayCount}`);
   }
 
+  private formatRaceTime(seconds: number): string {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    const cs = Math.floor((seconds % 1) * 100);
+    return `${m}:${String(s).padStart(2, '0')}.${String(cs).padStart(2, '0')}`;
+  }
+
   private endGame(win: boolean, title?: string, subtitle?: string): void {
     if (this.ended) return;
     this.ended = true;
@@ -2154,6 +2222,15 @@ export class Game {
     this.menus.hideEnd();
     if (this.hud?.el) this.hud.el.classList.add('hidden');
     if (this.touchControls) this.touchControls.setActive(false);
+    if (this.race) {
+      this.race.dispose();
+      this.race = null;
+    }
+    if (this.worldFx) {
+      this.worldFx.dispose();
+      this.worldFx = null;
+    }
+    this.raceFinishTimer = 0;
     this.studio.close();
     this.input.exitLock();
     if (this.studioPropsGroup) this.studioPropsGroup.clear();

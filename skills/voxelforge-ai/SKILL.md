@@ -46,7 +46,7 @@ text block.
 
 | Tool | Arguments | Notes |
 | --- | --- | --- |
-| `voxelforge_state` | none | Player, camera, vehicle, world, objectives, scripts |
+| `voxelforge_state` | none | Player, camera, vehicle, race, world, objectives, scripts |
 | `voxelforge_list` | `kind` | Content catalog |
 | `voxelforge_launch` | `template` | Starts a template from scratch |
 | `voxelforge_camera` | `mode` or `cycle` | `first`, `third`, `isometric`, `top-down`, `side`, `next` |
@@ -72,7 +72,8 @@ text block.
 ## Launchable templates
 
 `creative`, `survival`, `skyblock`, `parkour`, `arena`, `rpg`, `horror`,
-`dungeon`, `racing`, `army`, `city`, `platformer`, `studio`.
+`dungeon`, `racing`, `army`, `city`, `platformer`, `frostpeak`, `dune`,
+`skytemple`, `studio`.
 
 New in 1.1:
 
@@ -82,6 +83,9 @@ New in 1.1:
 | `army` | Ironhold Siege | First-person, rifle waves and animated soldiers |
 | `city` | Neon Heights | Third-person / vehicle car, GTA-style blocks |
 | `platformer` | Spore Valley | Side view, locked look, A/D screen-relative |
+| `frostpeak` | Frostpeak Expedition | First-person snow adventure, village + ice cavern + wyrm |
+| `dune` | Sunscour Wastes | First-person desert adventure, outpost + bandits + temple |
+| `skytemple` | Sky Temple Trials | First-person sky parkour, five islands + crystal guardian |
 
 ## Camera and vehicle
 
@@ -92,6 +96,37 @@ New in 1.1:
   W/S throttle, A/D steer, Shift boosts. Leaving restores the prior mode where
   possible.
 - Player-facing keys: `F5` cycles cameras, `F6` toggles the vehicle.
+
+## Racing and race state
+
+`racing` is a full race, not an empty track: the player kart and five AI karts
+share the voxel kart model, a countdown locks the controls, and the director
+tracks 16 gates over three laps with lap/best times, live positions and a
+results screen. `voxelforge_state` exposes:
+
+```json
+"race": {
+  "state": "countdown | racing | finished",
+  "lap": 1, "laps": 3, "position": 6, "total": 6,
+  "time": 12.34, "lastLap": null, "bestLap": null,
+  "speed": 0, "countdown": 3.2, "wrongWay": false,
+  "finishPosition": 0, "finishTime": 0,
+  "standings": [{ "name": "You", "lap": 1, "player": true }]
+}
+```
+
+Use `voxelforge_launch` with `racing` to restart the race. The template's
+`race` config (`laps`, `rx`, `rz`, gate radius) is returned under
+`state.template.race`.
+
+## Template look: post-processing and world FX
+
+Templates may declare an `fx` block. `post` selects a grading preset
+(`default`, `racing`, `neon`, `horror`, `frost`, `desert`); `neon`, `hologram`,
+`aurora`, `energy`, and `water` add animated shader props. The reusable
+materials live in `src/engine/render/Shaders.ts`, the composer in `PostFX.ts`,
+and the decoration in `WorldFX.ts`. All of it is optional and driven by the
+template, so AI commands do not need to enable it manually.
 
 ## VoxelScript reference
 
@@ -212,8 +247,10 @@ VoxelScript global.
   with orbit/zoom and an asset inspector.
 
 Prefab keys include `race_track`, `army_base`, `city_block`, `skyscraper`,
-`platform_course` plus the original village, dungeon, arena and parkour pieces.
-Use `voxelforge_list` with `kind=prefabs` for the current list and sizes.
+`platform_course`, `frost_village`, `ice_cavern`, `summit_shrine`, `hot_spring`,
+`desert_outpost`, `bandit_camp`, `sunken_temple`, `sky_temple` plus the original
+village, dungeon, arena and parkour pieces. Use `voxelforge_list` with
+`kind=prefabs` for the current list and sizes.
 
 ## Rules
 
@@ -246,7 +283,9 @@ standalone path.
 2. Make one change.
 3. `voxelforge_state` or `voxelforge_entities` — confirm it landed.
 4. For scripts: `voxelforge_get_scripts`, check `compileError` in state.
-5. For publishing: call with `web` first; confirm the download and inspect the
+5. For races: launch `racing`, read `state.race` for countdown, lap, position
+   and standings; a finished race ends on the results screen.
+6. For publishing: call with `web` first; confirm the download and inspect the
    console for runtime fetch errors.
 
 ## Useful project paths

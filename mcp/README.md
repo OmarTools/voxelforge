@@ -123,7 +123,7 @@ works; the server needs no SDK.
 
 | Tool | What it does |
 | --- | --- |
-| `voxelforge_state` | Player, camera, vehicle, world, objectives, scripts |
+| `voxelforge_state` | Player, camera, vehicle, race, world, objectives, scripts |
 | `voxelforge_list` | Templates, items, blocks, prefabs, entities, cameras, commands |
 | `voxelforge_launch` | Launch a template from scratch |
 | `voxelforge_camera` | First, third, isometric, top-down, side, or cycle |

@@ -12,6 +12,8 @@ import { buildAssetModel } from '../../content/Models';
 import { loadBlockbenchModel, ModelInstance } from '../blockbench/BBModelLoader';
 import { clamp } from '../core/Utils';
 import { CAMERA_MODES, cameraModeLabel, isCameraMode, type CameraMode } from './CameraModes';
+import { buildHeldItemModel, type HeldCategory } from './HeldItems';
+import { buildKartModel, type KartVisual } from './Karts';
 
 const PLAYER_HALF_WIDTH = 0.3;
 const PLAYER_HEIGHT = 1.8;
@@ -19,6 +21,23 @@ const CROUCH_HEIGHT = 1.52;
 const EPS = 0.001;
 const GRAVITY = 26;
 const JUMP_SPEED = 8.6;
+
+/** Base first-person pose for each held-item family. */
+const HELD_POSES: Record<string, { x: number; y: number; z: number; rx: number; ry: number; rz: number }> = {
+  block: { x: 0.46, y: -0.36, z: -0.78, rx: 0.08, ry: -0.48, rz: 0.06 },
+  sword: { x: 0.44, y: -0.34, z: -0.74, rx: 0.06, ry: -0.22, rz: 0.02 },
+  tool: { x: 0.45, y: -0.34, z: -0.74, rx: 0.06, ry: -0.2, rz: 0.02 },
+  gun: { x: 0.33, y: -0.32, z: -0.66, rx: 0.02, ry: -0.04, rz: 0.01 },
+  bow: { x: 0.37, y: -0.33, z: -0.7, rx: 0.04, ry: -0.1, rz: -0.02 },
+  staff: { x: 0.38, y: -0.35, z: -0.72, rx: 0.05, ry: -0.08, rz: -0.02 },
+  shield: { x: 0.4, y: -0.33, z: -0.7, rx: 0.02, ry: -0.18, rz: 0 },
+  food: { x: 0.4, y: -0.36, z: -0.7, rx: 0.06, ry: -0.18, rz: -0.08 },
+  torch: { x: 0.43, y: -0.34, z: -0.74, rx: 0.06, ry: -0.18, rz: 0 },
+  potion: { x: 0.4, y: -0.36, z: -0.7, rx: 0.06, ry: -0.18, rz: -0.08 },
+  armor: { x: 0.41, y: -0.35, z: -0.72, rx: 0.06, ry: -0.16, rz: 0 },
+  material: { x: 0.41, y: -0.36, z: -0.7, rx: 0.06, ry: -0.18, rz: -0.05 },
+  special: { x: 0.41, y: -0.36, z: -0.7, rx: 0.06, ry: -0.18, rz: -0.05 },
+};
 
 export interface PlayerHooks {
   onDamage?: (amount: number, source: string) => void;
@@ -32,6 +51,8 @@ interface HeldView {
   group: THREE.Group;
   key: string;
   blockKey?: string;
+  category?: HeldCategory;
+  reach: number;
 }
 
 /**
@@ -84,6 +105,7 @@ export class Player implements PlayerHandle {
   private model: ModelInstance;
   private modelRoot = new THREE.Group();
   private vehicleRoot = new THREE.Group();
+  private kart?: KartVisual;
   private viewModel = new THREE.Group();
   private held?: HeldView;
   private viewCache = new Map<string, HeldView>();
@@ -93,6 +115,7 @@ export class Player implements PlayerHandle {
   private iconTextureCache = new Map<string, THREE.Texture>();
   private swingTime = 0;
   private swingDuration = 0.3;
+  private muzzleTimer = 0;
   private bobTime = 0;
   private stepTimer = 0;
   private fallDistance = 0;
@@ -244,33 +267,14 @@ export class Player implements PlayerHandle {
 
   private buildVehicle(): void {
     this.vehicleRoot.clear();
-    const paint = this.vehicleStyle === 'car' ? 0xd9b33f : 0xe8552f;
-    const bodyMat = new THREE.MeshLambertMaterial({ color: paint });
-    const darkMat = new THREE.MeshLambertMaterial({ color: 0x22262c });
-    const trimMat = new THREE.MeshLambertMaterial({ color: 0xe7eef1 });
-    const glassMat = new THREE.MeshLambertMaterial({ color: 0x8ed9ef, transparent: true, opacity: 0.72 });
-    const wheelMat = new THREE.MeshLambertMaterial({ color: 0x121417 });
-    const add = (geometry: THREE.BufferGeometry, material: THREE.Material, x: number, y: number, z: number) => {
-      const mesh = new THREE.Mesh(geometry, material);
-      mesh.position.set(x, y, z);
-      this.vehicleRoot.add(mesh);
-      return mesh;
-    };
-    add(new THREE.BoxGeometry(1.9, 0.45, 3.1), bodyMat, 0, 0.55, 0);
-    add(new THREE.BoxGeometry(1.5, 0.32, 1.1), bodyMat, 0, 0.92, -0.35);
-    add(new THREE.BoxGeometry(1.25, 0.36, 0.12), glassMat, 0, 1.14, 0.15);
-    add(new THREE.BoxGeometry(1.95, 0.14, 0.55), trimMat, 0, 0.34, -1.25);
-    add(new THREE.BoxGeometry(0.24, 0.9, 0.24), darkMat, 0, 0.98, 1.35);
-    add(new THREE.BoxGeometry(1.7, 0.18, 0.2), bodyMat, 0, 1.38, 1.35);
-    add(new THREE.SphereGeometry(0.27, 10, 8), new THREE.MeshLambertMaterial({ color: 0xe9c18b }), 0, 1.15, 0.05);
-    add(new THREE.BoxGeometry(0.5, 0.2, 0.55), new THREE.MeshLambertMaterial({ color: paint }), 0, 1.33, 0.05);
-    const wheelGeo = new THREE.CylinderGeometry(0.36, 0.36, 0.28, 12);
-    for (const x of [-0.98, 0.98]) {
-      for (const z of [-1.0, 1.0]) {
-        const wheel = add(wheelGeo.clone(), wheelMat, x, 0.36, z);
-        wheel.rotation.z = Math.PI / 2;
-      }
-    }
+    const visual = buildKartModel({
+      body: this.vehicleStyle === 'car' ? '#d9b33f' : '#e8552f',
+      accent: this.vehicleStyle === 'car' ? '#2a2f35' : '#f0f4f6',
+      suit: this.vehicleStyle === 'car' ? '#8a5a32' : '#2f5fa6',
+      helmet: '#f0f4f6',
+    });
+    this.kart = visual;
+    this.vehicleRoot.add(visual.root);
     this.vehicleRoot.rotation.order = 'YXZ';
   }
 
@@ -295,6 +299,14 @@ export class Player implements PlayerHandle {
     if (this.swingTime > 0) return;
     this.swingTime = this.swingDuration;
     this.shake = Math.max(this.shake, power * 0.01);
+  }
+
+  /** Pop the muzzle flash on the current held gun/staff for a couple frames. */
+  flashMuzzle(): void {
+    const flash = this.held?.group.userData.flash as THREE.Object3D | undefined;
+    if (!flash) return;
+    flash.visible = true;
+    this.muzzleTimer = 0.055;
   }
 
   playAction(name: string): void {
@@ -377,17 +389,9 @@ export class Player implements PlayerHandle {
     const key = stack?.item ?? '';
     if (this.held?.key === key) return;
     if (this.held) {
+      // Keep the model in viewCache: disposing it here would leave the cache
+      // holding dead geometry, so switching back to the item drew nothing.
       this.viewModel.remove(this.held.group);
-      this.held.group.traverse((obj) => {
-        const mesh = obj as THREE.Mesh;
-        if (mesh.isMesh) {
-          mesh.geometry?.dispose();
-          const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-          for (const mat of mats) {
-            if (mat && !this.isCachedMaterial(mat)) mat.dispose();
-          }
-        }
-      });
     }
     this.viewModel.clear();
     this.held = undefined;
@@ -403,38 +407,38 @@ export class Player implements PlayerHandle {
     const def = itemOrNull(key);
     const group = new THREE.Group();
     group.name = `held-${key}`;
-    if (def?.block) {
+    let category: HeldCategory | undefined;
+    let reach = 0.8;
+    // Torches and lanterns are block items, but a cube reads badly in hand;
+    // give them the proper modelled versions instead.
+    const handHeldBlock = key === 'torch' || key === 'lantern';
+    if (def?.block && !handHeldBlock) {
       const cube = this.makeBlockCube(def.block, 0.22);
       cube.position.set(0, 0, 0);
       cube.rotation.set(0.32, 0.68, 0.12);
       group.add(cube);
-    } else {
-      const tex = this.iconTexture(key);
-      const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false });
-      const sprite = new THREE.Sprite(mat);
-      sprite.scale.set(0.36, 0.36, 1);
-      sprite.renderOrder = 10;
-      group.add(sprite);
-      group.rotation.set(-0.25, -0.35, -0.35);
+    } else if (def) {
+      const model = buildHeldItemModel(def);
+      if (model) {
+        group.add(model.group);
+        category = model.category;
+        reach = model.reach;
+        group.userData.flash = model.group.userData.flash;
+        group.userData.muzzle = model.muzzle;
+      } else {
+        const tex = this.iconTexture(key);
+        const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false });
+        const sprite = new THREE.Sprite(mat);
+        sprite.scale.set(0.36, 0.36, 1);
+        sprite.renderOrder = 10;
+        group.add(sprite);
+        group.rotation.set(-0.25, -0.35, -0.35);
+      }
     }
-    const entry: HeldView = { group, key, blockKey: def?.block };
+    const entry: HeldView = { group, key, blockKey: def?.block, category, reach };
     this.viewCache.set(key, entry);
     this.viewModel.add(group);
     this.held = entry;
-  }
-
-  private isCachedMaterial(mat: THREE.Material): boolean {
-    for (const entry of this.viewCache.values()) {
-      let found = false;
-      entry.group.traverse((obj) => {
-        const mesh = obj as THREE.Mesh;
-        if (!mesh.isMesh) return;
-        const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-        if (mats.includes(mat)) found = true;
-      });
-      if (found) return true;
-    }
-    return false;
   }
 
   private makeBlockCube(blockKey: string, size: number): THREE.Mesh {
@@ -694,9 +698,16 @@ export class Player implements PlayerHandle {
 
     this.updateVitals(dt);
     this.updateMovementFx(dt, Math.abs(this.vehicleSpeed) > 0.4);
-    this.vehicleRoot.position.set(0, 0, 0);
+    this.vehicleRoot.position.set(this.position.x, this.position.y, this.position.z);
     this.vehicleRoot.rotation.y = this.yaw;
     this.vehicleRoot.rotation.z = -steer * Math.min(0.08, Math.abs(this.vehicleSpeed) * 0.004);
+    if (this.kart) {
+      for (const wheel of this.kart.wheels) wheel.rotation.x -= this.vehicleSpeed * dt * 2.6;
+      for (const wheel of this.kart.frontWheels) wheel.rotation.y = steer * 0.42;
+      for (const light of this.kart.brakeLights) light.scale.y = brake ? 1.8 : 1;
+      for (const flame of this.kart.flames) flame.visible = boost && throttle;
+      this.kart.root.rotation.x = Math.sin(this.bobTime * 2) * 0.006;
+    }
     this.modelRoot.visible = false;
     this.vehicleRoot.visible = true;
     this.updateCameraTransform(dt);
@@ -771,11 +782,78 @@ export class Player implements PlayerHandle {
     const swing = Math.sin((1 - t) * Math.PI * 1.5) * (t > 0 ? 1 : 0);
     const bob = this.speed > 0.4 && this.onGround ? Math.sin(this.bobTime) * 0.018 : 0;
     const sway = this.speed > 0.4 && this.onGround ? Math.cos(this.bobTime * 0.5) * 0.012 : 0;
-    this.viewModel.position.set(0.46 + sway, -0.36 + bob - swing * 0.16, -0.78 + swing * 0.12);
-    this.viewModel.rotation.set(0.08 - swing * 0.9, -0.48 + swing * 0.35, 0.06 - swing * 0.25);
+    const cat = this.held.category;
+    const pose = HELD_POSES[cat ?? 'block'];
+    let x = pose.x + sway;
+    let y = pose.y + bob;
+    let z = pose.z;
+    let rx = pose.rx;
+    let ry = pose.ry;
+    let rz = pose.rz;
+
+    if (swing > 0) {
+      switch (cat) {
+        case 'gun':
+          z += swing * 0.1;
+          y += swing * 0.025;
+          rx += swing * 0.18;
+          break;
+        case 'bow':
+          z += swing * 0.05;
+          rx += swing * 0.12;
+          break;
+        case 'staff':
+          z += swing * 0.14;
+          rx += swing * 0.24;
+          ry += swing * 0.12;
+          break;
+        case 'sword':
+          x -= swing * 0.1;
+          y += swing * 0.05;
+          z += swing * 0.14;
+          rx -= swing * 0.55;
+          rz -= swing * 1.15;
+          break;
+        case 'tool':
+          y += swing * 0.04;
+          z += swing * 0.08;
+          rx -= swing * 0.9;
+          rz -= swing * 0.35;
+          break;
+        case 'food':
+        case 'potion':
+          y += swing * 0.1;
+          rx -= swing * 0.7;
+          break;
+        default:
+          y += swing * -0.16;
+          z += swing * 0.12;
+          rx -= swing * 0.9;
+          ry += swing * 0.35;
+          rz -= swing * 0.25;
+          break;
+      }
+    }
+
+    this.viewModel.position.set(x, y, z);
+    this.viewModel.rotation.set(rx, ry, rz);
     if (this.held.blockKey) {
       // subtle idle rotation
       this.held.group.rotation.y += dt * 0.16;
+    }
+
+    const flash = this.held.group.userData.flash as THREE.Object3D | undefined;
+    if (this.muzzleTimer > 0) {
+      this.muzzleTimer = Math.max(0, this.muzzleTimer - dt);
+      if (flash) {
+        flash.visible = this.muzzleTimer > 0;
+        if (flash.visible) {
+          flash.rotation.z += dt * 26;
+          flash.scale.setScalar(0.85 + Math.random() * 0.45);
+        }
+      }
+    } else if (flash?.visible) {
+      flash.visible = false;
     }
   }
 
@@ -976,6 +1054,10 @@ export class Player implements PlayerHandle {
         const mesh = obj as THREE.Mesh;
         if (!mesh.isMesh) return;
         mesh.geometry?.dispose();
+        // Held-item models share a module-level material cache; disposing
+        // those would break the models after a session restart. Only the
+        // per-block cube owns throwaway materials.
+        if (!view.blockKey) return;
         const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
         for (const mat of mats) mat?.dispose();
       });

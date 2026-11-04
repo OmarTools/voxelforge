@@ -1206,6 +1206,485 @@ export const PREFABS: Prefab[] = [
       }
     },
   },
+  {
+    key: 'frost_village', name: 'Frostpeak Village', description: 'A snowbound village of spruce longhouses, a campfire, watchtower, hot spring and palisade gate.',
+    size: [49, 24, 49], tags: ['snow', 'village', 'survival', 'frost'], glyph: '❄',
+    build(s) {
+      // Palisade with a south gate.
+      for (let x = -24; x <= 24; x++) {
+        for (const z of [-24, 24]) {
+          if (z === 24 && x >= -3 && x <= 3) continue;
+          s.fill(x, 1, z, x, 3, z, 'spruce_log');
+          if (x % 2 === 0) s.set(x, 4, z, 'snow_block');
+        }
+      }
+      for (let z = -24; z <= 24; z++) {
+        for (const x of [-24, 24]) {
+          s.fill(x, 1, z, x, 3, z, 'spruce_log');
+          if (z % 2 === 0) s.set(x, 4, z, 'snow_block');
+        }
+      }
+      // Gate arch.
+      s.fill(-4, 4, 24, 4, 4, 24, 'spruce_planks');
+      s.fill(-4, 5, 24, 4, 5, 24, 'snow_block');
+      s.set(-4, 6, 24, 'glowstone');
+      s.set(4, 6, 24, 'glowstone');
+
+      // Main longhouse.
+      s.fill(-11, 1, -10, 11, 1, 2, 'spruce_planks');
+      s.walls(-11, -10, 11, 2, 2, 6, 'spruce_log');
+      s.fill(-11, 7, -10, 11, 7, 2, 'spruce_planks');
+      s.gableRoof(-11, -10, 11, 2, 8, 'spruce_planks');
+      s.door(0, 2, 2);
+      s.window(-7, 4, 2); s.window(7, 4, 2);
+      s.window(-11, 4, -4); s.window(11, 4, -4);
+      s.set(-8, 2, -7, 'furnace');
+      s.set(8, 2, -7, 'crafting_table');
+      s.set(-2, 2, -7, 'chest');
+      s.set(2, 2, -7, 'chest');
+      s.fill(-9, 2, -2, -7, 2, -1, 'wool_red');
+      s.fill(7, 2, -2, 9, 2, -1, 'wool_blue');
+      s.torch(-5, 4, -1); s.torch(5, 4, -1);
+      s.set(0, 3, -9, 'glowstone');
+
+      // Side cabins.
+      for (const [cx, cz, wool] of [[-18, -13, 'wool_yellow'], [17, -14, 'wool_green']] as const) {
+        s.fill(cx - 4, 1, cz - 4, cx + 4, 1, cz + 4, 'spruce_planks');
+        s.walls(cx - 4, cz - 4, cx + 4, cz + 4, 2, 4, 'spruce_log');
+        s.fill(cx - 4, 5, cz - 4, cx + 4, 5, cz + 4, 'snow_block');
+        s.door(cx, cz + 4, 2);
+        s.window(cx - 2, 3, cz + 4);
+        s.fill(cx - 2, 2, cz - 2, cx + 1, 2, cz - 1, wool);
+        s.set(cx + 3, 2, cz - 3, 'chest');
+        s.torch(cx - 2, 3, cz + 3);
+      }
+
+      // Central campfire.
+      for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) s.set(dx, 1, 12 + dz, 'cobblestone');
+      s.set(0, 1, 12, 'magma');
+      for (const [dx, dz] of [[-2, 0], [2, 0], [0, -2], [0, 2]]) s.set(dx, 1, 12 + dz, 'spruce_log');
+      s.set(0, 2, 12, 'glowstone');
+
+      // Watchtower.
+      s.fill(15, 1, 11, 21, 1, 17, 'stone_bricks');
+      for (const [x, z] of [[15, 11], [21, 11], [15, 17], [21, 17]]) s.fill(x, 2, z, x, 9, z, 'spruce_log');
+      s.fill(15, 6, 11, 21, 6, 17, 'spruce_planks');
+      s.fill(15, 10, 11, 21, 10, 17, 'snow_block');
+      s.fill(14, 11, 10, 22, 11, 18, 'spruce_planks');
+      for (const [x, z] of [[15, 11], [21, 11], [15, 17], [21, 17]]) s.set(x, 7, z, 'torch');
+      s.set(18, 9, 14, 'chest');
+
+      // Market crates and lumber.
+      for (const [x, z] of [[-6, 18], [-7, 18], [-6, 19], [7, 17], [8, 17]]) s.set(x, 1, z, 'crate');
+      s.fill(10, 1, 20, 14, 1, 20, 'spruce_log');
+      s.fill(10, 2, 20, 14, 2, 20, 'spruce_log');
+      s.set(12, 3, 20, 'snow_block');
+
+      // Snowy pines around the edge.
+      for (const [x, z] of [[-20, 18], [-21, -2], [20, 20], [21, -6], [-14, 21], [14, -21], [-22, 9]]) {
+        s.fill(x, 1, z, x, 5, z, 'spruce_log');
+        s.fill(x - 2, 3, z - 2, x + 2, 4, z + 2, 'spruce_leaves');
+        s.fill(x - 1, 5, z - 1, x + 1, 6, z + 1, 'spruce_leaves');
+        s.set(x, 7, z, 'spruce_leaves');
+        s.set(x, 8, z, 'snow_block');
+      }
+      // Paths.
+      for (let z = 3; z <= 23; z++) s.set(0, 1, z, 'dirt_path');
+      for (let x = -16; x <= 16; x++) s.set(x, 1, 12, 'dirt_path');
+    },
+  },
+  {
+    key: 'ice_cavern', name: 'Rime Cavern', description: 'A frozen cave mouth descending into a crystal chamber with ice pillars, treasure and a sleeping colossus.',
+    size: [33, 22, 33], tags: ['snow', 'cave', 'dungeon', 'frost'], glyph: '⛰',
+    build(s) {
+      // Snow mound with a carved entrance facing south.
+      for (let y = 0; y <= 7; y++) {
+        const r = 13 - Math.floor(y * 1.4);
+        for (let z = -13; z <= 13; z++) {
+          for (let x = -13; x <= 13; x++) {
+            if (x * x + z * z > r * r) continue;
+            s.set(x, y, z, y >= 4 ? 'snow_block' : y > 0 ? 'ice' : 'snow_block');
+          }
+        }
+      }
+      // Entrance arch.
+      s.clear(-3, 1, 9, 3, 4, 13);
+      s.clear(-3, 1, 10, 3, 4, 10);
+      s.fill(-5, 1, 11, -4, 6, 11, 'ice');
+      s.fill(4, 1, 11, 5, 6, 11, 'ice');
+      s.fill(-4, 7, 11, 4, 7, 11, 'snow_block');
+      s.set(-3, 8, 11, 'glowstone'); s.set(3, 8, 11, 'glowstone');
+
+      // Descending corridor.
+      for (let i = 0; i < 10; i++) {
+        const z = 9 - i;
+        const y = -i;
+        s.clear(-2, y + 1, z, 2, y + 4, z);
+        s.fill(-3, y, z, 3, y, z, 'stone_bricks');
+        s.fill(-3, y + 1, z, -3, y + 4, z, 'ice');
+        s.fill(3, y + 1, z, 3, y + 4, z, 'ice');
+        s.fill(-3, y + 5, z, 3, y + 5, z, 'stone_bricks');
+        if (i % 3 === 0) s.set(0, y + 4, z, 'glowstone');
+      }
+
+      // Crystal chamber.
+      s.clear(-12, -12, -12, 12, -4, 0);
+      s.fill(-12, -13, -12, 12, -13, 0, 'stone_bricks');
+      for (let z = -12; z <= 0; z++) {
+        for (let x = -12; x <= 12; x++) {
+          if (x === -12 || x === 12 || z === -12 || z === 0) {
+            s.fill(x, -11, z, x, -4, z, 'ice');
+          }
+        }
+      }
+      // Ice pillars.
+      for (const [x, z] of [[-8, -4], [-8, -9], [8, -4], [8, -9], [0, -3]]) {
+        s.fill(x, -12, z, x, -4, z, 'ice');
+        s.set(x, -3, z, 'snow_block');
+      }
+      // Crystals and treasure.
+      for (const [x, z, y] of [[-6, -8, -12], [6, -8, -12], [0, -10, -12], [-3, -5, -12], [4, -6, -12]]) {
+        s.fill(x, y, z, x, y + 2, z, 'crystal_block');
+        s.set(x, y + 3, z, 'glowstone');
+      }
+      s.set(-10, -12, -2, 'chest');
+      s.set(10, -12, -2, 'chest');
+      s.set(0, -12, -12, 'gold_ore');
+      s.set(-1, -12, -12, 'gold_ore');
+      s.set(1, -12, -12, 'gold_ore');
+      // Frozen throne for the boss.
+      s.fill(-3, -12, -11, 3, -11, -11, 'stone_bricks');
+      s.fill(-3, -10, -11, -3, -7, -11, 'ice');
+      s.fill(3, -10, -11, 3, -7, -11, 'ice');
+      s.fill(-3, -6, -11, 3, -6, -11, 'ice');
+      // Stalactites.
+      for (const [x, z] of [[-9, -2], [9, -11], [-4, -7], [4, -2]]) {
+        s.fill(x, -4, z, x, -5, z, 'ice');
+        s.set(x, -6, z, 'ice');
+      }
+    },
+  },
+  {
+    key: 'summit_shrine', name: 'Frostpeak Summit', description: 'A stepped snow mountain crowned by a quartz shrine, beacon fire and dragon perch.',
+    size: [45, 38, 45], tags: ['snow', 'mountain', 'boss', 'frost'], glyph: '▲',
+    build(s) {
+      // Stepped cone.
+      for (let y = 0; y <= 22; y++) {
+        const r = 18 - y * 0.68;
+        const top = y === 22;
+        for (let z = -18; z <= 18; z++) {
+          for (let x = -18; x <= 18; x++) {
+            if (x * x + z * z > r * r) continue;
+            s.set(x, y, z, top ? 'snow_block' : y % 3 === 0 ? 'snow_block' : 'stone');
+          }
+        }
+      }
+      // Spiral ledge of packed snow.
+      for (let i = 0; i < 34; i++) {
+        const a = i * 0.52;
+        const y = 2 + Math.floor(i * 0.6);
+        const r = 17 - y * 0.62;
+        const x = Math.round(Math.cos(a) * r);
+        const z = Math.round(Math.sin(a) * r);
+        s.set(x, y + 1, z, 'snow_block');
+        if (i % 5 === 0) s.set(x, y + 2, z, 'glowstone');
+      }
+      // Summit platform and shrine.
+      s.fill(-6, 23, -6, 6, 23, 6, 'quartz_block');
+      s.fill(-5, 24, -5, 5, 24, 5, 'snow_block');
+      for (const [x, z] of [[-4, -4], [4, -4], [-4, 4], [4, 4]]) {
+        s.fill(x, 24, z, x, 28, z, 'quartz_block');
+        s.set(x, 29, z, 'glowstone');
+      }
+      s.fill(-5, 30, -5, 5, 30, 5, 'quartz_block');
+      s.fill(-4, 31, -4, 4, 31, 4, 'snow_block');
+      s.set(0, 32, 0, 'crystal_block');
+      s.set(0, 33, 0, 'glowstone');
+      s.set(0, 24, 0, 'gold_ore');
+      s.set(-2, 24, 0, 'chest');
+      // Dragon perch.
+      s.fill(-3, 24, -8, 3, 24, -7, 'obsidian');
+      s.fill(-2, 25, -8, 2, 25, -8, 'stone_bricks');
+      // Pine cluster on the lower slopes.
+      for (const [x, z] of [[-15, 6], [14, 10], [-10, -14], [16, -6]]) {
+        s.fill(x, 1, z, x, 5, z, 'spruce_log');
+        s.fill(x - 2, 3, z - 2, x + 2, 4, z + 2, 'spruce_leaves');
+        s.fill(x - 1, 5, z - 1, x + 1, 6, z + 1, 'spruce_leaves');
+        s.set(x, 7, z, 'snow_block');
+      }
+      // Ice spikes.
+      for (const [x, z, h] of [[-12, 2, 9], [11, -12, 11], [-6, 12, 8], [13, 3, 7]]) {
+        s.fill(x, 1, z, x, h, z, 'ice');
+        s.set(x, h + 1, z, 'snow_block');
+      }
+    },
+  },
+  {
+    key: 'hot_spring', name: 'Hot Spring', description: 'A steaming stone pool with benches and lantern posts — the warm heart of Frostpeak.',
+    size: [17, 6, 15], tags: ['snow', 'water', 'frost', 'decor'], glyph: '♨',
+    build(s) {
+      for (let z = -6; z <= 6; z++) {
+        for (let x = -7; x <= 7; x++) {
+          const d = (x / 6.2) ** 2 + (z / 5.2) ** 2;
+          if (d <= 1) s.set(x, 0, z, 'water');
+          else if (d <= 1.36) s.set(x, 0, z, 'stone_bricks');
+        }
+      }
+      for (const [x, z] of [[-7, -5], [7, -5], [-7, 5], [7, 5]]) {
+        s.fill(x, 1, z, x, 3, z, 'spruce_log');
+        s.set(x, 4, z, 'glowstone');
+      }
+      s.fill(-7, 0, 0, -6, 0, 0, 'stone_bricks');
+      s.fill(6, 0, 0, 7, 0, 0, 'stone_bricks');
+      for (const [x, z] of [[-5, -4], [5, -4]]) s.set(x, 1, z, 'snow_block');
+      s.fill(-2, 0, 6, 2, 0, 6, 'spruce_planks');
+      s.fill(-1, 1, 6, 1, 1, 6, 'spruce_planks');
+    },
+  },
+  {
+    key: 'desert_outpost', name: 'Sunscour Outpost', description: 'A sandstone trading outpost with a gate, well, bazaar awnings, palms and two flat-roofed houses.',
+    size: [47, 20, 47], tags: ['desert', 'village', 'outpost'], glyph: '☀',
+    build(s) {
+      // Courtyard.
+      s.fill(-22, 0, -22, 22, 0, 22, 'sandstone');
+      // Walls + corner towers.
+      s.walls(-22, -22, 22, 22, 1, 4, 'sandstone');
+      s.fill(-22, 5, -22, 22, 5, -22, 'sandstone');
+      s.fill(-22, 5, 22, 22, 5, 22, 'sandstone');
+      s.fill(-22, 5, -22, -22, 5, 22, 'sandstone');
+      s.fill(22, 5, -22, 22, 5, 22, 'sandstone');
+      s.fill(-3, 1, 22, 3, 4, 22, 'air');
+      s.fill(-4, 5, 22, 4, 6, 22, 'sandstone');
+      s.set(-4, 7, 22, 'glowstone'); s.set(4, 7, 22, 'glowstone');
+      for (const [x, z] of [[-22, -22], [22, -22], [-22, 22], [22, 22]]) {
+        s.fill(x - 2, 1, z - 2, x + 2, 7, z + 2, 'sandstone');
+        s.fill(x - 2, 8, z - 2, x + 2, 8, z + 2, 'terracotta');
+        s.set(x, 9, z, 'glowstone');
+      }
+      // Well.
+      for (let x = -2; x <= 2; x++) for (let z = -2; z <= 2; z++) {
+        if (Math.abs(x) === 2 || Math.abs(z) === 2) s.set(x, 1, z, 'cobblestone');
+        else s.set(x, 1, z, 'water');
+      }
+      s.fill(-2, 2, -2, -2, 4, -2, 'cobblestone');
+      s.fill(2, 2, -2, 2, 4, -2, 'cobblestone');
+      s.fill(-2, 5, -2, 2, 5, -2, 'spruce_planks');
+      // Bazaar awnings.
+      for (const [cx, cz, wool] of [[-12, 8, 'wool_red'], [11, 8, 'wool_yellow'], [-11, -6, 'wool_blue']] as const) {
+        s.fill(cx - 3, 1, cz - 2, cx + 3, 1, cz + 2, 'sandstone');
+        s.fill(cx - 3, 4, cz - 2, cx + 3, 4, cz + 2, wool);
+        for (const [dx, dz] of [[-3, -2], [3, -2], [-3, 2], [3, 2]]) s.fill(cx + dx, 1, cz + dz, cx + dx, 3, cz + dz, 'spruce_log');
+        s.set(cx, 2, cz, 'chest');
+        s.set(cx - 2, 2, cz + 2, 'crafting_table');
+      }
+      // Flat-roof houses.
+      for (const [cx, cz] of [[-16, -15], [15, -15]]) {
+        s.fill(cx - 5, 1, cz - 4, cx + 5, 1, cz + 4, 'sandstone');
+        s.walls(cx - 5, cz - 4, cx + 5, cz + 4, 2, 5, 'sandstone');
+        s.fill(cx - 5, 6, cz - 4, cx + 5, 6, cz + 4, 'terracotta');
+        s.door(cx, cz + 4, 2);
+        s.window(cx - 2, 3, cz + 4); s.window(cx + 2, 3, cz + 4);
+        s.set(cx - 4, 2, cz - 3, 'furnace');
+        s.set(cx + 4, 2, cz - 3, 'chest');
+        s.torch(cx, 3, cz + 3);
+      }
+      // Palms.
+      for (const [x, z] of [[-18, 16], [18, 16], [-18, -2], [18, 4]]) {
+        s.fill(x, 1, z, x, 5, z, 'spruce_log');
+        for (const [dx, dz] of [[-2, 0], [2, 0], [0, -2], [0, 2], [-1, -1], [1, 1]]) {
+          s.fill(x + dx, 6, z + dz, x + dx, 6, z + dz, 'oak_leaves');
+        }
+        s.set(x, 7, z, 'oak_leaves');
+      }
+      // Crates and rugs.
+      s.fill(6, 1, 18, 9, 1, 18, 'wool_red');
+      for (const [x, z] of [[-8, 18], [-9, 18], [-8, 19], [10, 14]]) s.set(x, 1, z, 'crate');
+      s.set(16, 1, 18, 'chest');
+    },
+  },
+  {
+    key: 'bandit_camp', name: 'Sunscour Bandit Camp', description: 'A raider camp of hide tents, a watchtower, cages, a campfire and stolen loot.',
+    size: [33, 14, 33], tags: ['desert', 'bandit', 'camp', 'combat'], glyph: '⚔',
+    build(s) {
+      // Sandy floor and partial palisade.
+      s.fill(-15, 0, -15, 15, 0, 15, 'sand');
+      for (let i = -14; i <= 14; i += 3) {
+        s.fill(i, 1, -14, i, 3, -14, 'spruce_log');
+        s.fill(-14, 1, i, -14, 3, i, 'spruce_log');
+        s.fill(14, 1, i, 14, 3, i, 'spruce_log');
+      }
+      // Hide tents.
+      for (const [cx, cz, wool] of [[-6, 3, 'wool_red'], [7, 2, 'wool_yellow'], [1, -7, 'wool_black']] as const) {
+        s.fill(cx - 3, 1, cz - 3, cx + 3, 1, cz + 3, 'sand');
+        s.fill(cx - 3, 2, cz, cx - 3, 3, cz, 'spruce_log');
+        s.fill(cx + 3, 2, cz, cx + 3, 3, cz, 'spruce_log');
+        s.fill(cx - 3, 4, cz - 3, cx + 3, 4, cz + 3, wool);
+        s.fill(cx - 2, 3, cz - 2, cx + 2, 3, cz + 2, wool);
+        s.set(cx, 2, cz, 'chest');
+        s.set(cx + 1, 2, cz + 1, 'wool_white');
+      }
+      // Campfire.
+      for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) s.set(dx, 1, dz, 'cobblestone');
+      s.set(0, 1, 0, 'magma');
+      s.set(0, 2, 0, 'glowstone');
+      for (const [dx, dz] of [[-2, 0], [2, 0], [0, -2], [0, 2]]) s.set(dx, 1, dz, 'spruce_log');
+      // Watchtower.
+      for (const [x, z] of [[9, 9], [13, 9], [9, 13], [13, 13]]) s.fill(x, 1, z, x, 7, z, 'spruce_log');
+      s.fill(9, 6, 9, 13, 6, 13, 'spruce_planks');
+      s.fill(8, 8, 8, 14, 8, 14, 'wool_red');
+      s.set(11, 7, 11, 'chest');
+      // Cages.
+      for (const [x, z] of [[-11, 8], [-7, 11]]) {
+        s.fill(x - 1, 1, z - 1, x + 1, 1, z + 1, 'cobblestone');
+        for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) s.fill(x + dx, 2, z + dz, x + dx, 4, z + dz, 'spruce_log');
+        s.fill(x - 1, 4, z - 1, x + 1, 4, z + 1, 'spruce_log');
+      }
+      // Banner poles and loot.
+      for (const [x, z] of [[-12, -10], [11, -10], [0, 12]]) {
+        s.fill(x, 1, z, x, 5, z, 'spruce_log');
+        s.fill(x + 1, 4, z, x + 2, 5, z, 'wool_red');
+      }
+      s.set(-4, 1, -4, 'chest');
+      s.set(4, 1, -8, 'chest');
+      s.fill(2, 1, 8, 5, 1, 9, 'wool_yellow');
+    },
+  },
+  {
+    key: 'sunken_temple', name: 'Sunscour Temple', description: 'A stepped sandstone pyramid half-buried in the dunes, with a loot chamber, traps and a summit shrine.',
+    size: [39, 26, 39], tags: ['desert', 'temple', 'dungeon', 'boss'], glyph: '▲',
+    build(s) {
+      // Sand apron and courtyard.
+      s.fill(-17, 0, -17, 17, 0, 17, 'sand');
+      s.fill(-14, 1, 16, 14, 1, 20, 'sandstone');
+      // Stepped pyramid tiers.
+      for (let tier = 0; tier < 6; tier++) {
+        const half = 15 - tier * 2;
+        const y = 1 + tier * 2;
+        s.fill(-half, y, -half, half, y + 1, half, tier % 2 === 0 ? 'sandstone' : 'terracotta');
+      }
+      // Entrance corridor from the south.
+      s.clear(-2, 2, 14, 2, 5, 14);
+      s.clear(-2, 2, 8, 2, 5, 14);
+      s.fill(-3, 2, 8, -3, 5, 14, 'sandstone');
+      s.fill(3, 2, 8, 3, 5, 14, 'sandstone');
+      s.fill(-3, 6, 8, 3, 6, 14, 'sandstone');
+      s.set(0, 6, 12, 'glowstone');
+      // Central chamber.
+      s.clear(-9, 2, -8, 9, 6, 8);
+      s.fill(-9, 1, -8, 9, 1, 8, 'sandstone');
+      s.fill(-9, 2, -8, -9, 6, 8, 'sandstone');
+      s.fill(9, 2, -8, 9, 6, 8, 'sandstone');
+      s.fill(-9, 2, 8, 9, 6, 8, 'sandstone');
+      s.fill(-9, 7, -8, 9, 7, 8, 'sandstone');
+      for (const [x, z] of [[-6, -5], [6, -5], [-6, 5], [6, 5]]) s.fill(x, 2, z, x, 6, z, 'terracotta');
+      // Treasure and altar.
+      s.fill(-2, 2, -7, 2, 2, -6, 'gold_ore');
+      s.set(-3, 2, -7, 'chest');
+      s.set(3, 2, -7, 'chest');
+      s.fill(-1, 3, -7, 1, 4, -7, 'crystal_block');
+      s.set(0, 5, -7, 'glowstone');
+      // Traps.
+      s.set(-6, 2, 0, 'tnt');
+      s.set(6, 2, 0, 'tnt');
+      s.fill(-4, 2, 3, 4, 2, 3, 'gold_ore');
+      // Summit shrine.
+      s.fill(-5, 13, -5, 5, 13, 5, 'sandstone');
+      for (const [x, z] of [[-4, -4], [4, -4], [-4, 4], [4, 4]]) {
+        s.fill(x, 14, z, x, 17, z, 'quartz_block');
+      }
+      s.fill(-5, 18, -5, 5, 18, 5, 'terracotta');
+      s.set(0, 19, 0, 'glowstone');
+      s.set(0, 14, 0, 'gold_ore');
+      // Obelisks and palms.
+      for (const [x, z] of [[-13, 14], [13, 14], [-13, -14], [13, -14]]) {
+        s.fill(x, 1, z, x, 5, z, 'terracotta');
+        s.set(x, 6, z, 'glowstone');
+      }
+      for (const [x, z] of [[-16, 4], [16, 2], [-15, -8], [15, -9]]) {
+        s.fill(x, 1, z, x, 5, z, 'spruce_log');
+        s.fill(x - 2, 6, z, x + 2, 6, z, 'oak_leaves');
+        s.fill(x, 6, z - 2, x, 6, z + 2, 'oak_leaves');
+      }
+      // Fallen blocks and half-buried ruins.
+      for (const [x, z] of [[-17, 10], [17, 9], [-16, -2], [18, -3]]) {
+        s.fill(x, 1, z, x + 1, 2, z, 'sandstone');
+      }
+    },
+  },
+  {
+    key: 'sky_temple', name: 'Sky Temple Trials', description: 'A chain of floating islands climbing through the clouds to a quartz temple, its guardian and a crystal crown.',
+    size: [90, 36, 90], tags: ['sky', 'temple', 'platformer', 'parkour'], glyph: '☁',
+    build(s) {
+      const island = (cx: number, cz: number, r: number, top: number) => {
+        for (let y = top; y >= top - 6; y--) {
+          const rr = Math.max(1, r + (y - top) * 0.72);
+          for (let z = -Math.ceil(rr); z <= Math.ceil(rr); z++) {
+            for (let x = -Math.ceil(rr); x <= Math.ceil(rr); x++) {
+              if (x * x + z * z > rr * rr) continue;
+              s.set(cx + x, y, cz + z, y === top ? 'grass_block' : y > top - 3 ? 'dirt' : 'stone');
+            }
+          }
+        }
+        // Hanging crystals.
+        if (r >= 4) {
+          s.set(cx, top - 4, cz, 'crystal_block');
+          s.set(cx, top - 5, cz, 'glowstone');
+        }
+      };
+      // Start island.
+      island(0, 8, 7, 0);
+      s.set(2, 1, 9, 'crafting_table');
+      s.set(-2, 1, 9, 'chest');
+      s.fill(-1, 1, 4, 1, 1, 4, 'quartz_block');
+      s.set(0, 2, 4, 'glowstone');
+      // Stepping islands. Each one rises a single block so the route is a
+      // genuine jump course rather than a wall of floating platforms.
+      island(0, -3, 5, 1);
+      island(7, -11, 4, 2);
+      island(-1, -19, 4, 3);
+      island(0, -25, 3, 4);
+      // Floating stepping stones halfway across the two widest gaps.
+      for (const [x, y, z] of [[4, 2, -7], [3, 3, -15]]) {
+        s.fill(x, y, z, x, y, z, 'quartz_block');
+      }
+      // The final stair: one-block rises from the last island to the temple
+      // floor at y = 8.
+      s.fill(-2, 5, -27, 2, 5, -27, 'quartz_block');
+      s.fill(-2, 6, -28, 2, 6, -28, 'quartz_block');
+      s.fill(-2, 7, -29, 2, 7, -29, 'quartz_block');
+      // Temple platform with an underside.
+      for (let y = 8; y >= 3; y--) {
+        const shrink = (8 - y) * 1.4;
+        const hx = Math.max(4, 11 - shrink);
+        const hz = Math.max(4, 10 - shrink);
+        s.fill(-hx, y, -40 - hz, hx, y, -40 + hz, y === 8 ? 'quartz_block' : 'stone');
+      }
+      // Temple floor and steps.
+      s.fill(-11, 8, -50, 11, 8, -30, 'quartz_block');
+      s.fill(-3, 9, -32, 3, 9, -31, 'quartz_block');
+      // Pillars and roof.
+      for (const [x, z] of [[-8, -47], [8, -47], [-8, -33], [8, -33]]) {
+        s.fill(x, 9, z, x, 14, z, 'quartz_block');
+        s.set(x, 15, z, 'gold_ore');
+      }
+      s.fill(-9, 15, -48, 9, 15, -32, 'quartz_block');
+      s.fill(-7, 16, -46, 7, 16, -34, 'snow_block');
+      // Shrine.
+      s.fill(-3, 9, -46, 3, 9, -40, 'quartz_block');
+      s.fill(-1, 10, -44, 1, 12, -42, 'crystal_block');
+      s.set(0, 13, -43, 'glowstone');
+      s.set(0, 14, -43, 'gold_ore');
+      s.set(-4, 9, -43, 'chest');
+      // Guardian dais.
+      s.fill(-2, 9, -38, 2, 9, -36, 'stone_bricks');
+      // Cloud-edge decoration.
+      for (const [x, z] of [[-35, -5], [30, -35], [-25, -45], [25, 15]]) {
+        s.set(x, -2, z, 'wool_white');
+        s.set(x + 1, -2, z, 'wool_white');
+        s.set(x, -1, z, 'wool_white');
+      }
+    },
+  },
 ];
 
 export const PREFAB_BY_KEY = new Map(PREFABS.map((p) => [p.key, p]));

@@ -50,6 +50,16 @@ export class HUD {
   private bossBar: HTMLDivElement;
   private bossFill: HTMLDivElement;
   private bossName: HTMLDivElement;
+  private racePanel: HTMLDivElement;
+  private racePosition: HTMLSpanElement;
+  private raceLap: HTMLSpanElement;
+  private raceClock: HTMLDivElement;
+  private raceLast: HTMLSpanElement;
+  private raceBest: HTMLSpanElement;
+  private raceSpeed: HTMLElement;
+  private raceWarning: HTMLDivElement;
+  private raceStandings: HTMLDivElement;
+  private raceSignature = '';
   private xpFill: HTMLDivElement;
   private levelLabel: HTMLDivElement;
   private hintEl: HTMLDivElement;
@@ -109,6 +119,20 @@ export class HUD {
           <div class="boss-fill" style="height:100%;width:100%;background:linear-gradient(90deg,#c2463d,#ff7c5c);transition:width .25s"></div>
         </div>
       </div>
+      <div class="race-panel hidden">
+        <div class="race-top">
+          <span class="race-position">P1</span>
+          <span class="race-lap">LAP 1/3</span>
+        </div>
+        <div class="race-clock">0:00.00</div>
+        <div class="race-lines">
+          <span class="race-last">LAST --</span>
+          <span class="race-best">BEST --</span>
+        </div>
+        <div class="race-speed"><b>0</b><span>km/h</span></div>
+        <div class="race-warning hidden">WRONG WAY</div>
+        <div class="race-standings"></div>
+      </div>
       <div class="hud-bottom">
         <div class="vitals">
           <div class="vital-group hearts"></div>
@@ -160,6 +184,15 @@ export class HUD {
     this.bossBar = this.el.querySelector('.boss-wrap') as HTMLDivElement;
     this.bossFill = this.el.querySelector('.boss-fill') as HTMLDivElement;
     this.bossName = this.el.querySelector('.boss-name') as HTMLDivElement;
+    this.racePanel = this.el.querySelector('.race-panel') as HTMLDivElement;
+    this.racePosition = this.el.querySelector('.race-position') as HTMLSpanElement;
+    this.raceLap = this.el.querySelector('.race-lap') as HTMLSpanElement;
+    this.raceClock = this.el.querySelector('.race-clock') as HTMLDivElement;
+    this.raceLast = this.el.querySelector('.race-last') as HTMLSpanElement;
+    this.raceBest = this.el.querySelector('.race-best') as HTMLSpanElement;
+    this.raceSpeed = this.el.querySelector('.race-speed') as HTMLElement;
+    this.raceWarning = this.el.querySelector('.race-warning') as HTMLDivElement;
+    this.raceStandings = this.el.querySelector('.race-standings') as HTMLDivElement;
     this.xpFill = this.el.querySelector('.xp-fill') as HTMLDivElement;
     this.levelLabel = this.el.querySelector('.level-label') as HTMLDivElement;
     this.hintEl = this.el.querySelector('.hud-hints') as HTMLDivElement;
@@ -332,6 +365,33 @@ export class HUD {
       this.bossBar.style.display = 'none';
     }
 
+    // Race director panel.
+    const race = game.race?.hud() ?? null;
+    this.racePanel.classList.toggle('hidden', !race);
+    if (race) {
+      this.racePosition.textContent = race.state === 'finished' ? `P${race.finishPosition}` : `P${race.position}/${race.total}`;
+      this.raceLap.textContent = race.state === 'finished' ? 'FINISHED' : `LAP ${Math.min(Math.max(1, race.lap), race.laps)}/${race.laps}`;
+      this.raceClock.textContent = this.timeText(race.time);
+      this.raceLast.textContent = `LAST ${race.lastLap != null ? this.timeText(race.lastLap) : '--:--'}`;
+      this.raceBest.textContent = `BEST ${race.bestLap != null ? this.timeText(race.bestLap) : '--:--'}`;
+      this.raceSpeed.innerHTML = `<b>${Math.round(race.speed)}</b><span>km/h</span>`;
+      this.raceWarning.classList.toggle('hidden', !race.wrongWay);
+      this.racePanel.classList.toggle('finished', race.state === 'finished');
+      const signature = `${race.state}|${game.race?.standings().map((s) => s.name).join(',') ?? ''}`;
+      if (race.state === 'finished') {
+        if (signature !== this.raceSignature) {
+          this.raceSignature = signature;
+          const rows = game.race?.standings() ?? [];
+          this.raceStandings.innerHTML = rows
+            .map((row, index) => `<div class="race-row${row.player ? ' you' : ''}"><span>${index + 1}</span><i style="background:${row.color}"></i><b>${row.name}</b></div>`)
+            .join('');
+        }
+      } else if (this.raceStandings.innerHTML) {
+        this.raceStandings.innerHTML = '';
+        this.raceSignature = '';
+      }
+    }
+
     // Minimap at ~4 fps.
     if (now - this.lastMinimap > 0.24) {
       this.lastMinimap = now;
@@ -356,6 +416,13 @@ export class HUD {
       `;
     }
     void this.minimapAcc;
+  }
+
+  private timeText(seconds: number): string {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    const cs = Math.floor((seconds % 1) * 100);
+    return `${m}:${String(s).padStart(2, '0')}.${String(cs).padStart(2, '0')}`;
   }
 
   private renderHotbar(): void {

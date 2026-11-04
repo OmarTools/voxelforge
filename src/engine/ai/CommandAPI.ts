@@ -193,10 +193,13 @@ export class CommandAPI {
         mode: game.mode,
         camera: game.cameraMode,
         vehicle: game.template.vehicle ?? null,
+        race: game.template.race ?? null,
+        fx: game.template.fx ?? null,
       },
       player,
       camera: { mode: game.cameraMode, label: game.cameraLabel },
       vehicle: { enabled: player.vehicle, style: game.vehicleStyle },
+      race: game.race ? { ...game.race.hud(), standings: game.race.standings() } : null,
       world: {
         seed: game.seed,
         baseY: game.baseY,

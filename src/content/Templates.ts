@@ -2,7 +2,7 @@ import type { WorldPresetKey } from '../engine/world/TerrainGenerator';
 import type { CameraMode } from '../engine/game/CameraModes';
 import type { ScriptProject } from '../engine/scripting/ScriptTypes';
 
-export type GameMode = 'creative' | 'survival' | 'skyblock' | 'parkour' | 'arena' | 'rpg' | 'horror' | 'dungeon' | 'racing' | 'army' | 'city' | 'platformer' | 'studio';
+export type GameMode = 'creative' | 'survival' | 'skyblock' | 'parkour' | 'arena' | 'rpg' | 'horror' | 'dungeon' | 'racing' | 'army' | 'city' | 'platformer' | 'frostpeak' | 'dune' | 'skytemple' | 'studio';
 export type Difficulty = 'peaceful' | 'easy' | 'normal' | 'hard' | 'nightmare';
 export type ObjectiveKind = 'collect' | 'kill' | 'reach' | 'craft' | 'place' | 'talk' | 'survive' | 'wave';
 
@@ -105,6 +105,15 @@ export interface GameTemplate {
   spawnYOffset?: number;
   cameraMode?: CameraMode;
   vehicle?: { enabled: boolean; style: 'kart' | 'car' };
+  race?: { laps: number; rx: number; rz: number; startAngle?: number; gateRadius?: number };
+  fx?: {
+    neon?: boolean;
+    hologram?: boolean;
+    aurora?: boolean;
+    energy?: boolean;
+    water?: { x: number; z: number; width: number; depth: number; y?: number; rotation?: number };
+    post?: 'default' | 'racing' | 'neon' | 'horror' | 'frost' | 'desert';
+  };
   scripts?: ScriptProject;
   fallReset?: boolean;
   spawns: SpawnSpec[];
@@ -500,6 +509,7 @@ export const TEMPLATES: GameTemplate[] = [
     ],
     spawn: [0, 15],
     spawnYaw: Math.PI,
+    fx: { post: 'horror' },
     spawns: [
       { entity: 'human:ghost_wisp', offset: [0, 0, 4], name: 'The Pale Girl', id: 'ghost', dialogue: 'You can see me. Oh, thank the stars. Please — the cellar. He is still down there.' },
       { entity: 'human:cultist_void', offset: [0, 0, -10], count: 3, spread: 5, name: 'Hooded Figure' },
@@ -595,7 +605,7 @@ export const TEMPLATES: GameTemplate[] = [
     key: 'racing',
     name: 'Sunset Circuit',
     subtitle: 'Kart racing at golden hour',
-    description: 'A full oval circuit with checkered curbs, pit lane, grandstand and a kart waiting on the grid. F5 changes the camera, F6 gets you out and back in.',
+    description: 'A full three-lap kart race against five AI drivers on a banked oval circuit with checkered curbs, a start gantry, pit lane and packed grandstand. Shift is your boost; the chequered flag is the only thing that matters.',
     story: 'The sun is going down, the tyres are warm, and the only rule is that the finish line comes after the corners.',
     icon: '⚑',
     accent: '#ffb347',
@@ -607,25 +617,21 @@ export const TEMPLATES: GameTemplate[] = [
     music: 'day',
     platform: { radius: 36, surface: 'grass_block', border: 'concrete_white', clearHeight: 12 },
     prefabs: [{ prefab: 'race_track', x: 0, z: 0 }],
-    spawn: [-25, 2],
+    spawn: [-24, 9],
     spawnYaw: 0,
     cameraMode: 'third',
     vehicle: { enabled: true, style: 'kart' },
+    race: { laps: 3, rx: 25.5, rz: 15.5, startAngle: 3.3916, gateRadius: 6.2 },
     fallReset: true,
     spawns: [
       { entity: 'human:guard_city', offset: [16, 0, 10], name: 'Marshal Okafor', dialogue: 'Keep it on the black stuff. The tyres are fresh and the brakes are... mostly there.' },
-      { entity: 'human:adventurer', offset: [10, 0, -6], name: 'Crew Chief', dialogue: 'Three laps. Follow the curbs. Shift is your boost — do not cook the engine on the first corner.' },
+      { entity: 'human:adventurer', offset: [10, 0, -6], name: 'Crew Chief', dialogue: 'Three laps, five rivals. Shift is your boost — do not cook the engine on the first corner.' },
     ],
-    objectives: [
-      { id: 'north', title: 'Round the north hairpin', kind: 'reach', offset: [-25, 1, -15], radius: 5, count: 1 },
-      { id: 'east', title: 'Blast down the east straight', kind: 'reach', offset: [25, 1, 0], radius: 5, count: 1 },
-      { id: 'finish', title: 'Cross the finish line', kind: 'reach', offset: [0, 1, 16], radius: 5, count: 1, description: 'The chequered line on the south straight.' },
-    ],
+    objectives: [],
     quests: [],
     waves: [],
     checkpoints: [
-      { offset: [-25, 1, 2], radius: 4, label: 'Starting Grid' },
-      { offset: [0, 1, 17], radius: 4, label: 'South Curve' },
+      { offset: [-25, 1, -4], radius: 6, label: 'Start Line' },
     ],
     startingItems: [],
     hotbar: [],
@@ -635,14 +641,14 @@ export const TEMPLATES: GameTemplate[] = [
     },
     scripts: templateScript(`onStart(() => {
   camera('third');
-  say('Lights out. W to drive, Shift to boost, A/D to steer.', 'good');
+  say('Lights out in three. W to drive, Shift to boost, A/D to steer.', 'good');
 });
 onEvent('respawn', () => say('Back on the grid. Go again.', 'info'));
 `),
     stats: [
       { label: 'Circuit', value: '1.2 km' },
-      { label: 'Vehicle', value: 'Kart' },
-      { label: 'Camera', value: 'Chase' },
+      { label: 'Rivals', value: '5 AI' },
+      { label: 'Laps', value: '3' },
     ],
   },
   {
@@ -734,6 +740,7 @@ onEvent('kill', (event) => {
     spawnYaw: 0,
     cameraMode: 'third',
     vehicle: { enabled: false, style: 'car' },
+    fx: { neon: true, hologram: true, post: 'neon' },
     spawns: [
       { entity: 'human:guard_city', offset: [8, 0, 14], count: 2, spread: 3, name: 'City Watch' },
       { entity: 'human:bandit_road', offset: [-10, 0, 2], count: 3, spread: 5, name: 'Neon Syndicate' },
@@ -873,6 +880,268 @@ onEvent('respawn', () => say('Mind the gaps.', 'warn'));
       { label: 'Canvas', value: '512×512' },
       { label: 'Assets', value: '76' },
       { label: 'Mode', value: 'Studio' },
+    ],
+  },
+  {
+    key: 'frostpeak',
+    name: 'Frostpeak Expedition',
+    subtitle: 'A village under the aurora',
+    description: 'A snowbound village, a crystal cavern and a windswept summit. Take hunts from the villagers, descend into the ice and face the wyrm that nests above the clouds.',
+    story: 'The aurora has burned green for nine nights. Sigrun says that means the wyrm is awake — and that the mountain is waiting for someone foolish enough to climb it.',
+    icon: '❄',
+    accent: '#8bd8ff',
+    difficulty: 'hard',
+    tags: ['Adventure', 'Snow', 'Boss'],
+    preset: 'snow',
+    heightMode: 'ground',
+    timeOfDay: 8.4,
+    weather: 'snow',
+    music: 'day',
+    platform: { radius: 64, surface: 'snow_block', border: 'stone_bricks', clearHeight: 46 },
+    prefabs: [
+      { prefab: 'frost_village', x: 0, z: 0 },
+      { prefab: 'ice_cavern', x: 44, z: 12 },
+      { prefab: 'summit_shrine', x: 0, z: -46 },
+      { prefab: 'hot_spring', x: -40, z: 8 },
+    ],
+    spawn: [0, 30],
+    spawnYaw: 0,
+    spawns: [
+      { entity: 'human:snow_hunter', offset: [-5, 0, 18], name: 'Sigrun', id: 'sigrun', questId: 'winter', dialogue: 'Nine nights of green fire. The wyrm has woken under the summit, and my hunters will not go above the tree line. You will.' },
+      { entity: 'human:adventurer', offset: [6, 0, 16], name: 'Cael', id: 'cael', questId: 'wyrm', dialogue: 'I climbed to the shrine once. I came back with a cracked rib and no story worth telling. Bring a bow.' },
+      { entity: 'human:snow_hunter', offset: [-12, 0, 9], count: 2, spread: 4, name: 'Frost Hunter' },
+      { entity: 'human:villager_farmer', offset: [13, 0, 18], name: 'Hilda', dialogue: 'The hot spring is west of the gate. Warm your bones before you go dying on that mountain.' },
+      { entity: 'creature:sheep', offset: [12, 0, 6], count: 3, spread: 4 },
+      { entity: 'creature:wolf', offset: [-30, 0, 22], count: 2, spread: 4 },
+      { entity: 'creature:wisp', offset: [44, -13, 7], count: 3, spread: 3 },
+      { entity: 'creature:stone_golem', offset: [46, -13, 8], name: 'Rime Colossus', boss: true },
+      { entity: 'creature:frost_dragon', offset: [0, 27, -46], name: 'The Frost Wyrm', boss: true },
+    ],
+    objectives: [
+      { id: 'sigrun', title: 'Speak with Sigrun', kind: 'talk', target: 'sigrun', count: 1 },
+      { id: 'shards', title: 'Recover 4 crystal shards', kind: 'collect', target: 'crystal_shard', count: 4, description: 'Wisps haunt the crystal cavern east of the village.' },
+      { id: 'colossus', title: 'Break the Rime Colossus', kind: 'kill', target: 'creature:stone_golem', count: 1 },
+      { id: 'summit', title: 'Reach the summit shrine', kind: 'reach', offset: [0, 24, -46], radius: 8, count: 1, description: 'Follow the spiral ledge up the peak north of the village.' },
+      { id: 'wyrm', title: 'Slay the Frost Wyrm', kind: 'kill', target: 'creature:frost_dragon', count: 1 },
+    ],
+    quests: [
+      {
+        id: 'winter', title: 'The Long Winter', giver: 'Sigrun', summary: 'Sigrun needs crystal shards to relight the village ward, and proof that the summit path can still be walked.',
+        objectives: [
+          { id: 'q-shards', title: 'Collect crystal shards', kind: 'collect', target: 'crystal_shard', count: 4 },
+          { id: 'q-summit', title: 'Reach the summit shrine', kind: 'reach', offset: [0, 24, -46], radius: 8, count: 1 },
+        ],
+        reward: { xp: 220, items: [{ item: 'diamond_chestplate', count: 1 }, { item: 'golden_apple', count: 3 }], coins: 40 },
+      },
+      {
+        id: 'wyrm', title: 'Wings Above the Peak', giver: 'Cael', summary: 'Cael wants the Frost Wyrm gone before it descends on the village. The Rime Colossus in the cavern guards the old ballista bolts.',
+        objectives: [
+          { id: 'q-colossus', title: 'Defeat the Rime Colossus', kind: 'kill', target: 'creature:stone_golem', count: 1 },
+          { id: 'q-wyrm', title: 'Slay the Frost Wyrm', kind: 'kill', target: 'creature:frost_dragon', count: 1 },
+        ],
+        reward: { xp: 320, items: [{ item: 'diamond_sword', count: 1 }, { item: 'dragon_scale', count: 3 }], coins: 75 },
+      },
+    ],
+    waves: [],
+    checkpoints: [
+      { offset: [0, 1, 16], radius: 6, label: 'Frostpeak Village' },
+      { offset: [44, -12, 3], radius: 6, label: 'Rime Cavern' },
+      { offset: [0, 24, -46], radius: 7, label: 'Summit Shrine' },
+    ],
+    startingItems: [
+      { item: 'iron_sword', count: 1 },
+      { item: 'bow', count: 1 },
+      { item: 'arrow', count: 24 },
+      { item: 'iron_chestplate', count: 1 },
+      { item: 'bread', count: 8 },
+      { item: 'torch', count: 12 },
+      { item: 'water_bottle', count: 2 },
+      { item: 'coin', count: 15 },
+    ],
+    hotbar: ['iron_sword', 'bow', 'arrow', 'bread', 'torch', 'water_bottle', 'iron_chestplate', 'coin', 'torch'],
+    rules: { ...BASE_RULES, keepInventory: true, pvp: false },
+    fx: { aurora: true, post: 'frost' },
+    scripts: templateScript(`onStart(() => {
+  camera('first');
+  say('Sigrun is waiting inside the village gate. The cavern lies east; the summit, north.', 'info');
+  give('bread', 2);
+});
+onEvent('respawn', () => say('The cold takes you back to the last warm fire.', 'warn'));
+`),
+    stats: [
+      { label: 'Regions', value: '4' },
+      { label: 'Quests', value: '2' },
+      { label: 'Boss', value: 'Frost Wyrm' },
+    ],
+  },
+  {
+    key: 'dune',
+    name: 'Sunscour Wastes',
+    subtitle: 'Water, gold and bad company',
+    description: 'A desert outpost at the edge of the deep dunes, a bandit camp in the badlands and a buried temple full of traps. Keep your water close and your blade closer.',
+    story: 'The well still runs, which is why the bandits keep coming. The temple under the sand is why nobody has stayed to defend it.',
+    icon: '☀',
+    accent: '#f0b45a',
+    difficulty: 'normal',
+    tags: ['Adventure', 'Desert', 'Dungeon'],
+    preset: 'desert',
+    heightMode: 'ground',
+    timeOfDay: 12.6,
+    music: 'day',
+    platform: { radius: 66, surface: 'sand', border: 'sandstone', clearHeight: 32 },
+    prefabs: [
+      { prefab: 'desert_outpost', x: 0, z: 8 },
+      { prefab: 'sunken_temple', x: 0, z: -42 },
+      { prefab: 'bandit_camp', x: -40, z: 10 },
+    ],
+    spawn: [0, 38],
+    spawnYaw: 0,
+    spawns: [
+      { entity: 'human:desert_nomad', offset: [0, 0, 24], name: 'Sahir', id: 'sahir', questId: 'water', dialogue: 'The well is ours. The bandits seem to think otherwise. Five of them camped west of here — thin them out and I will fill your skins for free.' },
+      { entity: 'human:desert_nomad', offset: [3, 0, 14], name: 'Nadia', id: 'nadia', questId: 'crown', dialogue: 'My grandmother drew maps of the temple before the sand took it. The summit shrine is still there. So is whatever guards it.' },
+      { entity: 'human:guard_city', offset: [-6, 0, 22], count: 2, spread: 3, name: 'Outpost Guard' },
+      { entity: 'human:bandit_road', offset: [-40, 0, 20], count: 5, spread: 3 },
+      { entity: 'creature:scorpion', offset: [18, 0, -12], count: 3, spread: 5 },
+      { entity: 'creature:stone_golem', offset: [0, 1, -42], name: 'Temple Guardian', boss: true },
+      { entity: 'creature:cow', offset: [14, 0, 20], count: 2, spread: 4 },
+    ],
+    objectives: [
+      { id: 'sahir', title: 'Speak with Sahir', kind: 'talk', target: 'sahir', count: 1 },
+      { id: 'bandits', title: 'Drive off 5 dune bandits', kind: 'kill', target: 'human:bandit_road', count: 5 },
+      { id: 'scorpions', title: 'Clear 3 scorpion nests', kind: 'kill', target: 'creature:scorpion', count: 3 },
+      { id: 'guardian', title: 'Defeat the Temple Guardian', kind: 'kill', target: 'creature:stone_golem', count: 1 },
+      { id: 'summit', title: 'Climb the temple summit', kind: 'reach', offset: [0, 19, -42], radius: 7, count: 1, description: 'The shrine on top of the buried pyramid.' },
+    ],
+    quests: [
+      {
+        id: 'water', title: 'The Well at World\'s End', giver: 'Sahir', summary: 'The outpost well is the only water for a day\'s walk. The bandits west of the gate have been charging for it.',
+        objectives: [
+          { id: 'q-bandits', title: 'Defeat the dune bandits', kind: 'kill', target: 'human:bandit_road', count: 5 },
+          { id: 'q-scorpions', title: 'Clear the scorpion nests', kind: 'kill', target: 'creature:scorpion', count: 3 },
+        ],
+        reward: { xp: 160, items: [{ item: 'iron_chestplate', count: 1 }, { item: 'water_bottle', count: 4 }], coins: 45 },
+      },
+      {
+        id: 'crown', title: 'The Buried Crown', giver: 'Nadia', summary: 'Nadia wants proof that the temple summit still stands. The guardian beneath it has other ideas.',
+        objectives: [
+          { id: 'q-guardian', title: 'Defeat the Temple Guardian', kind: 'kill', target: 'creature:stone_golem', count: 1 },
+          { id: 'q-summit', title: 'Reach the temple summit', kind: 'reach', offset: [0, 19, -42], radius: 7, count: 1 },
+        ],
+        reward: { xp: 280, items: [{ item: 'diamond_sword', count: 1 }, { item: 'gold_ingot', count: 6 }], coins: 80 },
+      },
+    ],
+    waves: [],
+    checkpoints: [
+      { offset: [0, 1, 22], radius: 6, label: 'Sunscour Outpost' },
+      { offset: [-40, 1, 10], radius: 6, label: 'Bandit Camp' },
+      { offset: [0, 1, -25], radius: 5, label: 'Temple Entrance' },
+      { offset: [0, 19, -42], radius: 6, label: 'Temple Summit' },
+    ],
+    startingItems: [
+      { item: 'iron_sword', count: 1 },
+      { item: 'bow', count: 1 },
+      { item: 'arrow', count: 16 },
+      { item: 'leather_helmet', count: 1 },
+      { item: 'water_bottle', count: 4 },
+      { item: 'bread', count: 6 },
+      { item: 'torch', count: 10 },
+      { item: 'coin', count: 20 },
+    ],
+    hotbar: ['iron_sword', 'bow', 'arrow', 'water_bottle', 'bread', 'torch', 'leather_helmet', 'coin', 'water_bottle'],
+    rules: { ...BASE_RULES, keepInventory: true, pvp: false },
+    fx: { post: 'desert' },
+    scripts: templateScript(`onStart(() => {
+  camera('first');
+  say('Sahir is by the well. Nadia keeps the map table. West is bandit country; north is the temple.', 'info');
+});
+onEvent('respawn', () => say('The sand gives you back. Your water did not survive the trip.', 'warn'));
+`),
+    stats: [
+      { label: 'Regions', value: '3' },
+      { label: 'Quests', value: '2' },
+      { label: 'Boss', value: 'Temple Guardian' },
+    ],
+  },
+  {
+    key: 'skytemple',
+    name: 'Sky Temple Trials',
+    subtitle: 'A climb through the clouds',
+    description: 'A chain of floating islands above an endless drop, ending at a quartz temple and its crystal guardian. Leap the gaps, light the shrines and claim the crown of the sky.',
+    story: 'The temple was built for pilgrims who could fly. The stairs fell away centuries ago. The faithful learned to jump.',
+    icon: '☁',
+    accent: '#b8a4ff',
+    difficulty: 'hard',
+    tags: ['Sky', 'Parkour', 'Boss'],
+    preset: 'sky',
+    heightMode: 'sky',
+    skyBase: 82,
+    timeOfDay: 7.6,
+    music: 'day',
+    fallReset: true,
+    prefabs: [{ prefab: 'sky_temple', x: 0, z: 0 }],
+    spawn: [0, 12],
+    spawnYaw: 0,
+    spawns: [
+      { entity: 'human:elf_archer', offset: [3, 0, 10], name: 'Warden Sylva', id: 'sylva', questId: 'steps', dialogue: 'Four islands, four shrines, one very angry guardian. The gaps are wider than they look. Do not look down for too long.' },
+      { entity: 'human:adventurer', offset: [-2, 0, 8], name: 'Pip', id: 'pip', questId: 'guardian', dialogue: 'I made it to the third island once. Then I made friends with a wisp. It did not go well.' },
+      { entity: 'creature:wisp', offset: [0, 1, -3], count: 2, spread: 2 },
+      { entity: 'creature:wisp', offset: [7, 2, -11], count: 2, spread: 2 },
+      { entity: 'creature:wisp', offset: [-1, 3, -19], count: 2, spread: 2 },
+      { entity: 'creature:crystal_golem', offset: [0, 9, -37], name: 'Prism Guardian', boss: true },
+    ],
+    objectives: [
+      { id: 'sylva', title: 'Speak with Warden Sylva', kind: 'talk', target: 'sylva', count: 1 },
+      { id: 'shards', title: 'Gather 4 crystal shards', kind: 'collect', target: 'crystal_shard', count: 4, description: 'The wisps between the islands carry them.' },
+      { id: 'guardian', title: 'Defeat the Prism Guardian', kind: 'kill', target: 'creature:crystal_golem', count: 1 },
+      { id: 'temple', title: 'Enter the sky temple', kind: 'reach', offset: [0, 9, -43], radius: 6, count: 1, description: 'Cross all four islands to the quartz temple.' },
+    ],
+    quests: [
+      {
+        id: 'steps', title: 'Trial of Steps', giver: 'Sylva', summary: 'Sylva will open the temple way for anyone who can cross the islands and return with the wisps\' shards.',
+        objectives: [
+          { id: 'q-shards', title: 'Gather crystal shards', kind: 'collect', target: 'crystal_shard', count: 4 },
+          { id: 'q-temple', title: 'Reach the sky temple', kind: 'reach', offset: [0, 9, -43], radius: 6, count: 1 },
+        ],
+        reward: { xp: 240, items: [{ item: 'diamond_boots', count: 1 }, { item: 'golden_apple', count: 2 }], coins: 35 },
+      },
+      {
+        id: 'guardian', title: 'The Prism Heart', giver: 'Pip', summary: 'The guardian on the temple dais is the only thing keeping the sky islands aloft. Probably. Pip would like it gone anyway.',
+        objectives: [
+          { id: 'q-guardian', title: 'Defeat the Prism Guardian', kind: 'kill', target: 'creature:crystal_golem', count: 1 },
+        ],
+        reward: { xp: 300, items: [{ item: 'staff', count: 1 }, { item: 'crystal_shard', count: 4 }], coins: 70 },
+      },
+    ],
+    waves: [],
+    checkpoints: [
+      { offset: [0, 1, 8], radius: 5, label: 'Cloudfall Camp' },
+      { offset: [0, 2, -3], radius: 4, label: 'First Island' },
+      { offset: [-1, 4, -19], radius: 4, label: 'Third Island' },
+      { offset: [0, 9, -38], radius: 5, label: 'Sky Temple' },
+    ],
+    startingItems: [
+      { item: 'iron_sword', count: 1 },
+      { item: 'bow', count: 1 },
+      { item: 'arrow', count: 16 },
+      { item: 'leather_boots', count: 1 },
+      { item: 'bread', count: 6 },
+      { item: 'water_bottle', count: 2 },
+      { item: 'compass', count: 1 },
+      { item: 'coin', count: 10 },
+    ],
+    hotbar: ['iron_sword', 'bow', 'arrow', 'bread', 'water_bottle', 'compass', 'leather_boots', 'coin', 'bread'],
+    rules: { ...BASE_RULES, keepInventory: true, mobSpawning: false, pvp: false },
+    fx: { aurora: true, post: 'frost' },
+    scripts: templateScript(`onStart(() => {
+  camera('first');
+  say('Sylva waits at the camp. The stepping islands run north — follow the quartz markers.', 'info');
+});
+onEvent('respawn', () => say('The clouds catch you and set you back on the last island.', 'warn'));
+`),
+    stats: [
+      { label: 'Islands', value: '5' },
+      { label: 'Quests', value: '2' },
+      { label: 'Boss', value: 'Prism Guardian' },
     ],
   },
 ];
