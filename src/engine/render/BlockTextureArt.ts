@@ -833,6 +833,157 @@ export function drawTile(name: string): HTMLCanvasElement {
       px(ctx, 11, 6, '#91f4e5', 2, 1);
       break;
     }
+    case 'counter_top':
+      planks(ctx, rand, '#b98a58', '#8a6238', '#d2a873');
+      px(ctx, 0, 0, '#8a6238', TILE, 1);
+      px(ctx, 0, 0, '#8a6238', 1, TILE);
+      px(ctx, 15, 0, '#7a5530', 1, TILE);
+      px(ctx, 0, 15, '#7a5530', TILE, 1);
+      px(ctx, 2, 3, 'rgba(255,236,200,0.35)', 5, 1);
+      px(ctx, 9, 9, 'rgba(255,236,200,0.22)', 4, 1);
+      break;
+    case 'counter_side':
+      planks(ctx, rand, '#a97c4c', '#7d5932', '#c69a68');
+      px(ctx, 1, 2, '#6d4c2b', 6, 12);
+      px(ctx, 9, 2, '#6d4c2b', 6, 12);
+      px(ctx, 2, 3, '#c0915d', 4, 10);
+      px(ctx, 10, 3, '#c0915d', 4, 10);
+      px(ctx, 4, 7, '#e3c07c', 1, 2);
+      px(ctx, 12, 7, '#e3c07c', 1, 2);
+      px(ctx, 0, 0, '#7d5932', TILE, 1);
+      px(ctx, 0, 15, '#6d4c2b', TILE, 1);
+      break;
+    case 'stove_top':
+      paintBase(ctx, rand, '#4b5054', 6);
+      px(ctx, 0, 0, '#2c3033', TILE, 1);
+      px(ctx, 0, 15, '#2c3033', TILE, 1);
+      for (const [cx, cy] of [[4, 4], [11, 4], [4, 11], [11, 11]]) {
+        px(ctx, cx - 2, cy - 2, '#262a2d', 5, 5);
+        px(ctx, cx - 2, cy - 2, '#6f767b', 5, 1);
+        px(ctx, cx - 1, cy - 1, '#8b9297', 3, 1);
+        px(ctx, cx + 1, cy + 1, '#15181a', 2, 1);
+      }
+      px(ctx, 6, 8, '#d9a44c', 4, 1);
+      break;
+    case 'stove_side':
+      paintBase(ctx, rand, '#5c6266', 5);
+      px(ctx, 0, 0, '#3a3f43', TILE, 1);
+      px(ctx, 0, 2, '#7b8287', TILE, 1);
+      px(ctx, 0, 13, '#33373a', TILE, 1);
+      for (let i = 0; i < 4; i++) px(ctx, 2 + i * 4, 5, '#8d9499', 1, 1);
+      px(ctx, 2, 9, '#2f3336', 12, 2);
+      px(ctx, 3, 8, '#d9a44c', 2, 1);
+      px(ctx, 3, 9, '#d9a44c', 2, 1);
+      break;
+    case 'stove_front':
+      paintBase(ctx, rand, '#5c6266', 5);
+      px(ctx, 0, 0, '#3a3f43', TILE, 1);
+      px(ctx, 2, 4, '#2a2d30', 12, 8);
+      px(ctx, 3, 5, '#141618', 10, 6);
+      px(ctx, 4, 7, '#e07a2a', 4, 2);
+      px(ctx, 7, 6, '#f5b45a', 3, 2);
+      px(ctx, 10, 8, '#ffd98a', 2, 1);
+      px(ctx, 4, 12, '#8d9499', 8, 1);
+      px(ctx, 6, 2, '#c9a24c', 4, 1);
+      break;
+    case 'store_shelf_top':
+      planks(ctx, rand, '#9d7444', '#6f4f2b', '#bd8f59');
+      px(ctx, 0, 0, '#6f4f2b', TILE, 1);
+      px(ctx, 0, 0, '#6f4f2b', 1, TILE);
+      px(ctx, 15, 0, '#5c4124', 1, TILE);
+      px(ctx, 0, 15, '#5c4124', TILE, 1);
+      break;
+    case 'store_shelf_side': {
+      planks(ctx, rand, '#956d40', '#684a29', '#b88a56');
+      for (let row = 0; row < 3; row++) {
+        const y = 2 + row * 4;
+        px(ctx, 1, y + 3, '#4f381f', 14, 1);
+        px(ctx, 1, y + 3, '#c49a66', 14, 1);
+        const colors = ['#c94b45', '#4f8f5a', '#d9a63f', '#5b7fb8', '#a86fc4'];
+        for (let i = 0; i < 4; i++) {
+          const c = colors[(row * 3 + i) % colors.length];
+          px(ctx, 1 + i * 3, y, c, 2, 3);
+          px(ctx, 1 + i * 3, y, rgba('#ffffff', 0.28), 1, 1);
+          px(ctx, 1 + i * 3, y + 2, rgba('#000000', 0.22), 2, 1);
+        }
+      }
+      px(ctx, 0, 0, '#684a29', TILE, 1);
+      px(ctx, 0, 15, '#4f381f', TILE, 1);
+      break;
+    }
+    case 'chalkboard':
+      planks(ctx, rand, '#6b4c2c', '#4c351e', '#87643c');
+      px(ctx, 1, 1, '#2c3a34', 14, 14);
+      px(ctx, 2, 2, '#35463e', 12, 12);
+      px(ctx, 3, 4, '#d8e0cf', 6, 1);
+      px(ctx, 3, 6, '#aeb8a7', 9, 1);
+      px(ctx, 3, 8, '#aeb8a7', 7, 1);
+      px(ctx, 3, 10, '#e8c86a', 5, 1);
+      px(ctx, 3, 12, '#aeb8a7', 8, 1);
+      px(ctx, 11, 10, '#e8c86a', 1, 1);
+      px(ctx, 12, 11, '#e8c86a', 1, 1);
+      break;
+    case 'gold_block':
+      paintBase(ctx, rand, '#e2b23c', 8);
+      px(ctx, 0, 0, '#f8dc7a', TILE, 1);
+      px(ctx, 0, 0, '#f8dc7a', 1, TILE);
+      px(ctx, 15, 0, '#9c7220', 1, TILE);
+      px(ctx, 0, 15, '#9c7220', TILE, 1);
+      px(ctx, 3, 3, '#b8892a', 4, 4);
+      px(ctx, 9, 3, '#b8892a', 4, 4);
+      px(ctx, 3, 9, '#b8892a', 4, 4);
+      px(ctx, 9, 9, '#b8892a', 4, 4);
+      px(ctx, 4, 4, '#ffe9a0', 2, 1);
+      px(ctx, 10, 4, '#ffe9a0', 2, 1);
+      px(ctx, 4, 10, '#ffe9a0', 2, 1);
+      px(ctx, 10, 10, '#ffe9a0', 2, 1);
+      break;
+    case 'lucky_block':
+      paintBase(ctx, rand, '#e8b93f', 6);
+      px(ctx, 0, 0, '#8a651a', TILE, 1);
+      px(ctx, 0, 15, '#8a651a', TILE, 1);
+      px(ctx, 0, 0, '#8a651a', 1, TILE);
+      px(ctx, 15, 0, '#8a651a', 1, TILE);
+      px(ctx, 1, 1, '#f6d873', 14, 1);
+      px(ctx, 1, 1, '#f6d873', 1, 14);
+      px(ctx, 2, 2, '#f9e7a4', 2, 2);
+      px(ctx, 12, 12, '#f9e7a4', 2, 2);
+      // Question mark.
+      px(ctx, 6, 4, '#5c410f', 5, 1);
+      px(ctx, 5, 5, '#5c410f', 2, 2);
+      px(ctx, 10, 5, '#5c410f', 1, 2);
+      px(ctx, 9, 7, '#5c410f', 2, 2);
+      px(ctx, 8, 9, '#5c410f', 2, 1);
+      px(ctx, 8, 10, '#5c410f', 1, 2);
+      px(ctx, 8, 13, '#5c410f', 1, 1);
+      px(ctx, 5, 4, '#fff3b8', 4, 1);
+      px(ctx, 6, 5, '#fff3b8', 1, 1);
+      px(ctx, 11, 3, '#ffffff', 1, 1);
+      px(ctx, 3, 11, '#f6d873', 1, 1);
+      break;
+    case 'cursed_lucky_block':
+      paintBase(ctx, rand, '#6f3c93', 7);
+      px(ctx, 0, 0, '#3a1d50', TILE, 1);
+      px(ctx, 0, 15, '#3a1d50', TILE, 1);
+      px(ctx, 0, 0, '#3a1d50', 1, TILE);
+      px(ctx, 15, 0, '#3a1d50', 1, TILE);
+      px(ctx, 1, 1, '#9a63be', 14, 1);
+      px(ctx, 1, 1, '#9a63be', 1, 14);
+      px(ctx, 11, 3, '#d59cff', 1, 1);
+      px(ctx, 3, 12, '#d59cff', 1, 1);
+      // Cracked question mark with red eyes.
+      px(ctx, 6, 4, '#24112f', 5, 1);
+      px(ctx, 5, 5, '#24112f', 2, 2);
+      px(ctx, 10, 5, '#24112f', 1, 2);
+      px(ctx, 9, 7, '#24112f', 2, 2);
+      px(ctx, 8, 9, '#24112f', 2, 1);
+      px(ctx, 8, 10, '#24112f', 1, 2);
+      px(ctx, 8, 13, '#24112f', 1, 1);
+      px(ctx, 6, 6, '#ff5c5c', 1, 1);
+      px(ctx, 9, 6, '#ff5c5c', 1, 1);
+      px(ctx, 4, 9, '#24112f', 1, 3);
+      px(ctx, 11, 10, '#24112f', 1, 2);
+      break;
     case 'missing':
     default: {
       for (let y = 0; y < TILE; y += 4) {

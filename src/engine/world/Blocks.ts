@@ -243,6 +243,37 @@ defs.push({
   tiles: { side: 'crystal_flower', top: 'crystal_flower', bottom: 'crystal_flower' }, description: 'A rare flower that glows with soft cyan light.',
 });
 
+/* ------------------------------------------------------------------ */
+/*  KITCHEN, SHOP AND LUCKY FIXTURES                                  */
+/* ------------------------------------------------------------------ */
+cube('counter', 'Kitchen Counter', 'decoration', 'counter_side', {
+  top: 'counter_top', bottom: 'oak_planks', color: '#b98a58', hardness: 1.1, sound: 'wood',
+  description: 'A scrubbed wooden service counter. Stoves and dishes live here.',
+});
+cube('stove', 'Iron Stove', 'decoration', 'stove_side', {
+  top: 'stove_top', bottom: 'stone', south: 'stove_front', color: '#6e7478', hardness: 2.1, sound: 'metal', light: 5,
+  description: 'A hot iron range. Interact to cook a dish from the pantry.',
+});
+cube('store_shelf', 'Shop Shelf', 'decoration', 'store_shelf_side', {
+  top: 'store_shelf_top', bottom: 'oak_planks', color: '#9d7444', hardness: 1.0, sound: 'wood',
+  description: 'A stocked display shelf. Interact to restock the shop.',
+});
+cube('chalkboard', 'Chalkboard', 'decoration', 'chalkboard', {
+  top: 'oak_planks', bottom: 'oak_planks', color: '#31403a', hardness: 1.0, sound: 'wood',
+  description: 'Today\'s specials, chalked up for the whole street to see.',
+});
+cube('gold_block', 'Block of Gold', 'building', 'gold_block', {
+  color: '#f2c94c', hardness: 2.4, sound: 'metal', description: 'Nine ingots pressed into one heavy, gleaming block.',
+});
+cube('lucky_block', 'Lucky Block', 'special', 'lucky_block', {
+  color: '#e8b93f', hardness: 0.55, sound: 'glass', light: 7,
+  description: 'A golden question block. Break it for a surprise. Usually a good one.',
+});
+cube('cursed_lucky_block', 'Cursed Lucky Block', 'special', 'cursed_lucky_block', {
+  color: '#7b3fa8', hardness: 0.55, sound: 'glass', light: 4,
+  description: 'A purple question block that whispers bad ideas. Break it anyway.',
+});
+
 export const BLOCKS: BlockDef[] = defs.map((d, i) => ({ ...d, id: i } as BlockDef));
 export const AIR = BLOCKS[0];
 export const BLOCK_BY_KEY = new Map(BLOCKS.map((b) => [b.key, b]));

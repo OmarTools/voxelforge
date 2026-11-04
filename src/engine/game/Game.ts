@@ -20,6 +20,7 @@ import { TouchControls } from './TouchControls';
 import { type CameraMode, cameraModeLabel, isCameraMode } from './CameraModes';
 import { ScriptRuntime, type ScriptHost, type ScriptPlayerSnapshot } from '../scripting/ScriptRuntime';
 import { RaceSystem } from './RaceSystem';
+import { createSim, type SimSystem } from './sim/SimTypes';
 import { PostFX } from '../render/PostFX';
 import { WorldFX } from '../render/WorldFX';
 import { emptyScriptProject, type ScriptProject } from '../scripting/ScriptTypes';
@@ -123,6 +124,16 @@ interface ObjectiveCounters {
   crafts: Record<string, number>;
   places: Record<string, number>;
   talks: Record<string, number>;
+  serves: Record<string, number>;
+  sells: Record<string, number>;
+  restocks: Record<string, number>;
+  earns: Record<string, number>;
+  opens: Record<string, number>;
+  cooks: Record<string, number>;
+}
+
+function emptyCounters(): ObjectiveCounters {
+  return { kills: {}, crafts: {}, places: {}, talks: {}, serves: {}, sells: {}, restocks: {}, earns: {}, opens: {}, cooks: {} };
 }
 
 export interface GameSaveData {
@@ -258,6 +269,7 @@ export class Game {
   cameraMode: CameraMode = 'first';
   vehicleStyle: 'kart' | 'car' = 'kart';
   race: RaceSystem | null = null;
+  sim: SimSystem | null = null;
 
   studioProps: StudioProp[] = [];
   studioAssets: StudioAsset[] = [];
@@ -268,7 +280,7 @@ export class Game {
   private clock = new THREE.Clock();
   private playMode: GameMode = 'creative';
   private questStates: Record<string, QuestState> = {};
-  private counters: ObjectiveCounters = { kills: {}, crafts: {}, places: {}, talks: {} };
+  private counters: ObjectiveCounters = emptyCounters();
   private wave: WaveRuntime = { index: 0, cleared: 0, timer: 0, active: false, entities: [] };
   private checkpoints: Array<{ spec: CheckpointSpec; reached: boolean }> = [];
   private respawnPoint = new THREE.Vector3();
@@ -807,8 +819,17 @@ export class Game {
           crafts: { ...save.counters.crafts },
           places: { ...save.counters.places },
           talks: { ...save.counters.talks },
+          serves: { ...(save.counters.serves ?? {}) },
+          sells: { ...(save.counters.sells ?? {}) },
+          restocks: { ...(save.counters.restocks ?? {}) },
+          earns: { ...(save.counters.earns ?? {}) },
+          opens: { ...(save.counters.opens ?? {}) },
+          cooks: { ...(save.counters.cooks ?? {}) },
         }
-      : { kills: {}, crafts: {}, places: {}, talks: {} };
+      : emptyCounters();
+
+    this.sim?.dispose();
+    this.sim = template.sim ? createSim(template.sim, this) : null;
 
     this.wave = {
       index: save?.waves.index ?? 0,
@@ -1182,6 +1203,8 @@ export class Game {
       }
     }
 
+    this.sim?.update(dt);
+
     const previousTime = this.sky.time;
     this.sky.advance(dt);
     if (this.sky.time < previousTime - 0.0001) {
@@ -1460,11 +1483,12 @@ export class Game {
     if (!def || !def.breakable || def.key === 'air') return;
     this.world.setBlock(hit.x, hit.y, hit.z, 0, true);
     this.stats.blocksMined += 1;
+    const simHandled = this.sim?.onBlockBroken(def.key, hit.x, hit.y, hit.z) ?? false;
     this.particles.dust(new THREE.Vector3(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5), def.mapColor, 12);
     this.audio.play('break', hit.y % 4);
     if (!this.creativeMode) {
       this.player.inventory.damageHeld(1);
-      if (this.rules.dropItems !== false && !def.unlisted) {
+      if (!simHandled && this.rules.dropItems !== false && !def.unlisted) {
         const dropKey = def.drop && def.drop !== 'none' ? def.drop : def.key;
         if (ITEM_BY_KEY.has(dropKey)) {
           this.entities.spawnDrop(dropKey, 1, new THREE.Vector3(hit.x + 0.5, hit.y + 0.4, hit.z + 0.5));
@@ -1517,6 +1541,7 @@ export class Game {
     // NPCs / interaction targets.
     const entity = this.entities.raycast(origin, dir, 4.5);
     if (entity) {
+      if (this.sim?.interactEntity(entity)) return;
       if (entity.isNpc) {
         this.talkTo(entity);
         return;
@@ -1530,6 +1555,7 @@ export class Game {
     const hit = this.world.raycast(origin, dir, GRAVITY_PLAYER_REACH);
     if (hit) {
       const def = blockById(hit.id);
+      if (this.sim?.interactBlock(def.key, hit.x, hit.y, hit.z)) return;
       if (def.key === 'crafting_table') {
         this.openInventory('table');
         return;
@@ -1628,13 +1654,25 @@ export class Game {
     const origin = this.player.eyePosition;
     const dir = this.player.forward;
     const entity = this.entities.raycast(origin, dir, 4.5);
-    if (entity && entity.isNpc) {
-      this.hud.setInteractHint(`<b>${entity.displayName}</b> · right-click to talk`);
-      return;
+    if (entity) {
+      const simHint = this.sim?.hintForEntity(entity);
+      if (simHint) {
+        this.hud.setInteractHint(simHint);
+        return;
+      }
+      if (entity.isNpc) {
+        this.hud.setInteractHint(`<b>${entity.displayName}</b> · right-click to talk`);
+        return;
+      }
     }
     const hit = this.world.raycast(origin, dir, GRAVITY_PLAYER_REACH);
     if (hit) {
       const def = blockById(hit.id);
+      const simHint = this.sim?.hintForBlock(def.key);
+      if (simHint) {
+        this.hud.setInteractHint(simHint);
+        return;
+      }
       if (def.key === 'crafting_table') {
         this.hud.setInteractHint('<b>Crafting Table</b> · right-click to craft');
         return;
@@ -2087,7 +2125,9 @@ export class Game {
       rules: { ...this.rules },
       edits: this.world ? this.world.getEdits() : [],
       entities: this.entities
-        ? this.entities.entities.filter((e) => e.alive).map((e) => this.serializeEntity(e))
+        ? this.entities.entities
+            .filter((e) => e.alive && !e.id.startsWith('cook_customer_') && !e.id.startsWith('shop_customer_'))
+            .map((e) => this.serializeEntity(e))
         : [],
       player: {
         position: [this.player.position.x, this.player.position.y, this.player.position.z],
@@ -2111,6 +2151,12 @@ export class Game {
         crafts: { ...this.counters.crafts },
         places: { ...this.counters.places },
         talks: { ...this.counters.talks },
+        serves: { ...this.counters.serves },
+        sells: { ...this.counters.sells },
+        restocks: { ...this.counters.restocks },
+        earns: { ...this.counters.earns },
+        opens: { ...this.counters.opens },
+        cooks: { ...this.counters.cooks },
       },
       quests,
       waves: { index: this.wave.index, cleared: this.wave.cleared, timer: this.wave.timer, active: this.wave.active },
@@ -2166,7 +2212,7 @@ export class Game {
     };
     data.stats = { kills: 0, blocksMined: 0, blocksPlaced: 0, deaths: 0, damageDealt: 0, distance: 0, playTime: 0 };
     data.objectives = {};
-    data.counters = { kills: {}, crafts: {}, places: {}, talks: {} };
+    data.counters = emptyCounters();
     data.quests = {};
     data.waves = { index: 0, cleared: 0, timer: template.waves.length > 0 ? 3 : 0, active: false };
     data.checkpointIndex = -1;
@@ -2222,6 +2268,8 @@ export class Game {
     this.menus.hideEnd();
     if (this.hud?.el) this.hud.el.classList.add('hidden');
     if (this.touchControls) this.touchControls.setActive(false);
+    this.sim?.dispose();
+    this.sim = null;
     if (this.race) {
       this.race.dispose();
       this.race = null;
@@ -2256,7 +2304,7 @@ export class Game {
     }
     this.objectives = [];
     this.questStates = {};
-    this.counters = { kills: {}, crafts: {}, places: {}, talks: {} };
+    this.counters = emptyCounters();
     this.wave = { index: 0, cleared: 0, timer: 0, active: false, entities: [] };
     this.checkpoints = [];
     this.victoryTimer = 0;
@@ -2330,6 +2378,24 @@ export class Game {
       case 'talk':
         state.progress = Math.max(state.progress, this.counters.talks[target ?? '__any'] ?? 0);
         break;
+      case 'serve':
+        state.progress = Math.max(state.progress, this.counters.serves[target && target !== 'any' ? target : '__any'] ?? 0);
+        break;
+      case 'sell':
+        state.progress = Math.max(state.progress, this.counters.sells[target && target !== 'any' ? target : '__any'] ?? 0);
+        break;
+      case 'restock':
+        state.progress = Math.max(state.progress, this.counters.restocks[target && target !== 'any' ? target : '__any'] ?? 0);
+        break;
+      case 'earn':
+        state.progress = Math.max(state.progress, this.counters.earns[target && target !== 'any' ? target : '__any'] ?? 0);
+        break;
+      case 'open':
+        state.progress = Math.max(state.progress, this.counters.opens[target && target !== 'any' ? target : '__any'] ?? 0);
+        break;
+      case 'cook':
+        state.progress = Math.max(state.progress, this.counters.cooks[target && target !== 'any' ? target : '__any'] ?? 0);
+        break;
       case 'wave':
         state.progress = Math.max(state.progress, this.wave.cleared);
         break;
@@ -2368,6 +2434,24 @@ export class Game {
   recordCraft(itemKey: string, count: number): void {
     this.counters.crafts[itemKey] = (this.counters.crafts[itemKey] ?? 0) + count;
     this.counters.crafts.__any = (this.counters.crafts.__any ?? 0) + count;
+  }
+
+  /** Objective counter bump used by the cooking, shop and lucky simulations. */
+  recordSim(kind: 'serve' | 'sell' | 'restock' | 'earn' | 'open' | 'cook', target: string, amount = 1): void {
+    const map = kind === 'serve' ? this.counters.serves
+      : kind === 'sell' ? this.counters.sells
+      : kind === 'restock' ? this.counters.restocks
+      : kind === 'earn' ? this.counters.earns
+      : kind === 'open' ? this.counters.opens
+      : this.counters.cooks;
+    map[target] = (map[target] ?? 0) + amount;
+    map.__any = (map.__any ?? 0) + amount;
+  }
+
+  /** HUD simulation buttons route through here. */
+  simAction(id: string): void {
+    if (!this.sim || this.paused || this.uiOpen || this.ended) return;
+    this.sim.action(id);
   }
 
   private recordPlace(itemKey: string): void {

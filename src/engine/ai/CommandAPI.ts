@@ -48,6 +48,7 @@ export const AI_COMMANDS: AiCommandInfo[] = [
   { type: 'block', label: 'Set block', description: 'Place or erase a single block.', payload: '{ "x": 0, "y": 40, "z": 0, "block": "glowstone" }' },
   { type: 'prefab', label: 'Stamp prefab', description: 'Stamp a prefab at a world position.', payload: '{ "prefab": "army_base", "x": 0, "y": 32, "z": 0 }' },
   { type: 'entities', label: 'List entities', description: 'Live entities with positions and health.' },
+  { type: 'sim', label: 'Simulation action', description: 'Inspect or drive the active cooking / shop / lucky simulation.', payload: '{ "action": "cook:burger" }' },
   { type: 'list', label: 'List content', description: 'items, blocks, prefabs, entities, cameras, templates.', payload: '{ "kind": "items" }' },
   { type: 'open', label: 'Open panel', description: 'studio, scripts, publish or inventory.', payload: '{ "panel": "scripts" }' },
   { type: 'close', label: 'Close panel', description: 'Close an overlay.', payload: '{ "panel": "scripts" }' },
@@ -151,6 +152,8 @@ export class CommandAPI {
           return this.prefab(args);
         case 'entities':
           return this.entities(args);
+        case 'sim':
+          return this.simCommand(args);
         case 'list':
           return this.list(args);
         case 'open':
@@ -194,12 +197,14 @@ export class CommandAPI {
         camera: game.cameraMode,
         vehicle: game.template.vehicle ?? null,
         race: game.template.race ?? null,
+        sim: game.template.sim ?? null,
         fx: game.template.fx ?? null,
       },
       player,
       camera: { mode: game.cameraMode, label: game.cameraLabel },
       vehicle: { enabled: player.vehicle, style: game.vehicleStyle },
       race: game.race ? { ...game.race.hud(), standings: game.race.standings() } : null,
+      sim: game.sim ? game.sim.hud() : null,
       world: {
         seed: game.seed,
         baseY: game.baseY,
@@ -390,6 +395,14 @@ export class CommandAPI {
         boss: entity.boss,
       }));
     return done(`${list.length} entities`, list);
+  }
+
+  private simCommand(args: Record<string, unknown>): AiResult {
+    const sim = this.game.sim;
+    if (!sim) return fail('No simulation is active in this session.');
+    const action = asString(args.action, '');
+    if (action) this.game.simAction(action);
+    return done(`${sim.kind} simulation`, { kind: sim.kind, hud: sim.hud(), action: action || null });
   }
 
   private list(args: Record<string, unknown>): AiResult {

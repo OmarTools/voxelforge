@@ -46,7 +46,7 @@ text block.
 
 | Tool | Arguments | Notes |
 | --- | --- | --- |
-| `voxelforge_state` | none | Player, camera, vehicle, race, world, objectives, scripts |
+| `voxelforge_state` | none | Player, camera, vehicle, race, sim, world, objectives, scripts |
 | `voxelforge_list` | `kind` | Content catalog |
 | `voxelforge_launch` | `template` | Starts a template from scratch |
 | `voxelforge_camera` | `mode` or `cycle` | `first`, `third`, `isometric`, `top-down`, `side`, `next` |
@@ -67,13 +67,13 @@ text block.
 | `voxelforge_export` | `name?` | Returns project JSON, no download |
 | `voxelforge_publish` | `target`, `name?` | Starts a ZIP download in the browser |
 | `voxelforge_open_panel` | `panel` | `studio`, `scripts`, `publish`, `inventory` |
-| `voxelforge_command` | `type`, `payload?` | Any command, including `save`, `pause`, `toast` |
+| `voxelforge_command` | `type`, `payload?` | Any command, including `sim`, `save`, `pause`, `toast` |
 
 ## Launchable templates
 
 `creative`, `survival`, `skyblock`, `parkour`, `arena`, `rpg`, `horror`,
 `dungeon`, `racing`, `army`, `city`, `platformer`, `frostpeak`, `dune`,
-`skytemple`, `studio`.
+`skytemple`, `kitchen`, `shopkeep`, `lucky`, `studio`.
 
 New in 1.1:
 
@@ -86,6 +86,9 @@ New in 1.1:
 | `frostpeak` | Frostpeak Expedition | First-person snow adventure, village + ice cavern + wyrm |
 | `dune` | Sunscour Wastes | First-person desert adventure, outpost + bandits + temple |
 | `skytemple` | Sky Temple Trials | First-person sky parkour, five islands + crystal guardian |
+| `kitchen` | Ember & Oak Kitchen | First-person cooking service sim, stoves + customers + reputation |
+| `shopkeep` | Corner & Candle | First-person store management sim, shelves + specials + customers |
+| `lucky` | Lucky Block Gauntlet | First-person lucky-block arena, prizes + curses + jackpots |
 
 ## Camera and vehicle
 
@@ -118,6 +121,43 @@ results screen. `voxelforge_state` exposes:
 Use `voxelforge_launch` with `racing` to restart the race. The template's
 `race` config (`laps`, `rx`, `rz`, gate radius) is returned under
 `state.template.race`.
+
+## Cooking, shop and lucky simulations
+
+`kitchen`, `shopkeep` and `lucky` run a template-scoped `sim` in addition to the
+normal world. `voxelforge_state` returns `template.sim` (the authored config)
+and `sim` (live HUD data):
+
+```json
+"sim": {
+  "kicker": "Kitchen",
+  "title": "Lunch Service",
+  "rows": [{ "label": "Orders waiting", "value": "2" }],
+  "progress": { "label": "Stock level", "value": 54, "max": 108 },
+  "actions": [{ "id": "cook:pizza", "label": "Cheese Pizza · 26c", "disabled": false }],
+  "footer": "Stand near a stove to cook…"
+}
+```
+
+- `kitchen` — `cook:<recipe>` actions start a stove job; serve seated customers
+  by right-clicking them while holding the ordered dish. Pantry crates sell
+  random ingredient bundles for 10 coins.
+- `shopkeep` — `restock:<item>` actions buy shelf stock; shelves, the chalkboard
+  special and the checkout counter are interactable blocks. Customers are served
+  by right-clicking them.
+- `lucky` — break `lucky_block` and `cursed_lucky_block` with a pickaxe. The sim
+  handles the roll, loot, ambush or explosion, respawns gold blocks and skips
+  the normal block drop.
+
+Drive actions through the generic command surface:
+
+```json
+{ "type": "sim", "payload": { "action": "cook:pizza" } }
+```
+
+Omit `action` to read the current sim HUD. New objective kinds (`serve`, `sell`,
+`restock`, `earn`, `open`, `cook`) are counted by the sim and work in template
+objectives and quests exactly like `kill` or `craft`.
 
 ## Template look: post-processing and world FX
 
@@ -248,9 +288,10 @@ VoxelScript global.
 
 Prefab keys include `race_track`, `army_base`, `city_block`, `skyscraper`,
 `platform_course`, `frost_village`, `ice_cavern`, `summit_shrine`, `hot_spring`,
-`desert_outpost`, `bandit_camp`, `sunken_temple`, `sky_temple` plus the original
-village, dungeon, arena and parkour pieces. Use `voxelforge_list` with
-`kind=prefabs` for the current list and sizes.
+`desert_outpost`, `bandit_camp`, `sunken_temple`, `sky_temple`, `restaurant`,
+`general_store`, `lucky_arena` plus the original village, dungeon, arena and
+parkour pieces. Use `voxelforge_list` with `kind=prefabs` for the current list
+and sizes.
 
 ## Rules
 

@@ -352,7 +352,24 @@ function armorModel(def: ItemDef): HeldModel {
   const g = new THREE.Group();
   const color = def.color;
   const dark = '#4c5560';
-  if (def.armorSlot === 'helmet') {
+  if (def.key === 'chef_hat') {
+    // A tall pleated toque: band, two puff tiers and a soft crown.
+    box(g, color, 0.15, 0.07, 0.15, 0, -0.07, 0);
+    box(g, '#ddd8c8', 0.16, 0.02, 0.16, 0, -0.03, 0);
+    box(g, color, 0.18, 0.08, 0.18, 0, 0.04, 0);
+    box(g, color, 0.19, 0.07, 0.19, 0, 0.11, 0);
+    box(g, color, 0.14, 0.06, 0.14, 0, 0.17, 0);
+    box(g, '#e6e1d1', 0.1, 0.02, 0.1, 0, 0.2, 0);
+    for (const x of [-0.06, 0, 0.06]) box(g, '#dcd7c7', 0.012, 0.1, 0.19, x, 0.09, 0);
+  } else if (def.key === 'apron') {
+    // A folded apron: bib, skirt, neck loop and a deep order pocket.
+    box(g, color, 0.2, 0.18, 0.035, 0, 0.0, 0);
+    box(g, color, 0.14, 0.09, 0.035, 0, 0.15, 0.004);
+    box(g, '#b9b3a2', 0.2, 0.025, 0.04, 0, -0.1, 0);
+    box(g, '#c9c3b1', 0.07, 0.06, 0.02, 0.045, -0.02, -0.022);
+    box(g, '#cfc9b7', 0.1, 0.02, 0.02, 0, 0.205, 0);
+    box(g, '#b9b3a2', 0.045, 0.1, 0.015, 0.055, -0.055, 0.028);
+  } else if (def.armorSlot === 'helmet') {
     box(g, color, 0.22, 0.12, 0.22, 0, 0.08, 0);
     box(g, color, 0.24, 0.1, 0.06, 0, 0.01, -0.09);
     box(g, color, 0.06, 0.1, 0.22, -0.1, 0.01, 0);
@@ -374,6 +391,7 @@ function armorModel(def: ItemDef): HeldModel {
     box(g, color, 0.12, 0.07, 0.12, 0.06, 0.08, 0.05);
   }
   addArm(g, '#d9a273', '#6c7078');
+  g.scale.setScalar(0.85);
   g.rotation.set(0.1, 0.15, -0.15);
   return { group: g, category: 'armor', reach: 0.6 };
 }

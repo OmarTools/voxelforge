@@ -1685,6 +1685,192 @@ export const PREFABS: Prefab[] = [
       }
     },
   },
+  {
+    key: 'restaurant', name: 'Ember & Oak Restaurant', description: 'A working restaurant: four iron stoves, a long service counter, pantry crates and a lantern-lit dining room.',
+    size: [23, 10, 18], tags: ['kitchen', 'restaurant', 'village', 'trade'], glyph: '♨',
+    build(s) {
+      s.clear(-11, 0, -8, 11, 9, 8);
+      s.fill(-10, -1, -7, 10, -1, 7, 'cobblestone');
+      s.fill(-10, 0, -7, 10, 0, 7, 'oak_planks');
+      for (let z = -7; z <= 7; z++) {
+        for (let x = -10; x <= 10; x++) {
+          if ((x + z) % 5 === 0) s.set(x, 0, z, 'birch_planks');
+        }
+      }
+      s.walls(-10, -7, 10, 7, 1, 5, 'oak_planks');
+      for (const [x, z] of [[-10, -7], [10, -7], [-10, 7], [10, 7]]) s.fill(x, 1, z, x, 5, z, 'oak_log');
+      // Wide framed entrance, broad windows and a glass-canopied entry.
+      s.door(0, 7);
+      s.set(-1, 1, 7, 'air'); s.set(-1, 2, 7, 'air'); s.set(-1, 3, 7, 'air');
+      s.set(1, 1, 7, 'air'); s.set(1, 2, 7, 'air'); s.set(1, 3, 7, 'air');
+      s.fill(-1, 4, 7, 1, 4, 7, 'oak_log');
+      s.set(0, 0, 7, 'oak_planks');
+      s.fill(-8, 2, 7, -5, 3, 7, 'glass');
+      s.fill(5, 2, 7, 8, 3, 7, 'glass');
+      s.window(-10, 2, -2); s.window(-10, 2, 3); s.window(10, 2, -2); s.window(10, 2, 3);
+      s.fill(-2, 4, 8, 2, 4, 9, 'glass');
+      for (const x of [-2, 2]) s.fill(x, 1, 9, x, 3, 9, 'oak_log');
+      s.fill(-1, 0, 8, 1, 0, 10, 'dirt_path');
+      s.set(0, 4, 7, 'chalkboard');
+      // Service counter with a pass-through gap.
+      s.fill(-7, 1, -3, -1, 1, -3, 'counter');
+      s.fill(2, 1, -3, 7, 1, -3, 'counter');
+      s.set(-4, 2, -3, 'barrel');
+      s.set(4, 2, -3, 'crate');
+      // Kitchen line.
+      for (const x of [-5, -2, 2, 5]) {
+        s.set(x, 1, -6, 'stove');
+        s.set(x, 2, -7, 'torch');
+      }
+      s.set(0, 1, -6, 'crafting_table');
+      s.set(-9, 1, -6, 'barrel'); s.set(-8, 1, -6, 'crate');
+      s.set(9, 1, -6, 'barrel'); s.set(8, 1, -6, 'crate');
+      s.set(-9, 1, -5, 'crate'); s.set(9, 1, -5, 'crate');
+      // Dining tables down both sides, leaving a clear aisle to the pass.
+      s.fill(-8, 1, 0, -7, 1, 1, 'oak_planks');
+      s.fill(-4, 1, 0, -3, 1, 1, 'oak_planks');
+      s.fill(2, 1, 0, 3, 1, 1, 'oak_planks');
+      s.fill(6, 1, 0, 7, 1, 1, 'oak_planks');
+      s.torch(-7, 2, 0); s.torch(-3, 2, 0); s.torch(2, 2, 0); s.torch(6, 2, 0);
+      s.set(7, 2, 6, 'chalkboard');
+      s.set(-7, 2, 6, 'bookshelf');
+      // Chandeliers and a timber-framed glass roof.
+      for (const x of [-5, 0, 5]) s.set(x, 5, 2, 'glowstone');
+      s.fill(-10, 6, -7, 10, 6, 7, 'spruce_planks');
+      s.fill(-9, 6, -6, 9, 6, 6, 'glass');
+      for (const z of [-5, 3]) s.fill(-9, 6, z, 9, 6, z, 'oak_log');
+      // Outdoor planters.
+      for (const [x, z] of [[-7, 9], [7, 9]]) {
+        s.set(x, 1, z, 'oak_planks');
+        s.set(x, 2, z, 'dandelion');
+      }
+    },
+  },
+  {
+    key: 'general_store', name: 'Corner & Candle Store', description: 'A tidy neighbourhood shop with stocked display shelves, a checkout counter, a chalkboard of specials and storeroom crates.',
+    size: [21, 9, 18], tags: ['shop', 'store', 'village', 'trade'], glyph: '▤',
+    build(s) {
+      s.clear(-10, 0, -8, 10, 8, 8);
+      s.fill(-9, -1, -7, 9, -1, 7, 'cobblestone');
+      s.fill(-9, 0, -7, 9, 0, 7, 'birch_planks');
+      for (let z = -7; z <= 7; z++) {
+        for (let x = -9; x <= 9; x++) {
+          if ((x * 3 + z * 2) % 7 === 0) s.set(x, 0, z, 'oak_planks');
+        }
+      }
+      s.walls(-9, -7, 9, 7, 1, 5, 'oak_planks');
+      for (const [x, z] of [[-9, -7], [9, -7], [-9, 7], [9, 7]]) s.fill(x, 1, z, x, 5, z, 'spruce_log');
+      s.door(0, 7);
+      s.set(-1, 1, 7, 'air'); s.set(-1, 2, 7, 'air'); s.set(-1, 3, 7, 'air');
+      s.set(1, 1, 7, 'air'); s.set(1, 2, 7, 'air'); s.set(1, 3, 7, 'air');
+      s.fill(-1, 4, 7, 1, 4, 7, 'spruce_log');
+      s.set(0, 0, 7, 'birch_planks');
+      s.fill(-7, 2, 7, -3, 3, 7, 'glass');
+      s.fill(3, 2, 7, 7, 3, 7, 'glass');
+      s.window(-9, 2, -2); s.window(9, 2, -2); s.window(-9, 2, 3); s.window(9, 2, 3);
+      // Shelving: one long back run and two side runs.
+      s.fill(-6, 1, -6, 6, 1, -6, 'store_shelf');
+      for (let z = -4; z <= 4; z++) {
+        s.set(-8, 1, z, 'store_shelf');
+        s.set(8, 1, z, 'store_shelf');
+      }
+      s.fill(-6, 2, -6, 6, 2, -6, 'air');
+      // Checkout counter and till.
+      s.fill(-2, 1, 4, 4, 1, 4, 'counter');
+      s.set(1, 2, 4, 'chest');
+      s.set(-1, 2, 4, 'bookshelf');
+      // Chalkboard specials by the door.
+      s.set(6, 2, 6, 'chalkboard');
+      s.set(-6, 2, 6, 'bookshelf');
+      // Storeroom crates and barrels behind the shelves.
+      s.set(-8, 1, -6, 'crate'); s.set(-7, 1, -6, 'barrel');
+      s.set(7, 1, -6, 'crate'); s.set(8, 1, -6, 'barrel');
+      s.set(-8, 2, -6, 'crate');
+      s.set(8, 2, -6, 'crate');
+      // Aisle lights and a glass-canopied shopfront.
+      for (const x of [-4, 0, 4]) s.set(x, 5, 0, 'glowstone');
+      s.fill(-3, 4, 8, 3, 4, 9, 'glass');
+      for (const x of [-3, 3]) s.fill(x, 1, 9, x, 3, 9, 'oak_log');
+      s.fill(-1, 0, 8, 1, 0, 10, 'dirt_path');
+      // Timber-framed glass roof and sign.
+      s.fill(-9, 6, -7, 9, 6, 7, 'spruce_planks');
+      s.fill(-8, 6, -6, 8, 6, 6, 'glass');
+      for (const z of [-3, 2]) s.fill(-8, 6, z, 8, 6, z, 'oak_log');
+      s.set(-3, 7, 6, 'glowstone'); s.set(3, 7, 6, 'glowstone');
+      s.set(0, 4, 7, 'chalkboard');
+    },
+  },
+  {
+    key: 'lucky_arena', name: 'Lucky Block Arena', description: 'A gold-trimmed arena ringed with lucky blocks, cursed blocks, braziers and spectator benches.',
+    size: [29, 12, 29], tags: ['lucky', 'arena', 'fortune', 'minigame'], glyph: '?',
+    build(s) {
+      s.clear(-13, 0, -13, 13, 11, 13);
+      s.fill(-12, -1, -12, 12, -1, 12, 'stone_bricks');
+      s.fill(-12, 0, -12, 12, 0, 12, 'stone_bricks');
+      for (let z = -12; z <= 12; z++) {
+        for (let x = -12; x <= 12; x++) {
+          if (Math.abs(x) === 12 || Math.abs(z) === 12) continue;
+          if ((x + z) % 6 === 0) s.set(x, 0, z, 'quartz_block');
+          if ((x - z) % 6 === 0) s.set(x, 0, z, 'quartz_block');
+        }
+      }
+      // Low arena wall with gold caps.
+      s.walls(-12, -12, 12, 12, 1, 2, 'stone_bricks');
+      for (let i = -12; i <= 12; i += 4) {
+        s.set(i, 2, -12, 'gold_block');
+        s.set(i, 2, 12, 'gold_block');
+        s.set(-12, 2, i, 'gold_block');
+        s.set(12, 2, i, 'gold_block');
+      }
+      // Entrance gap and approach.
+      s.door(0, 12);
+      s.set(0, 0, 12, 'stone_bricks');
+      s.set(0, 0, 13, 'stone_bricks');
+      s.fill(-1, 0, 13, 1, 0, 15, 'dirt_path');
+      // Corner pylons.
+      for (const [x, z] of [[-11, -11], [11, -11], [-11, 11], [11, 11]]) {
+        s.fill(x, 1, z, x, 5, z, 'quartz_block');
+        s.set(x, 6, z, 'glowstone');
+        s.set(x, 7, z, 'gold_block');
+      }
+      // Pedestals of fortune.
+      const lucky: Array<[number, number]> = [
+        [-8, -4], [-4, -4], [0, -4], [4, -4], [8, -4],
+        [-8, 0], [8, 0],
+        [-8, 4], [-4, 4], [0, 4], [4, 4], [8, 4],
+      ];
+      for (const [x, z] of lucky) {
+        s.set(x, 0, z, 'quartz_block');
+        s.set(x, 1, z, 'lucky_block');
+        s.set(x, 2, z - 1, 'torch');
+      }
+      const cursed: Array<[number, number]> = [[-4, 0], [4, 0], [0, 8]];
+      for (const [x, z] of cursed) {
+        s.set(x, 0, z, 'obsidian');
+        s.set(x, 1, z, 'cursed_lucky_block');
+      }
+      // Central obelisk.
+      s.fill(-2, 1, -1, 2, 1, 1, 'stone_bricks');
+      s.fill(-1, 2, -1, 1, 3, 1, 'quartz_block');
+      s.set(0, 4, 0, 'gold_block');
+      s.set(0, 5, 0, 'glowstone');
+      s.set(0, 6, 0, 'gold_block');
+      // Braziers along the arena edge.
+      for (const [x, z] of [[-10, -7], [10, -7], [-10, 7], [10, 7]]) {
+        s.fill(x, 1, z, x, 2, z, 'stone_bricks');
+        s.set(x, 3, z, 'glowstone');
+      }
+      // Spectator benches outside the ring at the entrance.
+      for (const z of [14, 16]) {
+        s.fill(-8, 1, z, 8, 1, z, z === 14 ? 'wool_red' : 'wool_yellow');
+        s.fill(-9, 0, z, 9, 0, z, 'oak_planks');
+      }
+      // Banners.
+      for (const [x, z] of [[-12, -8], [12, -8], [-12, 8], [12, 8]]) {
+        s.fill(x, 3, z, x, 4, z, 'wool_purple');
+      }
+    },
+  },
 ];
 
 export const PREFAB_BY_KEY = new Map(PREFABS.map((p) => [p.key, p]));

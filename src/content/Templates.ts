@@ -1,10 +1,11 @@
 import type { WorldPresetKey } from '../engine/world/TerrainGenerator';
 import type { CameraMode } from '../engine/game/CameraModes';
 import type { ScriptProject } from '../engine/scripting/ScriptTypes';
+import type { SimSpec } from '../engine/game/sim/SimTypes';
 
-export type GameMode = 'creative' | 'survival' | 'skyblock' | 'parkour' | 'arena' | 'rpg' | 'horror' | 'dungeon' | 'racing' | 'army' | 'city' | 'platformer' | 'frostpeak' | 'dune' | 'skytemple' | 'studio';
+export type GameMode = 'creative' | 'survival' | 'skyblock' | 'parkour' | 'arena' | 'rpg' | 'horror' | 'dungeon' | 'racing' | 'army' | 'city' | 'platformer' | 'frostpeak' | 'dune' | 'skytemple' | 'kitchen' | 'shopkeep' | 'lucky' | 'studio';
 export type Difficulty = 'peaceful' | 'easy' | 'normal' | 'hard' | 'nightmare';
-export type ObjectiveKind = 'collect' | 'kill' | 'reach' | 'craft' | 'place' | 'talk' | 'survive' | 'wave';
+export type ObjectiveKind = 'collect' | 'kill' | 'reach' | 'craft' | 'place' | 'talk' | 'survive' | 'wave' | 'serve' | 'sell' | 'restock' | 'earn' | 'open' | 'cook';
 
 export interface WorldRules {
   keepInventory: boolean;
@@ -106,6 +107,7 @@ export interface GameTemplate {
   cameraMode?: CameraMode;
   vehicle?: { enabled: boolean; style: 'kart' | 'car' };
   race?: { laps: number; rx: number; rz: number; startAngle?: number; gateRadius?: number };
+  sim?: SimSpec;
   fx?: {
     neon?: boolean;
     hologram?: boolean;
@@ -1142,6 +1144,266 @@ onEvent('respawn', () => say('The clouds catch you and set you back on the last 
       { label: 'Islands', value: '5' },
       { label: 'Quests', value: '2' },
       { label: 'Boss', value: 'Prism Guardian' },
+    ],
+  },
+  {
+    key: 'kitchen',
+    name: 'Ember & Oak Kitchen',
+    subtitle: 'Dinner service starts now',
+    description: 'Run a busy village restaurant: buy pantry bundles, cook dishes on the iron range, serve tables before patience runs out and build a reputation worth the queue.',
+    story: 'Mira has run the Ember & Oak for eleven years. Tonight the regulars are coming, the stove is hot, and her new hire has exactly one shift to prove they can keep up.',
+    icon: '♨',
+    accent: '#f0a45c',
+    difficulty: 'normal',
+    tags: ['Cooking', 'Management', 'Cozy'],
+    preset: 'overworld',
+    heightMode: 'ground',
+    timeOfDay: 16.4,
+    music: 'day',
+    platform: { radius: 30, surface: 'grass_block', border: 'stone_bricks', clearHeight: 44 },
+    prefabs: [{ prefab: 'restaurant', x: 0, z: 0 }],
+    spawn: [0, 9],
+    spawnYaw: 0,
+    spawns: [
+      { entity: 'human:chef_inn', offset: [0, 0, -5], name: 'Mira', id: 'mira', questId: 'first_service', behavior: 'stationary', dialogue: 'Apron on, knife clean, pantry counted. We open in ten minutes. Cook what you can, serve it while it is hot, and do not let the pass back up.' },
+      { entity: 'human:adventurer', offset: [-8, 0, 5], name: 'Tomas', id: 'tomas', questId: 'regulars', behavior: 'stationary', dialogue: 'I have eaten here every Thursday for six years. If you can keep my table fed and the coffee coming, I will tell everyone in the valley.' },
+      { entity: 'human:villager_farmer', offset: [8, 0, 5], name: 'Pell', dialogue: 'The tomatoes came in this morning. Mira will pretend she grew them herself.' },
+      { entity: 'creature:chicken', offset: [14, 0, 14], count: 3, spread: 4 },
+    ],
+    objectives: [
+      { id: 'mira', title: 'Speak with Mira', kind: 'talk', target: 'mira', count: 1 },
+      { id: 'cook', title: 'Cook 3 dishes', kind: 'cook', target: 'any', count: 3, description: 'Right-click a stove with the ingredients in your pack.' },
+      { id: 'serve', title: 'Serve 4 customers', kind: 'serve', target: 'any', count: 4, description: 'Right-click a seated customer while holding their dish.' },
+      { id: 'earn', title: 'Earn 120 coins in service', kind: 'earn', target: 'coin', count: 120 },
+      { id: 'shift', title: 'Complete a full dinner rush', kind: 'serve', target: 'any', count: 8 },
+    ],
+    quests: [
+      {
+        id: 'first_service', title: 'First Service', giver: 'Mira', summary: 'Mira needs proof that her new hire can cook two plates and get them to the right table without burning the kitchen down.',
+        objectives: [
+          { id: 'q-cook', title: 'Cook two dishes', kind: 'cook', target: 'any', count: 2 },
+          { id: 'q-serve', title: 'Serve two customers', kind: 'serve', target: 'any', count: 2 },
+        ],
+        reward: { xp: 180, items: [{ item: 'chef_hat', count: 1 }, { item: 'cheese', count: 4 }], coins: 30 },
+      },
+      {
+        id: 'regulars', title: 'The Thursday Regulars', giver: 'Tomas', summary: 'Tomas has bet the whole village that the new hire can carry a dinner rush. Five plates and a hundred coins says he is right.',
+        objectives: [
+          { id: 'q-serve', title: 'Serve five customers', kind: 'serve', target: 'any', count: 5 },
+          { id: 'q-earn', title: 'Earn 100 coins in tips and sales', kind: 'earn', target: 'coin', count: 100 },
+        ],
+        reward: { xp: 320, items: [{ item: 'apron', count: 1 }, { item: 'golden_apple', count: 2 }], coins: 60 },
+      },
+    ],
+    waves: [],
+    checkpoints: [
+      { offset: [0, 1, 3], radius: 6, label: 'Dining Room' },
+      { offset: [0, 1, -5], radius: 5, label: 'Kitchen Line' },
+    ],
+    startingItems: [
+      { item: 'chef_hat', count: 1 },
+      { item: 'apron', count: 1 },
+      { item: 'bread', count: 2 },
+      { item: 'cheese', count: 4 },
+      { item: 'tomato', count: 4 },
+      { item: 'lettuce', count: 4 },
+      { item: 'dough', count: 2 },
+      { item: 'coffee_bean', count: 3 },
+      { item: 'milk', count: 3 },
+      { item: 'coin', count: 40 },
+    ],
+    hotbar: ['bread', 'cheese', 'tomato', 'lettuce', 'dough', 'coffee_bean', 'milk', 'chef_hat', 'apron'],
+    sim: {
+      kind: 'cooking',
+      recipes: ['burger', 'pizza', 'salad', 'cake', 'coffee', 'ramen', 'soup'],
+      customerSpots: [
+        { x: -8, z: 3 }, { x: -3, z: 3 }, { x: 2, z: 3 }, { x: 7, z: 3 },
+        { x: -8, z: 5 }, { x: 7, z: 5 },
+      ],
+      spawnEvery: 12,
+      maxCustomers: 4,
+    },
+    rules: { ...BASE_RULES, keepInventory: true, mobSpawning: false, dayCycle: false, pvp: false },
+    scripts: templateScript(`onStart(() => {
+  camera('first');
+  say('Mira is behind the counter. The stoves are along the back wall; the pantry crates are beside them.', 'info');
+  give('bread', 2);
+});
+onEvent('respawn', () => say('Mira points you back to the pass. Service is not over yet.', 'warn'));
+`),
+    stats: [
+      { label: 'Recipes', value: '8' },
+      { label: 'Quests', value: '2' },
+      { label: 'Shift', value: 'Dinner rush' },
+    ],
+  },
+  {
+    key: 'shopkeep',
+    name: 'Corner & Candle',
+    subtitle: 'Keep the shelves full',
+    description: 'Take over a village general store: restock shelves, watch the chalkboard special, ring up customers and turn a quiet corner shop into the busiest counter in the valley.',
+    story: 'Mabel opened the Corner & Candle when the road was still mud. Now the road is cobbled, the shelves are half empty, and she has finally admitted she needs help.',
+    icon: '▤',
+    accent: '#e8c46a',
+    difficulty: 'normal',
+    tags: ['Shop', 'Management', 'Village'],
+    preset: 'overworld',
+    heightMode: 'ground',
+    timeOfDay: 10.2,
+    music: 'day',
+    platform: { radius: 30, surface: 'grass_block', border: 'dirt_path', clearHeight: 44 },
+    prefabs: [{ prefab: 'general_store', x: 0, z: 0 }],
+    spawn: [0, 9],
+    spawnYaw: 0,
+    spawns: [
+      { entity: 'human:villager_farmer', offset: [1, 0, 5], name: 'Mabel', id: 'mabel', questId: 'opening', behavior: 'stationary', dialogue: 'Till is on the counter, chalkboard is by the door, and the shelves are your problem now. Restock what is low, ring up what people want, and mind the special.' },
+      { entity: 'human:guard_city', offset: [-7, 0, 6], name: 'Constable Rook', id: 'rook', questId: 'collector', behavior: 'stationary', dialogue: 'The collector from the city is coming. She wants a tin toy car and one of those lucky coins. I would not disappoint her.' },
+      { entity: 'human:desert_nomad', offset: [7, 0, 6], name: 'Sana', dialogue: 'Your window display is the only reason I walk this street. Do not let it go empty.' },
+      { entity: 'creature:cat', offset: [-8, 0, 6], name: 'Biscuit' },
+    ],
+    objectives: [
+      { id: 'mabel', title: 'Speak with Mabel', kind: 'talk', target: 'mabel', count: 1 },
+      { id: 'restock', title: 'Restock the shelves 3 times', kind: 'restock', target: 'any', count: 3, description: 'Right-click a shop shelf with coins in your pocket.' },
+      { id: 'sell', title: 'Serve 5 customers', kind: 'sell', target: 'any', count: 5 },
+      { id: 'earn', title: 'Earn 150 coins', kind: 'earn', target: 'coin', count: 150 },
+    ],
+    quests: [
+      {
+        id: 'opening', title: 'Opening Shift', giver: 'Mabel', summary: 'Mabel wants the shop running before the lunch crowd: restock two lines, serve three customers and get the till moving.',
+        objectives: [
+          { id: 'q-restock', title: 'Restock the shelves twice', kind: 'restock', target: 'any', count: 2 },
+          { id: 'q-sell', title: 'Serve three customers', kind: 'sell', target: 'any', count: 3 },
+        ],
+        reward: { xp: 190, items: [{ item: 'candle', count: 2 }, { item: 'soap', count: 2 }], coins: 35 },
+      },
+      {
+        id: 'collector', title: 'The City Collector', giver: 'Rook', summary: 'A collector is arriving for a tin toy car and a lucky coin. Rook would rather she leave with both and a good word about the village.',
+        objectives: [
+          { id: 'q-toy', title: 'Sell a tin toy car', kind: 'sell', target: 'toy_car', count: 1 },
+          { id: 'q-lucky', title: 'Sell a lucky coin', kind: 'sell', target: 'lucky_coin', count: 1 },
+          { id: 'q-earn', title: 'Earn 100 coins', kind: 'earn', target: 'coin', count: 100 },
+        ],
+        reward: { xp: 320, items: [{ item: 'lucky_coin', count: 1 }, { item: 'toy_car', count: 1 }], coins: 70 },
+      },
+    ],
+    waves: [],
+    checkpoints: [
+      { offset: [0, 1, 2], radius: 6, label: 'Shop Floor' },
+      { offset: [2, 1, 5], radius: 3, label: 'Checkout Counter' },
+    ],
+    startingItems: [
+      { item: 'apron', count: 1 },
+      { item: 'bread', count: 2 },
+      { item: 'torch', count: 6 },
+      { item: 'soap', count: 2 },
+      { item: 'coin', count: 50 },
+    ],
+    hotbar: ['bread', 'torch', 'soap', 'coin', 'coin', 'coin', 'coin', 'coin', 'apron'],
+    sim: {
+      kind: 'store',
+      products: ['bread', 'apple', 'torch', 'soap', 'candle', 'soda', 'snack_bar', 'toy_car', 'lucky_coin'],
+      customerSpots: [
+        { x: -6, z: 2 }, { x: -3, z: 2 }, { x: 0, z: 2 }, { x: 3, z: 2 }, { x: 6, z: 2 },
+        { x: -6, z: 6 }, { x: 6, z: 6 },
+      ],
+      spawnEvery: 10,
+      maxCustomers: 5,
+    },
+    rules: { ...BASE_RULES, keepInventory: true, mobSpawning: false, pvp: false },
+    scripts: templateScript(`onStart(() => {
+  camera('first');
+  say('Mabel is at the counter. Shelves line the back and side walls; the chalkboard special is by the door.', 'info');
+  give('coin', 10);
+});
+onEvent('respawn', () => say('Mabel taps the till. The queue is still waiting.', 'warn'));
+`),
+    stats: [
+      { label: 'Products', value: '9' },
+      { label: 'Quests', value: '2' },
+      { label: 'Special', value: 'Rotating' },
+    ],
+  },
+  {
+    key: 'lucky',
+    name: 'Lucky Block Gauntlet',
+    subtitle: 'Risk it for the jackpot',
+    description: 'A gold-trimmed arena stacked with lucky blocks and a few cursed ones. Every block is a roll: coins, loot, monsters, explosions or a jackpot. Break twelve, claim Fortune\'s Edge and survive the curses.',
+    story: 'The arena was built by a gambler who could not stop. The blocks refill themselves. The crowd still comes. Nobody has ever asked where the monsters come from.',
+    icon: '?',
+    accent: '#f2cf5a',
+    difficulty: 'easy',
+    tags: ['Lucky Block', 'Arena', 'Loot'],
+    preset: 'overworld',
+    heightMode: 'ground',
+    timeOfDay: 12.6,
+    music: 'arena',
+    platform: { radius: 34, surface: 'grass_block', border: 'stone_bricks', clearHeight: 44 },
+    prefabs: [{ prefab: 'lucky_arena', x: 0, z: 0 }],
+    spawn: [0, 10],
+    spawnYaw: 0,
+    spawns: [
+      { entity: 'human:adventurer', offset: [-6, 0, 10], name: 'Cass', id: 'cass', questId: 'fortune', behavior: 'stationary', dialogue: 'Golden blocks are the good ones. Purple blocks are the honest ones. Break twelve gold and the arena pays out. Try not to stand next to an explosion.' },
+      { entity: 'human:mage_arcane', offset: [6, 0, 10], name: 'Vex', id: 'vex', questId: 'curse', behavior: 'stationary', dialogue: 'The cursed blocks whisper. I have written down what they say. Most of it is rude, some of it is prophecy, all of it is a bad idea.' },
+      { entity: 'creature:wisp', offset: [-9, 2, -9], count: 3, spread: 3 },
+      { entity: 'creature:cat', offset: [9, 0, 8], name: 'Lucky' },
+    ],
+    objectives: [
+      { id: 'cass', title: 'Speak with Cass', kind: 'talk', target: 'cass', count: 1 },
+      { id: 'first', title: 'Break your first lucky block', kind: 'open', target: 'lucky_block', count: 1 },
+      { id: 'twelve', title: 'Open 12 lucky blocks', kind: 'open', target: 'lucky_block', count: 12 },
+      { id: 'cursed', title: 'Open 2 cursed blocks', kind: 'open', target: 'cursed_lucky_block', count: 2, description: 'They are the purple ones. You have been warned.' },
+      { id: 'earn', title: 'Earn 200 coins from the arena', kind: 'earn', target: 'coin', count: 200 },
+    ],
+    quests: [
+      {
+        id: 'fortune', title: 'Fortune Favours the Bold', giver: 'Cass', summary: 'Cass wants a twelve-block run and a cut of the coins. She will settle for watching the explosions.',
+        objectives: [
+          { id: 'q-open', title: 'Open five lucky blocks', kind: 'open', target: 'lucky_block', count: 5 },
+          { id: 'q-earn', title: 'Earn 80 coins', kind: 'earn', target: 'coin', count: 80 },
+        ],
+        reward: { xp: 220, items: [{ item: 'lucky_coin', count: 2 }, { item: 'golden_apple', count: 2 }], coins: 40 },
+      },
+      {
+        id: 'curse', title: 'Cursed Curiosity', giver: 'Vex', summary: 'Vex needs two cursed blocks opened and a survivor to compare notes with. The arena is happy to provide both.',
+        objectives: [
+          { id: 'q-cursed', title: 'Open two cursed blocks', kind: 'open', target: 'cursed_lucky_block', count: 2 },
+          { id: 'q-survive', title: 'Survive the arena for 2 minutes', kind: 'survive', count: 120 },
+        ],
+        reward: { xp: 300, items: [{ item: 'diamond', count: 3 }, { item: 'rune_block', count: 2 }], coins: 80 },
+      },
+    ],
+    waves: [],
+    checkpoints: [
+      { offset: [0, 1, 10], radius: 5, label: 'Arena Entrance' },
+      { offset: [0, 1, 4], radius: 8, label: 'Lucky Ring' },
+    ],
+    startingItems: [
+      { item: 'iron_pickaxe', count: 1 },
+      { item: 'iron_sword', count: 1 },
+      { item: 'lucky_coin', count: 3 },
+      { item: 'bread', count: 6 },
+      { item: 'golden_apple', count: 2 },
+      { item: 'torch', count: 12 },
+      { item: 'coin', count: 25 },
+    ],
+    hotbar: ['iron_pickaxe', 'iron_sword', 'lucky_coin', 'bread', 'golden_apple', 'torch', 'coin', 'bread', 'torch'],
+    sim: {
+      kind: 'lucky',
+      targetOpen: 12,
+    },
+    rules: { ...BASE_RULES, keepInventory: true, mobSpawning: false, dayCycle: false, pvp: false },
+    fx: { post: 'neon' },
+    scripts: templateScript(`onStart(() => {
+  camera('first');
+  say('Cass and Vex are by the entrance. Gold blocks are prizes, purple blocks are consequences.', 'info');
+  give('torch', 4);
+});
+onEvent('respawn', () => say('The arena puts you back on your feet. The blocks are already refilling.', 'warn'));
+`),
+    stats: [
+      { label: 'Blocks', value: '12 + 3 cursed' },
+      { label: 'Quests', value: '2' },
+      { label: 'Jackpot', value: 'Random' },
     ],
   },
 ];

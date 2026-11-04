@@ -1,6 +1,6 @@
 import { BLOCKS } from '../engine/world/Blocks';
 import type { TextureAtlas } from '../engine/render/TextureAtlas';
-import { hexToRgb } from '../engine/core/Utils';
+import { renderItemIcon } from './ItemIconArt';
 
 export type ItemKind = 'block' | 'tool' | 'weapon' | 'armor' | 'food' | 'material' | 'special';
 export type ToolType = 'pickaxe' | 'axe' | 'shovel' | 'hoe' | 'sword' | 'bow' | 'staff' | 'shield' | 'gun';
@@ -197,6 +197,70 @@ for (const [key, name, color, desc, rarity = 'common'] of MATERIALS) {
   });
 }
 
+/* ------------------------------------------------------------------ */
+/*  Cooking sim ingredients, dishes and shop stock                     */
+/* ------------------------------------------------------------------ */
+
+const INGREDIENTS: Array<[string, string, string, string, number]> = [
+  ['tomato', 'Tomato', '#d4553c', 'A ripe red tomato, still warm from the vine.', 2],
+  ['lettuce', 'Lettuce', '#6fae3f', 'Crisp green leaves, ready for a salad or a burger.', 2],
+  ['onion', 'Onion', '#a47ac4', 'Sharp, sweet and guaranteed to make you cry.', 2],
+  ['mushroom', 'Mushroom', '#b4443c', 'A firm, earthy mushroom for soups and sautés.', 2],
+  ['egg', 'Egg', '#f2e8cf', 'A fresh egg. Useful in almost everything.', 2],
+  ['cheese', 'Cheese', '#f3c951', 'A sharp wedge of aged cheese.', 4],
+  ['rice', 'Rice', '#e8e2cc', 'A handful of long white rice.', 2],
+  ['noodles', 'Noodles', '#e8cf8a', 'Springy egg noodles, ready for the broth.', 3],
+  ['dough', 'Dough', '#e0c27a', 'Soft dough waiting for an oven.', 3],
+  ['butter', 'Butter', '#f2d27a', 'A golden block of butter.', 3],
+  ['chocolate', 'Chocolate', '#7a4028', 'Dark baking chocolate with a snap.', 4],
+  ['coffee_bean', 'Coffee Beans', '#8f5a34', 'Roasted beans with a deep, bitter smell.', 3],
+  ['tea_leaf', 'Tea Leaves', '#78bf4a', 'Fragrant green tea leaves.', 3],
+  ['broth', 'Broth', '#c98f4c', 'A rich stock simmered for hours.', 4],
+];
+
+for (const [key, name, color, desc, price] of INGREDIENTS) {
+  add({ key, name, kind: 'material', description: desc, stack: 64, rarity: 'common', color, price });
+}
+
+const DISHES: Array<[string, string, number, number, string, string]> = [
+  ['burger', 'Forge Burger', 11, 6, '#e0a14f', 'A double-stacked burger with melted cheese and a toasted bun.'],
+  ['cheese_pizza', 'Cheese Pizza', 10, 5, '#e8bb62', 'A whole stone-baked pizza, cut into slices that never last long.'],
+  ['garden_salad', 'Garden Salad', 7, 4, '#78bf4a', 'Crisp leaves, tomato and a bright vinaigrette.'],
+  ['cake_slice', 'Cake Slice', 8, 4, '#f2e1c9', 'A thick slice of chocolate cake with cream and a cherry.'],
+  ['coffee', 'Hot Coffee', 3, 2, '#5b3520', 'Strong, hot and better than sleep.'],
+  ['tea', 'Herbal Tea', 2, 3, '#b5762d', 'Soothing tea with a spoonful of honey.'],
+  ['ramen', 'Ember Ramen', 12, 7, '#e8c06b', 'A steaming bowl of noodles, egg and rich broth.'],
+  ['pumpkin_soup', 'Pumpkin Soup', 9, 5, '#e3a25a', 'Velvety pumpkin soup with a swirl of cream.'],
+];
+
+for (const [key, name, hunger, heal, color, desc] of DISHES) {
+  add({
+    key, name, kind: 'food', description: desc, stack: 16,
+    foodHunger: hunger, foodHeal: heal, rarity: key === 'ramen' ? 'uncommon' : 'common',
+    color, price: Math.max(4, Math.round(hunger * 0.8)),
+  });
+}
+
+add({ key: 'milk', name: 'Milk', kind: 'food', description: 'A cold bottle of milk. Drink it, or steam it for coffee.', stack: 16, foodHunger: 2, foodHeal: 1, rarity: 'common', color: '#f3efe2', price: 2 });
+
+const SHOP_GOODS: Array<[string, string, string, string, number, Rarity?]> = [
+  ['soap', 'Lavender Soap', '#d9f2e8', 'A neatly wrapped bar of lavender soap.', 6],
+  ['candle', 'Honey Candle', '#f0c969', 'A hand-poured candle with a honey scent.', 7],
+  ['soda', 'Cherry Soda', '#d4553c', 'A fizzy red bottle with a metal cap.', 4],
+  ['snack_bar', 'Trail Bar', '#f2c14f', 'Oats, honey and nuts pressed into a bar.', 4],
+  ['toy_car', 'Tin Toy Car', '#f07a5c', 'A wind-up car with painted wheels.', 10, 'uncommon'],
+  ['newspaper', 'The Forge Gazette', '#e7e1cf', 'Today\'s news, yesterday\'s fish wrapping.', 3],
+];
+
+for (const [key, name, color, desc, price, rarity = 'common'] of SHOP_GOODS) {
+  add({ key, name, kind: 'material', description: desc, stack: 32, rarity, color, price });
+}
+
+add({ key: 'lucky_coin', name: 'Lucky Coin', kind: 'material', description: 'A coin that always lands on its edge. Traders love them.', stack: 16, rarity: 'rare', color: '#f7d85a', price: 28 });
+add({ key: 'lucky_sword', name: 'Fortune\'s Edge', kind: 'weapon', description: 'A golden blade pulled from a lucky block. It hums when the odds are in your favour.', stack: 1, toolType: 'sword', damage: 14, durability: 1400, rarity: 'legendary', color: '#f4d25a', price: 220 });
+add({ key: 'chef_hat', name: 'Chef\'s Toque', kind: 'armor', description: 'A tall white hat. Wearing it makes every plate look intentional.', stack: 1, armor: 1, armorSlot: 'helmet', durability: 140, rarity: 'uncommon', color: '#f7f5ec', price: 12 });
+add({ key: 'apron', name: 'Service Apron', kind: 'armor', description: 'A sturdy apron with a deep pocket for order slips.', stack: 1, armor: 2, armorSlot: 'chestplate', durability: 200, rarity: 'uncommon', color: '#e8e4d6', price: 16 });
+
 add({ key: 'bucket', name: 'Iron Bucket', kind: 'special', description: 'Scoops water and lava. Place with right click.', stack: 1, rarity: 'uncommon', color: '#bcc6ce', price: 12 });
 add({ key: 'tnt', name: 'TNT', kind: 'block', block: 'tnt', description: 'Light it and run.', stack: 64, rarity: 'uncommon', color: '#c7483f' });
 add({ key: 'totem', name: 'Totem of Returning', kind: 'special', description: 'Once per life, cheats death and returns you to safety.', stack: 1, rarity: 'legendary', color: '#7be7a8', price: 100 });
@@ -230,405 +294,12 @@ export const ITEM_CATEGORIES = [
 ];
 
 /* ------------------------------------------------------------------ */
-/*  Procedural item icons                                              */
+/*  Item icons                                                         */
 /* ------------------------------------------------------------------ */
 
 const iconCache = new Map<string, string>();
 
 const ARMOR_LABEL: Record<ArmorSlot, string> = { helmet: 'Helmet', chestplate: 'Chestplate', leggings: 'Leggings', boots: 'Boots' };
-
-function px(ctx: CanvasRenderingContext2D, x: number, y: number, color: string, w = 2, h = 2) {
-  ctx.fillStyle = color;
-  ctx.fillRect(x, y, w, h);
-}
-
-function shade(hex: string, amt: number): string {
-  const [r, g, b] = hexToRgb(hex);
-  const f = (v: number) => Math.max(0, Math.min(255, Math.round(amt >= 0 ? v + (255 - v) * amt : v * (1 + amt))));
-  return `rgb(${f(r)},${f(g)},${f(b)})`;
-}
-
-function drawMaterialIcon(ctx: CanvasRenderingContext2D, def: ItemDef) {
-  const c = def.color;
-  switch (def.key) {
-    case 'rifle_ammo':
-      px(ctx, 8, 15, '#b98c45', 6, 10);
-      px(ctx, 8, 11, '#e6cf8a', 6, 4);
-      px(ctx, 16, 9, '#c9a15a', 5, 16);
-      px(ctx, 16, 6, '#e6cf8a', 5, 4);
-      px(ctx, 25, 17, '#b98c45', 4, 8);
-      break;
-    case 'stick':
-      px(ctx, 12, 20, '#6e4b28', 3, 3);
-      for (let i = 0; i < 5; i++) px(ctx, 13 + i * 2, 19 - i * 2, '#9a6f3f', 3, 3);
-      px(ctx, 13, 19, '#b98a55', 2, 2);
-      break;
-    case 'coal':
-    case 'charcoal':
-      px(ctx, 10, 12, '#1c1d21', 12, 10);
-      px(ctx, 8, 15, '#2e3036', 14, 7);
-      px(ctx, 12, 14, '#4a4c52', 3, 2);
-      px(ctx, 19, 18, '#121317', 3, 2);
-      break;
-    case 'iron_ingot':
-    case 'gold_ingot':
-    case 'coin': {
-      const dark = shade(c, -0.35);
-      const light = shade(c, 0.35);
-      if (def.key === 'coin') {
-        ctx.beginPath();
-        ctx.arc(16, 16, 9, 0, Math.PI * 2);
-        ctx.fillStyle = c;
-        ctx.fill();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = dark;
-        ctx.stroke();
-        px(ctx, 14, 13, light, 4, 2);
-        px(ctx, 16, 15, dark, 2, 5);
-      } else {
-        px(ctx, 8, 14, dark, 16, 8);
-        px(ctx, 10, 12, c, 14, 8);
-        px(ctx, 10, 12, light, 10, 2);
-        px(ctx, 8, 22, dark, 16, 2);
-      }
-      break;
-    }
-    case 'diamond':
-    case 'emerald':
-    case 'crystal_shard':
-    case 'rune_stone':
-    case 'void_essence':
-    case 'dragon_scale': {
-      const light = shade(c, 0.45);
-      if (def.key === 'rune_stone') {
-        px(ctx, 8, 9, '#494455', 16, 17);
-        px(ctx, 6, 12, '#5d586e', 20, 11);
-        px(ctx, 13, 8, light, 2, 15);
-        px(ctx, 10, 14, light, 10, 2);
-        px(ctx, 12, 17, light, 6, 2);
-      } else if (def.key === 'dragon_scale') {
-        ctx.beginPath();
-        ctx.moveTo(16, 5);
-        ctx.lineTo(26, 13);
-        ctx.lineTo(22, 26);
-        ctx.lineTo(10, 26);
-        ctx.lineTo(6, 13);
-        ctx.closePath();
-        ctx.fillStyle = c;
-        ctx.fill();
-        ctx.strokeStyle = shade(c, -0.4);
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        px(ctx, 13, 11, light, 4, 3);
-      } else if (def.key === 'void_essence') {
-        ctx.beginPath();
-        ctx.arc(16, 15, 7, 0, Math.PI * 2);
-        ctx.fillStyle = c;
-        ctx.fill();
-        px(ctx, 13, 12, light, 4, 3);
-        px(ctx, 15, 21, shade(c, -0.35), 2, 6);
-      } else {
-        ctx.beginPath();
-        ctx.moveTo(16, 4);
-        ctx.lineTo(25, 13);
-        ctx.lineTo(16, 28);
-        ctx.lineTo(7, 13);
-        ctx.closePath();
-        ctx.fillStyle = c;
-        ctx.fill();
-        px(ctx, 11, 12, light, 4, 5);
-        px(ctx, 15, 20, shade(c, -0.25), 5, 4);
-      }
-      break;
-    }
-    case 'redstone':
-      px(ctx, 12, 10, c, 2, 2); px(ctx, 19, 14, c, 2, 2); px(ctx, 8, 20, c, 2, 2);
-      px(ctx, 17, 23, c, 2, 2); px(ctx, 22, 7, c, 2, 2); px(ctx, 6, 12, c, 2, 2);
-      px(ctx, 21, 19, c, 2, 2); px(ctx, 11, 17, c, 2, 2);
-      break;
-    case 'string':
-      ctx.strokeStyle = c;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(7, 7);
-      ctx.bezierCurveTo(25, 10, 7, 22, 25, 24);
-      ctx.stroke();
-      break;
-    case 'feather':
-      ctx.strokeStyle = shade(c, -0.3);
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(9, 25);
-      ctx.lineTo(24, 8);
-      ctx.stroke();
-      px(ctx, 16, 9, c, 5, 3); px(ctx, 13, 12, c, 4, 3); px(ctx, 19, 12, c, 3, 3);
-      px(ctx, 11, 16, c, 4, 2);
-      break;
-    case 'leather':
-    case 'rabbit_hide':
-      ctx.fillStyle = c;
-      ctx.beginPath();
-      ctx.moveTo(8, 9);
-      ctx.lineTo(14, 6);
-      ctx.lineTo(18, 9);
-      ctx.lineTo(26, 8);
-      ctx.lineTo(24, 17);
-      ctx.lineTo(21, 25);
-      ctx.lineTo(13, 26);
-      ctx.lineTo(7, 18);
-      ctx.closePath();
-      ctx.fill();
-      px(ctx, 11, 12, shade(c, 0.22), 4, 4);
-      break;
-    case 'bone':
-      px(ctx, 13, 9, c, 6, 16);
-      px(ctx, 9, 6, c, 5, 5); px(ctx, 18, 6, c, 5, 5);
-      px(ctx, 9, 23, c, 5, 5); px(ctx, 18, 23, c, 5, 5);
-      px(ctx, 14, 12, shade(c, -0.18), 2, 8);
-      break;
-    case 'wheat':
-      px(ctx, 15, 12, '#8c9d45', 2, 17);
-      for (let i = 0; i < 4; i++) {
-        px(ctx, 9, 9 + i * 4, c, 6, 2);
-        px(ctx, 17, 7 + i * 4, c, 6, 2);
-      }
-      break;
-    case 'paper':
-      px(ctx, 8, 7, '#d5cdb8', 17, 20);
-      px(ctx, 10, 6, c, 15, 20);
-      px(ctx, 13, 11, '#9a9280', 8, 1); px(ctx, 13, 15, '#9a9280', 9, 1); px(ctx, 13, 19, '#9a9280', 6, 1);
-      break;
-    case 'book':
-      px(ctx, 8, 6, '#5d3c25', 17, 21);
-      px(ctx, 10, 8, c, 13, 17);
-      px(ctx, 10, 8, '#b07a4a', 3, 17);
-      px(ctx, 16, 10, '#e3d9b8', 5, 1); px(ctx, 16, 13, '#e3d9b8', 5, 1); px(ctx, 16, 16, '#e3d9b8', 5, 1);
-      break;
-    case 'gunpowder':
-      px(ctx, 9, 20, '#3b3b3d', 15, 4);
-      for (let i = 0; i < 9; i++) px(ctx, 8 + Math.random() * 15, 8 + Math.random() * 10, i % 2 ? '#6b6c70' : '#2e2f33', 2, 2);
-      break;
-    case 'slimeball':
-      ctx.beginPath();
-      ctx.arc(16, 18, 9, 0, Math.PI * 2);
-      ctx.fillStyle = c;
-      ctx.fill();
-      px(ctx, 13, 13, shade(c, 0.45), 5, 4);
-      px(ctx, 19, 21, shade(c, -0.25), 4, 3);
-      break;
-    case 'magma_cream':
-      ctx.beginPath();
-      ctx.arc(16, 17, 9, 0, Math.PI * 2);
-      ctx.fillStyle = c;
-      ctx.fill();
-      px(ctx, 11, 14, '#ffd36e', 3, 3); px(ctx, 19, 18, '#612817', 4, 2); px(ctx, 15, 21, '#ffb14f', 3, 2);
-      break;
-    case 'spider_eye':
-      ctx.beginPath();
-      ctx.arc(16, 16, 9, 0, Math.PI * 2);
-      ctx.fillStyle = c;
-      ctx.fill();
-      px(ctx, 13, 12, '#5c1d23', 7, 7);
-      px(ctx, 15, 14, '#e7d8a2', 3, 3);
-      break;
-    case 'honeycomb':
-      ctx.fillStyle = c;
-      ctx.fillRect(7, 9, 18, 16);
-      for (let y = 0; y < 3; y++) for (let x = 0; x < 4; x++) {
-        px(ctx, 8 + x * 4, 10 + y * 4, (x + y) % 2 ? '#f7d06f' : '#c88e24', 3, 3);
-      }
-      break;
-    case 'raw_fish':
-    case 'cooked_fish':
-      ctx.beginPath();
-      ctx.ellipse(15, 16, 10, 6, 0, 0, Math.PI * 2);
-      ctx.fillStyle = c;
-      ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(24, 16); ctx.lineTo(29, 11); ctx.lineTo(29, 21); ctx.closePath();
-      ctx.fill();
-      px(ctx, 9, 13, '#f7f2dd', 3, 3);
-      px(ctx, 10, 14, '#222', 2, 2);
-      break;
-    case 'rotten_flesh':
-      for (let i = 0; i < 6; i++) {
-        px(ctx, 7 + (i % 3) * 6, 9 + Math.floor(i / 3) * 8, i % 2 ? c : shade(c, -0.18), 7, 6);
-      }
-      break;
-    default:
-      ctx.fillStyle = c;
-      ctx.beginPath();
-      ctx.arc(16, 16, 8, 0, Math.PI * 2);
-      ctx.fill();
-      px(ctx, 13, 12, shade(c, 0.4), 4, 3);
-  }
-}
-
-function drawToolIcon(ctx: CanvasRenderingContext2D, def: ItemDef) {
-  const c = def.color;
-  const dark = shade(c, -0.32);
-  const light = shade(c, 0.34);
-  const handle = '#7b5530';
-  const handleLight = '#a57645';
-  const type = def.toolType;
-
-  if (type === 'shield') {
-    ctx.fillStyle = c;
-    ctx.beginPath();
-    ctx.moveTo(16, 4); ctx.lineTo(27, 8); ctx.lineTo(24, 22); ctx.lineTo(16, 28); ctx.lineTo(8, 22); ctx.lineTo(5, 8); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = dark; ctx.lineWidth = 2; ctx.stroke();
-    px(ctx, 15, 9, '#e8c35d', 2, 13); px(ctx, 10, 13, '#e8c35d', 12, 2);
-    return;
-  }
-  if (type === 'staff') {
-    px(ctx, 14, 13, handle, 3, 16);
-    for (let i = 0; i < 5; i++) px(ctx, 12 + i, 23 - i * 2, handleLight, 2, 2);
-    ctx.beginPath(); ctx.arc(16, 9, 6, 0, Math.PI * 2); ctx.fillStyle = c; ctx.fill();
-    px(ctx, 13, 6, light, 4, 3);
-    px(ctx, 9, 7, shade(c, 0.2), 2, 2); px(ctx, 22, 11, shade(c, 0.2), 2, 2);
-    return;
-  }
-  if (type === 'gun') {
-    px(ctx, 4, 13, dark, 21, 5);
-    px(ctx, 6, 11, c, 17, 3);
-    px(ctx, 3, 14, light, 3, 2);
-    px(ctx, 10, 10, '#5a636a', 5, 2);
-    px(ctx, 18, 18, handle, 4, 6);
-    px(ctx, 23, 16, handleLight, 3, 8);
-    px(ctx, 7, 15, '#39434a', 6, 2);
-    return;
-  }
-  if (type === 'bow') {
-    ctx.strokeStyle = c; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(10, 5); ctx.quadraticCurveTo(25, 16, 10, 27); ctx.stroke();
-    ctx.strokeStyle = '#ddd6bd'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(10, 5); ctx.lineTo(10, 27); ctx.stroke();
-    px(ctx, 11, 15, '#b9b2a0', 9, 2);
-    px(ctx, 18, 13, '#d9d2c1', 2, 6);
-    return;
-  }
-
-  // Handle diagonal.
-  for (let i = 0; i < 7; i++) px(ctx, 9 + i * 2, 25 - i * 2, i % 2 ? handleLight : handle, 3, 3);
-
-  if (type === 'pickaxe') {
-    ctx.strokeStyle = c; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(6, 12); ctx.quadraticCurveTo(16, 5, 27, 11); ctx.stroke();
-    px(ctx, 5, 11, dark, 4, 4); px(ctx, 26, 9, light, 3, 4);
-    px(ctx, 13, 8, light, 7, 2);
-  } else if (type === 'axe') {
-    ctx.fillStyle = c;
-    ctx.beginPath(); ctx.moveTo(20, 5); ctx.lineTo(28, 9); ctx.lineTo(25, 18); ctx.lineTo(17, 14); ctx.closePath(); ctx.fill();
-    px(ctx, 20, 6, light, 5, 2);
-    px(ctx, 17, 13, dark, 3, 4);
-  } else if (type === 'shovel') {
-    ctx.fillStyle = c;
-    ctx.beginPath(); ctx.moveTo(17, 5); ctx.lineTo(26, 9); ctx.lineTo(24, 17); ctx.lineTo(15, 12); ctx.closePath(); ctx.fill();
-    px(ctx, 18, 6, light, 5, 3);
-  } else if (type === 'hoe') {
-    px(ctx, 18, 6, c, 9, 4);
-    px(ctx, 17, 6, light, 3, 2);
-    px(ctx, 24, 9, dark, 3, 4);
-  } else {
-    // sword
-    const blade = def.key.includes('ember') || def.key.includes('katana') ? '#ffb08a' : c;
-    for (let i = 0; i < 6; i++) px(ctx, 15 + i * 2, 18 - i * 2, i % 2 ? light : blade, 4, 4);
-    px(ctx, 21, 4, '#ffffff', 2, 2);
-    px(ctx, 9, 20, '#c9a24e', 11, 3);
-    px(ctx, 12, 23, handle, 5, 3);
-  }
-}
-
-function drawArmorIcon(ctx: CanvasRenderingContext2D, def: ItemDef) {
-  const c = def.color;
-  const dark = shade(c, -0.3);
-  const light = shade(c, 0.32);
-  switch (def.armorSlot) {
-    case 'helmet':
-      ctx.fillStyle = c;
-      ctx.beginPath(); ctx.moveTo(6, 20); ctx.quadraticCurveTo(6, 6, 16, 5); ctx.quadraticCurveTo(26, 6, 26, 20); ctx.lineTo(21, 24); ctx.lineTo(21, 14); ctx.lineTo(11, 14); ctx.lineTo(11, 24); ctx.closePath(); ctx.fill();
-      px(ctx, 11, 8, light, 10, 3);
-      px(ctx, 11, 17, dark, 3, 7); px(ctx, 19, 17, dark, 3, 7);
-      break;
-    case 'chestplate':
-      ctx.fillStyle = c;
-      ctx.beginPath(); ctx.moveTo(8, 6); ctx.lineTo(13, 8); ctx.lineTo(19, 8); ctx.lineTo(24, 6); ctx.lineTo(28, 11); ctx.lineTo(24, 16); ctx.lineTo(24, 27); ctx.lineTo(8, 27); ctx.lineTo(8, 16); ctx.lineTo(4, 11); ctx.closePath(); ctx.fill();
-      px(ctx, 12, 10, light, 8, 3);
-      px(ctx, 16, 14, dark, 2, 11);
-      break;
-    case 'leggings':
-      px(ctx, 8, 5, c, 16, 6);
-      px(ctx, 8, 10, c, 6, 18);
-      px(ctx, 18, 10, c, 6, 18);
-      px(ctx, 10, 6, light, 12, 2);
-      px(ctx, 8, 25, dark, 6, 3); px(ctx, 18, 25, dark, 6, 3);
-      break;
-    default:
-      px(ctx, 6, 14, c, 9, 13);
-      px(ctx, 17, 14, c, 9, 13);
-      px(ctx, 5, 24, dark, 11, 5);
-      px(ctx, 16, 24, dark, 11, 5);
-      px(ctx, 8, 15, light, 5, 2); px(ctx, 19, 15, light, 5, 2);
-      px(ctx, 6, 11, c, 9, 4);
-      break;
-  }
-}
-
-function drawFoodIcon(ctx: CanvasRenderingContext2D, def: ItemDef) {
-  const c = def.color;
-  if (def.key.includes('bread')) {
-    ctx.fillStyle = c;
-    ctx.beginPath(); ctx.ellipse(16, 16, 12, 7, -0.2, 0, Math.PI * 2); ctx.fill();
-    px(ctx, 6, 14, '#e0b26e', 20, 4);
-    px(ctx, 10, 11, '#8f5e30', 3, 2); px(ctx, 17, 11, '#8f5e30', 3, 2); px(ctx, 21, 14, '#8f5e30', 2, 2);
-    return;
-  }
-  if (def.key.includes('stew')) {
-    ctx.fillStyle = '#6f7478';
-    ctx.beginPath(); ctx.ellipse(16, 18, 12, 8, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = c;
-    ctx.beginPath(); ctx.ellipse(16, 16, 10, 6, 0, 0, Math.PI * 2); ctx.fill();
-    px(ctx, 10, 14, '#e3a25a', 3, 3); px(ctx, 17, 13, '#c96f3c', 4, 3); px(ctx, 14, 17, '#7fa84b', 3, 2);
-    return;
-  }
-  if (def.key.includes('water')) {
-    px(ctx, 12, 6, '#5aa9d6', 8, 4);
-    px(ctx, 9, 10, '#7ac7ea', 14, 15);
-    px(ctx, 9, 23, '#4d94bd', 14, 3);
-    px(ctx, 11, 9, '#d8f2ff', 3, 4);
-    return;
-  }
-  if (def.key.includes('apple')) {
-    ctx.beginPath(); ctx.arc(16, 18, 9, 0, Math.PI * 2);
-    ctx.fillStyle = c; ctx.fill();
-    px(ctx, 12, 12, shade(c, 0.4), 4, 3);
-    px(ctx, 16, 6, '#6b4a28', 2, 5);
-    px(ctx, 18, 7, '#639a44', 6, 3);
-    if (def.key === 'golden_apple') px(ctx, 11, 17, '#fff2a3', 3, 3);
-    return;
-  }
-  if (def.key.includes('chicken') || def.key.includes('beef') || def.key.includes('porkchop')) {
-    ctx.fillStyle = c;
-    ctx.beginPath(); ctx.ellipse(16, 17, 10, 8, 0.3, 0, Math.PI * 2); ctx.fill();
-    px(ctx, 10, 12, shade(c, 0.25), 7, 4);
-    px(ctx, 19, 19, shade(c, -0.25), 5, 3);
-    px(ctx, 8, 22, '#e8dfc7', 2, 5);
-    return;
-  }
-  if (def.key.includes('carrot')) {
-    for (let i = 0; i < 5; i++) px(ctx, 13 + (i % 2), 9 + i * 4, c, 7 - i, 4);
-    px(ctx, 16, 4, '#6ba348', 2, 6); px(ctx, 12, 5, '#6ba348', 2, 5); px(ctx, 20, 5, '#6ba348', 2, 5);
-    return;
-  }
-  if (def.key.includes('potato')) {
-    ctx.fillStyle = c;
-    ctx.beginPath(); ctx.ellipse(16, 17, 9, 7, 0.4, 0, Math.PI * 2); ctx.fill();
-    px(ctx, 11, 14, shade(c, 0.25), 4, 3);
-    return;
-  }
-  ctx.fillStyle = c;
-  ctx.beginPath(); ctx.arc(16, 16, 9, 0, Math.PI * 2); ctx.fill();
-}
 
 /** Get (and cache) a 64×64 data URL icon for an item. */
 export function itemIcon(key: string, atlas?: TextureAtlas): string {
@@ -641,30 +312,7 @@ export function itemIcon(key: string, atlas?: TextureAtlas): string {
     iconCache.set(key, url);
     return url;
   }
-  const size = 64;
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d')!;
-  ctx.imageSmoothingEnabled = false;
-  ctx.save();
-  ctx.translate(0, 0);
-  ctx.scale(2, 2);
-  ctx.lineJoin = 'round';
-  if (def.kind === 'tool' || def.kind === 'weapon') drawToolIcon(ctx, def);
-  else if (def.kind === 'armor') drawArmorIcon(ctx, def);
-  else if (def.kind === 'food') drawFoodIcon(ctx, def);
-  else drawMaterialIcon(ctx, def);
-  ctx.restore();
-
-  // Ground shadow and outline make cards pop against dark panels.
-  ctx.globalCompositeOperation = 'destination-over';
-  ctx.fillStyle = 'rgba(0,0,0,0.24)';
-  ctx.beginPath();
-  ctx.ellipse(32, 52, 16, 5, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.globalCompositeOperation = 'source-over';
-  const url = canvas.toDataURL();
+  const url = renderItemIcon(def);
   iconCache.set(key, url);
   return url;
 }
@@ -790,6 +438,14 @@ r('tnt', 1, [['gunpowder', 5], ['sand', 4]], 'table');
 r('torch', 4, [['stick', 1], ['charcoal', 1]], 'hand');
 r('crystal_flower', 1, [['crystal_shard', 1], ['poppy', 1]], 'table');
 r('totem', 1, [['dragon_scale', 2], ['crystal_shard', 4], ['emerald', 2]], 'table', 'Craft a second chance.');
+
+// Kitchen, shop and lucky-block extras.
+r('chef_hat', 1, [['wool_white', 3]], 'table', 'A proper toque for a proper kitchen.');
+r('apron', 1, [['wool_white', 4], ['string', 2]], 'table');
+r('gold_block', 1, [['gold_ingot', 9]], 'table');
+r('candle', 2, [['honeycomb', 1], ['string', 1]], 'table');
+r('soap', 2, [['honeycomb', 1], ['crystal_flower', 1]], 'table');
+r('lucky_sword', 1, [['gold_block', 1], ['diamond', 2], ['lucky_coin', 3]], 'table', 'A blade forged from impossible luck.');
 
 // Simple block conversions.
 r('sandstone', 1, [['sand', 4]], 'table');

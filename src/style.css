@@ -571,6 +571,45 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .race-row.you { color: #ffe3a6; }
 .race-row.you b { font-weight: 800; }
 
+.sim-panel {
+  position: absolute; top: 246px; right: 16px; width: 258px;
+  background: linear-gradient(180deg, rgba(12, 17, 16, 0.92), rgba(8, 11, 11, 0.86));
+  border: 1px solid rgba(120, 145, 120, 0.32);
+  border-top: 2px solid var(--accent);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(9px);
+  padding: 9px 11px 10px;
+}
+.sim-panel.hidden { display: none; }
+.sim-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
+.sim-kicker { font-family: var(--mono); font-size: 8px; letter-spacing: 0.18em; text-transform: uppercase; color: #89a38c; }
+.sim-title { font-family: var(--mono); font-size: 12px; font-weight: 800; color: #eef4e8; letter-spacing: 0.02em; text-align: right; }
+.sim-rows { display: flex; flex-direction: column; gap: 3px; }
+.sim-row { display: flex; justify-content: space-between; gap: 8px; font-family: var(--mono); font-size: 9.5px; color: #9db0a0; }
+.sim-row b { font-weight: 600; color: #dce8d8; text-align: right; }
+.sim-row b.good { color: #9be08a; }
+.sim-row b.warn { color: #f2c76a; }
+.sim-row b.bad { color: #ff8a72; }
+.sim-progress { margin-top: 7px; }
+.sim-progress-label { font-family: var(--mono); font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; color: #8ca28f; margin-bottom: 3px; }
+.sim-bar { height: 5px; background: rgba(0, 0, 0, 0.45); border: 1px solid #2f4636; }
+.sim-bar > i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #78c15c, #d8e88a); box-shadow: 0 0 8px rgba(140, 224, 95, 0.35); transition: width 0.2s; }
+.sim-actions { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.sim-actions.hidden { display: none; }
+.sim-action {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 0.02em; text-align: left;
+  color: #e8f0e0; background: rgba(60, 84, 62, 0.5); border: 1px solid rgba(126, 158, 126, 0.35);
+  padding: 5px 7px; cursor: pointer; transition: background 0.15s, border-color 0.15s;
+}
+.sim-action:hover:not(:disabled) { background: rgba(84, 118, 82, 0.6); border-color: var(--accent); }
+.sim-action:disabled { opacity: 0.38; cursor: default; }
+.sim-footer { margin-top: 7px; font-size: 9.5px; line-height: 1.4; color: #9fb2a2; border-top: 1px solid rgba(126, 158, 126, 0.16); padding-top: 6px; }
+.sim-footer.hidden { display: none; }
+
+@media (max-width: 900px) {
+  .sim-panel { top: auto; bottom: 96px; right: 8px; width: 212px; }
+}
+
 .interact-hint {
   position: absolute; left: 50%; top: calc(50% + 42px); transform: translateX(-50%);
   background: rgba(8, 14, 20, 0.8); border: 1px solid #415b4a; padding: 5px 10px;

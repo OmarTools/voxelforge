@@ -123,7 +123,7 @@ works; the server needs no SDK.
 
 | Tool | What it does |
 | --- | --- |
-| `voxelforge_state` | Player, camera, vehicle, race, world, objectives, scripts |
+| `voxelforge_state` | Player, camera, vehicle, race, sim, world, objectives, scripts |
 | `voxelforge_list` | Templates, items, blocks, prefabs, entities, cameras, commands |
 | `voxelforge_launch` | Launch a template from scratch |
 | `voxelforge_camera` | First, third, isometric, top-down, side, or cycle |
@@ -137,7 +137,7 @@ works; the server needs no SDK.
 | `voxelforge_entities` | Living entity list |
 | `voxelforge_export` / `voxelforge_publish` | Project JSON / downloadable package |
 | `voxelforge_open_panel` | Studio, scripts, publish, inventory |
-| `voxelforge_command` | Generic escape hatch (`{ type, payload }`) |
+| `voxelforge_command` | Generic escape hatch (`{ type, payload }`); `type: "sim"` drives cooking/shop/lucky actions |
 
 ## 5. Raw HTTP API
 

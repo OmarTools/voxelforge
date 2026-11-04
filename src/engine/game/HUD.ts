@@ -60,6 +60,17 @@ export class HUD {
   private raceWarning: HTMLDivElement;
   private raceStandings: HTMLDivElement;
   private raceSignature = '';
+  private simPanel: HTMLDivElement;
+  private simKicker: HTMLSpanElement;
+  private simTitle: HTMLSpanElement;
+  private simRows: HTMLDivElement;
+  private simProgress: HTMLDivElement;
+  private simProgressLabel: HTMLDivElement;
+  private simBar: HTMLDivElement;
+  private simActions: HTMLDivElement;
+  private simFooter: HTMLDivElement;
+  private simSignature = '';
+  private lastSim = 0;
   private xpFill: HTMLDivElement;
   private levelLabel: HTMLDivElement;
   private hintEl: HTMLDivElement;
@@ -133,6 +144,19 @@ export class HUD {
         <div class="race-warning hidden">WRONG WAY</div>
         <div class="race-standings"></div>
       </div>
+      <div class="sim-panel hidden">
+        <div class="sim-head">
+          <span class="sim-kicker"></span>
+          <span class="sim-title"></span>
+        </div>
+        <div class="sim-rows"></div>
+        <div class="sim-progress hidden">
+          <div class="sim-progress-label"></div>
+          <div class="sim-bar"><i></i></div>
+        </div>
+        <div class="sim-actions"></div>
+        <div class="sim-footer"></div>
+      </div>
       <div class="hud-bottom">
         <div class="vitals">
           <div class="vital-group hearts"></div>
@@ -193,6 +217,15 @@ export class HUD {
     this.raceSpeed = this.el.querySelector('.race-speed') as HTMLElement;
     this.raceWarning = this.el.querySelector('.race-warning') as HTMLDivElement;
     this.raceStandings = this.el.querySelector('.race-standings') as HTMLDivElement;
+    this.simPanel = this.el.querySelector('.sim-panel') as HTMLDivElement;
+    this.simKicker = this.el.querySelector('.sim-kicker') as HTMLSpanElement;
+    this.simTitle = this.el.querySelector('.sim-title') as HTMLSpanElement;
+    this.simRows = this.el.querySelector('.sim-rows') as HTMLDivElement;
+    this.simProgress = this.el.querySelector('.sim-progress') as HTMLDivElement;
+    this.simProgressLabel = this.el.querySelector('.sim-progress-label') as HTMLDivElement;
+    this.simBar = this.el.querySelector('.sim-bar > i') as HTMLDivElement;
+    this.simActions = this.el.querySelector('.sim-actions') as HTMLDivElement;
+    this.simFooter = this.el.querySelector('.sim-footer') as HTMLDivElement;
     this.xpFill = this.el.querySelector('.xp-fill') as HTMLDivElement;
     this.levelLabel = this.el.querySelector('.level-label') as HTMLDivElement;
     this.hintEl = this.el.querySelector('.hud-hints') as HTMLDivElement;
@@ -204,7 +237,11 @@ export class HUD {
 
     this.el.addEventListener('click', (event) => {
       const target = (event.target as HTMLElement).closest('[data-role]') as HTMLElement | null;
-      if (!target) return;
+      if (!target) {
+        const simButton = (event.target as HTMLElement).closest('[data-sim]') as HTMLButtonElement | null;
+        if (simButton && !simButton.disabled) game.simAction(simButton.dataset.sim ?? '');
+        return;
+      }
       const role = target.dataset.role;
       if (role === 'pause') game.requestPause();
       if (role === 'inventory') game.openInventory();
@@ -392,6 +429,12 @@ export class HUD {
       }
     }
 
+    // Simulation panel (kitchen / shop / lucky arena).
+    if (now - this.lastSim > 0.18) {
+      this.lastSim = now;
+      this.updateSim();
+    }
+
     // Minimap at ~4 fps.
     if (now - this.lastMinimap > 0.24) {
       this.lastMinimap = now;
@@ -416,6 +459,35 @@ export class HUD {
       `;
     }
     void this.minimapAcc;
+  }
+
+  private updateSim(): void {
+    const hud = this.game.sim?.hud() ?? null;
+    this.simPanel.classList.toggle('hidden', !hud);
+    if (!hud) {
+      this.simSignature = '';
+      return;
+    }
+    const signature = JSON.stringify(hud);
+    if (signature === this.simSignature) return;
+    this.simSignature = signature;
+    this.simKicker.textContent = hud.kicker;
+    this.simTitle.textContent = hud.title;
+    this.simRows.innerHTML = hud.rows
+      .map((row) => `<div class="sim-row"><span>${row.label}</span><b class="${row.tone ?? ''}">${row.value}</b></div>`)
+      .join('');
+    this.simProgress.classList.toggle('hidden', !hud.progress);
+    if (hud.progress) {
+      const pct = Math.max(0, Math.min(100, (hud.progress.value / Math.max(1, hud.progress.max)) * 100));
+      this.simProgressLabel.textContent = `${hud.progress.label} ${Math.round(pct)}%`;
+      this.simBar.style.width = `${pct}%`;
+    }
+    this.simActions.innerHTML = hud.actions
+      .map((action) => `<button class="sim-action clickable" data-sim="${action.id}"${action.disabled ? ' disabled' : ''}>${action.label}</button>`)
+      .join('');
+    this.simActions.classList.toggle('hidden', hud.actions.length === 0);
+    this.simFooter.textContent = hud.footer ?? '';
+    this.simFooter.classList.toggle('hidden', !hud.footer);
   }
 
   private timeText(seconds: number): string {
