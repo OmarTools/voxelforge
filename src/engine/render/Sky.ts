@@ -147,7 +147,7 @@ export class Sky {
       map: sunTex,
       transparent: true,
       depthWrite: false,
-      depthTest: false,
+      depthTest: true,
       fog: false,
       blending: THREE.AdditiveBlending,
     }));
@@ -160,7 +160,7 @@ export class Sky {
       map: moonTex,
       transparent: true,
       depthWrite: false,
-      depthTest: false,
+      depthTest: true,
       fog: false,
     }));
     this.moonSprite.scale.setScalar(34);
@@ -186,7 +186,7 @@ export class Sky {
       transparent: true,
       opacity: 0,
       depthWrite: false,
-      depthTest: false,
+      depthTest: true,
       fog: false,
     });
     this.stars = new THREE.Points(starGeo, this.starMat);
@@ -393,7 +393,7 @@ export class Sky {
     this.moonSprite.material.opacity = clamp(night * 0.95, 0, 1);
     this.moonSprite.visible = this.moonSprite.material.opacity > 0.02;
 
-    this.stars.position.copy(cameraPosition).setY(0);
+    this.stars.position.copy(cameraPosition);
     this.starMat.opacity = night * 0.88;
     this.stars.rotation.y = this.elapsed * 0.004;
     this.stars.visible = night > 0.05;
