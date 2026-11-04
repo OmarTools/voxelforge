@@ -218,6 +218,16 @@ export class GameEntity {
     }
   }
 
+  private footprint(): { minX: number; maxX: number; minZ: number; maxZ: number } {
+    const r = Math.max(0.24, this.def.bodyRadius * this.def.scale);
+    return {
+      minX: Math.floor(this.position.x - r),
+      maxX: Math.floor(this.position.x + r),
+      minZ: Math.floor(this.position.z - r),
+      maxZ: Math.floor(this.position.z + r),
+    };
+  }
+
   private collidesAt(x: number, y: number, z: number): boolean {
     const r = Math.max(0.24, this.def.bodyRadius * this.def.scale);
     const h = Math.max(0.45, this.def.bodyHeight * this.def.scale * 0.9);
@@ -225,7 +235,9 @@ export class GameEntity {
     const maxX = Math.floor(x + r);
     const minZ = Math.floor(z - r);
     const maxZ = Math.floor(z + r);
-    const minY = Math.floor(y + 0.02);
+    // A small skin above the feet keeps a grounded entity from testing the
+    // block it is standing on while still catching sinks of up to ~8 cm.
+    const minY = Math.floor(y + 0.08);
     const maxY = Math.floor(y + h);
     const w = this.manager.world;
     for (let by = minY; by <= maxY; by++) {
@@ -237,6 +249,52 @@ export class GameEntity {
       }
     }
     return false;
+  }
+
+  /** Highest solid surface directly under the feet, if the entity is resting on it. */
+  private supportTop(x: number, z: number, y: number): number | null {
+    const r = Math.max(0.24, this.def.bodyRadius * this.def.scale) * 0.92;
+    const minX = Math.floor(x - r);
+    const maxX = Math.floor(x + r);
+    const minZ = Math.floor(z - r);
+    const maxZ = Math.floor(z + r);
+    const base = Math.floor(y - 0.001);
+    const w = this.manager.world;
+    for (let by = base; by >= base - 1; by--) {
+      const top = by + 1;
+      if (Math.abs(y - top) > 0.085) continue;
+      for (let bz = minZ; bz <= maxZ; bz++) {
+        for (let bx = minX; bx <= maxX; bx++) {
+          const id = w.getBlock(bx, by, bz);
+          if (id && isSolidId(id)) return top;
+        }
+      }
+    }
+    return null;
+  }
+
+  /** Block top crossed while falling from previousY to nextY. */
+  private landingTop(previousY: number, nextY: number): number | null {
+    const { minX, maxX, minZ, maxZ } = this.footprint();
+    const start = Math.floor(previousY + 0.001);
+    const end = Math.floor(nextY - 0.001);
+    const w = this.manager.world;
+    let best: number | null = null;
+    for (let by = start; by >= end; by--) {
+      const top = by + 1;
+      if (top > previousY + 0.001 || top < nextY - 0.001) continue;
+      for (let bz = minZ; bz <= maxZ; bz++) {
+        for (let bx = minX; bx <= maxX; bx++) {
+          const id = w.getBlock(bx, by, bz);
+          if (id && isSolidId(id)) {
+            if (best === null || top > best) best = top;
+            bz = maxZ + 1;
+            break;
+          }
+        }
+      }
+    }
+    return best;
   }
 
   private moveHorizontal(dx: number, dz: number) {
@@ -277,17 +335,39 @@ export class GameEntity {
       this.onGround = false;
       return;
     }
-    this.velocity.y -= GRAVITY * dt;
-    if (this.velocity.y < -32) this.velocity.y = -32;
-    const ny = this.position.y + this.velocity.y * dt;
-    if (this.collidesAt(this.position.x, ny, this.position.z)) {
-      if (this.velocity.y <= 0) {
+    if (this.velocity.y <= 0) {
+      // Keep contact with the surface we are standing on instead of letting
+      // gravity push the feet into it and snapping back every frame.
+      const support = this.supportTop(this.position.x, this.position.z, this.position.y);
+      if (support !== null) {
+        this.position.y = support;
+        this.velocity.y = 0;
         this.onGround = true;
-        this.position.y = Math.floor(this.position.y + 0.02);
+      } else {
+        this.velocity.y -= GRAVITY * dt;
+        if (this.velocity.y < -32) this.velocity.y = -32;
+        const ny = this.position.y + this.velocity.y * dt;
+        const landing = this.landingTop(this.position.y, ny);
+        if (landing !== null) {
+          this.position.y = landing;
+          this.velocity.y = 0;
+          this.onGround = true;
+        } else if (this.collidesAt(this.position.x, ny, this.position.z)) {
+          this.velocity.y = 0;
+        } else {
+          this.position.y = ny;
+          this.onGround = false;
+        }
       }
-      this.velocity.y = 0;
     } else {
-      this.position.y = ny;
+      this.velocity.y -= GRAVITY * dt;
+      if (this.velocity.y < -32) this.velocity.y = -32;
+      const ny = this.position.y + this.velocity.y * dt;
+      if (this.collidesAt(this.position.x, ny, this.position.z)) {
+        this.velocity.y = 0;
+      } else {
+        this.position.y = ny;
+      }
       this.onGround = false;
     }
     this.moveHorizontal(this.velocity.x * dt, this.velocity.z * dt);
