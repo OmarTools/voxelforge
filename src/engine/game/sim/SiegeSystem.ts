@@ -319,7 +319,7 @@ export class SiegeSystem implements SimSystem {
     });
     if (this.turrets.length > 0 && Math.random() < 0.14) {
       const turret = pick(this.turrets);
-      this.game.particles.trail(blockCenter(turret).add(new THREE.Vector3(0, 0.9, 0)), '#8fe6ff', 0.06);
+      this.game.particles.trail(blockCenter(turret).add(new THREE.Vector3(0, 0.9, 0)), '#ffb45a', 0.06);
     }
   }
 

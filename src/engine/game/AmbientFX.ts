@@ -38,7 +38,8 @@ export class AmbientFX {
     const night = game.sky.nightFactor;
     const weather = game.sky.weather;
 
-    if (night > 0.4 && weather !== 'rain' && weather !== 'snow' && weather !== 'ash') {
+    if (night > 0.4 && weather !== 'rain' && weather !== 'snow' && weather !== 'ash'
+      && game.world.getSkyLight(player.position.x, player.position.y + 1, player.position.z) > 7) {
       this.fireflyTimer += dt * night * 6.5;
       while (this.fireflyTimer >= 1) {
         this.fireflyTimer -= 1;
