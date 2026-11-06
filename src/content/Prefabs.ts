@@ -2131,6 +2131,92 @@ export const PREFABS: Prefab[] = [
       }
     },
   },
+  {
+    key: 'cinder_arena', name: 'Cinderburst Arena', description: 'A powder-floor arena of obsidian pillars, breakable crates and four bomber pads under a cinder beacon. Built for four contestants and a great deal of TNT.',
+    size: [41, 16, 41], tags: ['bomber', 'arena', 'party', 'pvp'], glyph: '✹',
+    build(s) {
+      s.clear(-20, 0, -20, 20, 14, 20);
+      // Floor: a soot-stained brick checker with glowing magma seams.
+      for (let z = -18; z <= 18; z++) {
+        for (let x = -18; x <= 18; x++) {
+          const checker = ((x >> 1) + (z >> 1)) & 1;
+          let key = checker ? 'cobblestone' : 'stone_bricks';
+          if (Math.abs(x) === 16 || Math.abs(z) === 16) key = 'obsidian';
+          if (Math.abs(x) <= 16 && Math.abs(z) <= 16 && (x * 5 + z * 9 + 300) % 47 < 3) key = 'magma';
+          s.set(x, 0, z, key);
+        }
+      }
+      // Outer wall with crenellations and glowing seams.
+      for (let i = -18; i <= 18; i++) {
+        for (const side of [-1, 1]) {
+          s.fill(i, 1, side * 18, i, 4, side * 18, i % 6 === 0 ? 'magma' : 'obsidian');
+          s.fill(side * 18, 1, i, side * 18, 4, i, i % 6 === 0 ? 'magma' : 'obsidian');
+          if (i % 2 === 0) {
+            s.set(i, 5, side * 18, 'stone_bricks');
+            s.set(side * 18, 5, i, 'stone_bricks');
+          }
+        }
+      }
+      // Cinder beacon on the central pillar cell.
+      s.fill(-1, 0, -1, 1, 0, 1, 'quartz_block');
+      s.set(0, 1, 0, 'obsidian');
+      s.set(0, 2, 0, 'magma');
+      s.set(0, 3, 0, 'obsidian');
+      s.set(0, 4, 0, 'glowstone');
+      s.set(0, 5, 0, 'crystal_block');
+      s.set(0, 6, 0, 'glowstone');
+      for (const [x, z] of [[-2, 0], [2, 0], [0, -2], [0, 2], [-4, -4], [4, -4], [-4, 4], [4, 4]]) {
+        s.set(x, 0, z, 'magma');
+      }
+      // Hard pillars on the bomb-grid intersections, with a clear lane at the south pad.
+      for (let x = -12; x <= 12; x += 4) {
+        for (let z = -12; z <= 12; z += 4) {
+          if (x === 0 && (z === 0 || z === 12)) continue;
+          s.set(x, 1, z, 'stone_bricks');
+          s.set(x, 2, z, (x * 3 + z * 5 + 200) % 13 === 0 ? 'magma' : 'obsidian');
+        }
+      }
+      // Four bomber pads.
+      for (const [cx, cz] of [[-14, -14], [14, -14], [-14, 14], [0, 14]]) {
+        s.fill(cx - 1, 0, cz - 1, cx + 1, 0, cz + 1, 'quartz_block');
+        s.set(cx, 0, cz, 'crystal_block');
+        s.set(cx + 2, 0, cz, 'glowstone');
+        s.set(cx - 2, 0, cz, 'glowstone');
+        s.set(cx, 0, cz + 2, 'glowstone');
+        s.set(cx, 0, cz - 2, 'glowstone');
+      }
+      // Powder crates in the open cells; keep the pads and beacon approaches clear.
+      const pads: Array<[number, number]> = [[-14, -14], [14, -14], [-14, 14], [0, 14]];
+      for (let x = -14; x <= 14; x += 2) {
+        for (let z = -14; z <= 14; z += 2) {
+          if (x % 4 === 0 && z % 4 === 0) continue;
+          let clear = Math.abs(x) <= 2 && Math.abs(z) <= 2;
+          for (const [px, pz] of pads) {
+            if (Math.abs(x - px) <= 2 && Math.abs(z - pz) <= 2) clear = true;
+          }
+          if (clear) continue;
+          if ((x * 13 + z * 7 + 1000) % 23 < 7) s.set(x, 1, z, 'crate');
+        }
+      }
+      // Entry arch and reading nook for the pit crew.
+      s.fill(-4, 1, 17, -4, 3, 17, 'obsidian');
+      s.fill(4, 1, 17, 4, 3, 17, 'obsidian');
+      s.fill(-4, 4, 17, 4, 4, 17, 'obsidian');
+      s.set(-3, 2, 17, 'torch');
+      s.set(3, 2, 17, 'torch');
+      s.set(-3, 0, 16, 'glowstone');
+      s.set(3, 0, 16, 'glowstone');
+      // Corner braziers.
+      for (const [cx, cz] of [[-18, -18], [18, -18], [-18, 18], [18, 18]]) {
+        s.set(cx, 5, cz, 'crystal_block');
+        s.set(cx, 6, cz, 'glowstone');
+      }
+      // Powder banners on the wall.
+      for (const [x, z] of [[-12, -18], [12, -18], [-18, -12], [-18, 12], [12, 18], [18, 12]]) {
+        s.set(x, 3, z, 'wool_red');
+      }
+    },
+  },
 ];
 
 export const PREFAB_BY_KEY = new Map(PREFABS.map((p) => [p.key, p]));

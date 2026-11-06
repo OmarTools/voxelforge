@@ -3,7 +3,7 @@ import type { CameraMode } from '../engine/game/CameraModes';
 import type { ScriptProject } from '../engine/scripting/ScriptTypes';
 import type { SimSpec } from '../engine/game/sim/SimTypes';
 
-export type GameMode = 'creative' | 'survival' | 'skyblock' | 'parkour' | 'arena' | 'rpg' | 'horror' | 'dungeon' | 'racing' | 'army' | 'city' | 'platformer' | 'frostpeak' | 'dune' | 'skytemple' | 'kitchen' | 'shopkeep' | 'lucky' | 'royale' | 'siege' | 'studio';
+export type GameMode = 'creative' | 'survival' | 'skyblock' | 'parkour' | 'arena' | 'rpg' | 'horror' | 'dungeon' | 'racing' | 'army' | 'city' | 'platformer' | 'frostpeak' | 'dune' | 'skytemple' | 'kitchen' | 'shopkeep' | 'lucky' | 'royale' | 'siege' | 'bomber' | 'studio';
 export type Difficulty = 'peaceful' | 'easy' | 'normal' | 'hard' | 'nightmare';
 export type ObjectiveKind = 'collect' | 'kill' | 'reach' | 'craft' | 'place' | 'talk' | 'survive' | 'wave' | 'serve' | 'sell' | 'restock' | 'earn' | 'open' | 'cook' | 'defend';
 
@@ -1588,6 +1588,100 @@ onEvent('respawn', () => say('The core is still burning. The next assault is alr
       { label: 'Waves', value: '5' },
       { label: 'Gates', value: '4' },
       { label: 'Turrets', value: '4 upgradable' },
+    ],
+  },
+  {
+    key: 'bomber',
+    name: 'Cinderburst',
+    subtitle: 'Last fuse standing',
+    description: 'Four bombers, one powder floor and a great deal of TNT. Blow open crates for power-ups, chain your fuses and be the last contestant breathing.',
+    story: 'The Cinderburst pit was built for a festival, then the festival ran out of volunteers. The rules are painted on the entry arch: arm a fuse, clear the cross, take the powder. Wick still keeps the scorebook. The Warden still keeps the TNT.',
+    icon: '✹',
+    accent: '#ff7a3c',
+    difficulty: 'normal',
+    tags: ['Arena', 'Bomber', 'PvE', 'Party'],
+    preset: 'overworld',
+    heightMode: 'ground',
+    timeOfDay: 18.2,
+    weather: 'clear',
+    music: 'arena',
+    platform: { radius: 23, surface: 'netherrack', border: 'obsidian', clearHeight: 26 },
+    prefabs: [{ prefab: 'cinder_arena', x: 0, z: 0 }],
+    spawn: [0, 14],
+    spawnYaw: 0,
+    spawns: [
+      {
+        entity: 'human:explorer_jungle', offset: [-3, 0, 16], name: 'Wick', id: 'wick', questId: 'fuse', behavior: 'stationary',
+        dialogue: 'Four pads, three rivals and a floor full of powder. Right-click TNT to plant it, or press R to load one ahead of you, then leave the cross. Crates crack open for bomb racks, blast cores and skates. The scorebook is mine; the winning is yours.',
+      },
+      {
+        entity: 'human:mage_arcane', offset: [3, 0, 16], name: 'Ember Warden', id: 'warden', questId: 'arsenal', behavior: 'stationary',
+        dialogue: 'The beacon keeps the pit lit and the fuses honest. Bring me proof that the powder moves: break crates, take a rival out of the round, and I will fit you with a hotter core. No refunds on the scorch marks.',
+      },
+      { entity: 'human:guard_city', offset: [-7, 0, 17], name: 'Pit Steward', behavior: 'guard' },
+      { entity: 'creature:fox', offset: [7, 0, 17], name: 'Soot' },
+    ],
+    objectives: [
+      { id: 'wick', title: 'Speak with Wick at the pit gate', kind: 'talk', target: 'wick', count: 1 },
+      { id: 'crates', title: 'Blast open 10 powder crates', kind: 'open', target: 'crate', count: 10 },
+      { id: 'rivals', title: 'Knock out all 3 rival bombers', kind: 'defend', target: 'rival', count: 3 },
+      { id: 'match', title: 'Win a Cinderburst round', kind: 'defend', target: 'match', count: 1 },
+    ],
+    quests: [
+      {
+        id: 'fuse',
+        title: 'Light the Fuse',
+        giver: 'Wick',
+        summary: 'Wick wants six crates cracked and four fuses lit before he hands over the good powder.',
+        objectives: [
+          { id: 'q-crates', title: 'Blast open six crates', kind: 'open', target: 'crate', count: 6 },
+          { id: 'q-plant', title: 'Plant four TNT charges', kind: 'place', target: 'tnt', count: 4 },
+        ],
+        reward: { xp: 190, items: [{ item: 'bomb_up', count: 1 }, { item: 'tnt', count: 4 }], coins: 30 },
+      },
+      {
+        id: 'arsenal',
+        title: 'The Powder Arsenal',
+        giver: 'Ember Warden',
+        summary: 'The Warden will trade a hotter core for proof that you can clear a round: knock out two rivals and blast open twelve crates.',
+        objectives: [
+          { id: 'q-rivals', title: 'Knock out two rival bombers', kind: 'defend', target: 'rival', count: 2 },
+          { id: 'q-crates', title: 'Blast open twelve crates', kind: 'open', target: 'crate', count: 12 },
+        ],
+        reward: { xp: 320, items: [{ item: 'blast_core', count: 2 }, { item: 'golden_apple', count: 2 }], coins: 55 },
+      },
+    ],
+    waves: [],
+    checkpoints: [
+      { offset: [0, 1, 14], radius: 5, label: 'South Pad' },
+      { offset: [0, 1, 2], radius: 4, label: 'Cinder Beacon' },
+    ],
+    startingItems: [
+      { item: 'tnt', count: 8 },
+      { item: 'iron_sword', count: 1 },
+      { item: 'golden_apple', count: 2 },
+      { item: 'bread', count: 3 },
+      { item: 'torch', count: 6 },
+      { item: 'coin', count: 25 },
+    ],
+    hotbar: ['tnt', 'iron_sword', 'golden_apple', 'bread', 'torch', 'coin'],
+    sim: {
+      kind: 'bomber',
+      center: { x: 0, z: 0 },
+    },
+    rules: { ...BASE_RULES, keepInventory: true, mobSpawning: false, dayCycle: false, pvp: false },
+    fx: { post: 'desert' },
+    scripts: templateScript(`onStart(() => {
+  camera('first');
+  say('Wick and the Ember Warden are at the south gate. Place TNT with right-click, or press R for the pit loader. Then step out of the cross. Crates hide bomb racks, blast cores and skates.', 'info');
+  give('tnt', 2);
+});
+onEvent('respawn', () => say('The pit crew drags you back to the south pad. The rivals are still standing.', 'warn'));
+`),
+    stats: [
+      { label: 'Contestants', value: '4' },
+      { label: 'Crates', value: 'Powder drops' },
+      { label: 'Fuse', value: '2.4 seconds' },
     ],
   },
 ];

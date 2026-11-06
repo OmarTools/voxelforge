@@ -1311,6 +1311,15 @@ export class Game {
     }
     if (this.uiOpen || this.paused || this.studioOpen) return;
 
+    if (event.code === 'KeyR' && this.sim) {
+      const action = this.sim.hud().actions?.find((entry) => !entry.disabled);
+      if (action) {
+        event.preventDefault();
+        this.simAction(action.id);
+        return;
+      }
+    }
+
     if (event.code === 'KeyF') {
       event.preventDefault();
       this.player.toggleFly();
@@ -1622,6 +1631,7 @@ export class Game {
       this.scripts.emit('place', { block: blockKey });
       this.audio.play('place', y % 4);
       this.particles.dust(new THREE.Vector3(x + 0.5, y + 0.2, z + 0.5), def.mapColor, 5);
+      this.sim?.onBlockPlaced?.(blockKey, x, y, z);
     }
   }
 
@@ -1676,7 +1686,7 @@ export class Game {
     const hit = this.world.raycast(origin, dir, GRAVITY_PLAYER_REACH);
     if (hit) {
       const def = blockById(hit.id);
-      const simHint = this.sim?.hintForBlock(def.key);
+      const simHint = this.sim?.hintForBlock(def.key, hit.x, hit.y, hit.z);
       if (simHint) {
         this.hud.setInteractHint(simHint);
         return;
@@ -2134,7 +2144,7 @@ export class Game {
       edits: this.world ? this.world.getEdits() : [],
       entities: this.entities
         ? this.entities.entities
-            .filter((e) => e.alive && !e.id.startsWith('cook_customer_') && !e.id.startsWith('shop_customer_'))
+            .filter((e) => e.alive && !e.id.startsWith('cook_customer_') && !e.id.startsWith('shop_customer_') && !e.id.startsWith('cinder_bot_'))
             .map((e) => this.serializeEntity(e))
         : [],
       player: {

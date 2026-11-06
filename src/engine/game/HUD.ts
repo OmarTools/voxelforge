@@ -483,7 +483,10 @@ export class HUD {
       this.simBar.style.width = `${pct}%`;
     }
     this.simActions.innerHTML = hud.actions
-      .map((action) => `<button class="sim-action clickable" data-sim="${action.id}"${action.disabled ? ' disabled' : ''}>${action.label}</button>`)
+      .map((action, index) => {
+        const primary = !action.disabled && !hud.actions.slice(0, index).some((entry) => !entry.disabled);
+        return `<button class="sim-action clickable" data-sim="${action.id}"${action.disabled ? ' disabled' : ''}>${action.label}${primary ? ' <kbd>R</kbd>' : ''}</button>`;
+      })
       .join('');
     this.simActions.classList.toggle('hidden', hud.actions.length === 0);
     this.simFooter.textContent = hud.footer ?? '';

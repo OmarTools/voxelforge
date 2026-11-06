@@ -456,6 +456,9 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .hud { position: absolute; inset: 0; pointer-events: none !important; z-index: 20; }
 .hud > * { pointer-events: none; }
 .hud .clickable, .hud button { pointer-events: auto; }
+/* The menu host fills the screen but must never swallow HUD clicks while closed. */
+#ui > .menus { pointer-events: none; }
+#ui > .menus > * { pointer-events: auto; }
 
 .damage-vignette {
   position: absolute; inset: 0; pointer-events: none;
