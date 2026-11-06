@@ -20,6 +20,7 @@ import { TouchControls } from './TouchControls';
 import { type CameraMode, cameraModeLabel, isCameraMode } from './CameraModes';
 import { ScriptRuntime, type ScriptHost, type ScriptPlayerSnapshot } from '../scripting/ScriptRuntime';
 import { RaceSystem } from './RaceSystem';
+import { AmbientFX } from './AmbientFX';
 import { createSim, type SimSystem } from './sim/SimTypes';
 import { PostFX } from '../render/PostFX';
 import { WorldFX } from '../render/WorldFX';
@@ -233,6 +234,7 @@ export class Game {
   readonly input: Input;
   readonly particles: Particles;
   readonly sky: Sky;
+  readonly ambient: AmbientFX;
   readonly postfx: PostFX;
   worldFx: WorldFX | null = null;
   readonly menus: Menus;
@@ -327,6 +329,7 @@ export class Game {
     this.sky.setTime(this.template.timeOfDay);
     this.scene.add(this.sky.group, this.sky.sunLight, this.sky.hemi, this.sky.ambient);
     this.sky.applyToScene(this.scene);
+    this.ambient = new AmbientFX(this);
     this.studioPropsGroup.name = 'studio-props';
     this.scene.add(this.studioPropsGroup);
 
@@ -742,7 +745,9 @@ export class Game {
       },
       onDeath: (source) => this.handleDeath(source),
       onNotify: (message, kind) => this.toast(message, kind),
-      onStep: () => undefined,
+      onStep: (blockKey) => this.ambient.onStep(blockKey),
+      onLand: (impact, blockKey) => this.ambient.onLand(impact, blockKey),
+      onSplash: () => this.ambient.onSplash(),
     };
     inventory.onChange = () => {
       this.player.refreshHeldItem();
@@ -1218,6 +1223,7 @@ export class Game {
     this.world.update(player.position.x, player.position.z, dt);
 
     this.entities.update(dt);
+    this.ambient.update(dt);
     this.particles.update(dt);
     this.worldFx?.update(dt);
 

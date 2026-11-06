@@ -54,10 +54,11 @@ export class VoxelWorld {
   getBlock(x: number, y: number, z: number): number {
     if (y < 0 || y >= WORLD_HEIGHT) return 0;
     const xi = Math.floor(x);
+    const yi = Math.floor(y);
     const zi = Math.floor(z);
     const chunk = this.chunks.get(`${xi >> 4},${zi >> 4}`);
     if (!chunk || !chunk.generated) return 0;
-    return chunk.blocks[(xi & 15) + (zi & 15) * CHUNK_SIZE + y * CHUNK_SIZE * CHUNK_SIZE];
+    return chunk.blocks[(xi & 15) + (zi & 15) * CHUNK_SIZE + yi * CHUNK_SIZE * CHUNK_SIZE];
   }
 
   getBlockRaw(x: number, y: number, z: number): number {
@@ -68,10 +69,11 @@ export class VoxelWorld {
     if (y < 0) return 0;
     if (y >= WORLD_HEIGHT) return 15;
     const xi = Math.floor(x);
+    const yi = Math.floor(y);
     const zi = Math.floor(z);
     const chunk = this.chunks.get(`${xi >> 4},${zi >> 4}`);
     if (!chunk) return 12;
-    return chunk.light[(xi & 15) + (zi & 15) * CHUNK_SIZE + y * CHUNK_SIZE * CHUNK_SIZE];
+    return chunk.light[(xi & 15) + (zi & 15) * CHUNK_SIZE + yi * CHUNK_SIZE * CHUNK_SIZE];
   }
 
   isLoaded(cx: number, cz: number): boolean {

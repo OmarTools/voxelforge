@@ -45,6 +45,10 @@ export interface PlayerHooks {
   onLevelUp?: (level: number) => void;
   onNotify?: (message: string, kind?: 'info' | 'good' | 'warn' | 'bad') => void;
   onStep?: (blockKey: string) => void;
+  /** Called when the player touches down after a fall, with the impact speed. */
+  onLand?: (impact: number, blockKey: string) => void;
+  /** Called when the player breaks the surface of water. */
+  onSplash?: () => void;
 }
 
 interface HeldView {
@@ -585,6 +589,8 @@ export class Player implements PlayerHandle {
 
     const dx = this.velocity.x * dt;
     const dz = this.velocity.z * dt;
+    const wasGrounded = this.onGround;
+    const impactVelocity = this.velocity.y;
     this.onGround = false;
     this.groundProbe();
     if (this.flying) {
@@ -603,7 +609,6 @@ export class Player implements PlayerHandle {
       this.groundProbe();
     }
 
-    const wasGround = this.onGround;
     if (!this.flying && this.onGround && this.fallDistance > 3.6 && !this.inWater) {
       if (this.fallDamageEnabled) {
         const dmg = Math.max(0, Math.floor((this.fallDistance - 3.2) * 1.25));
@@ -614,13 +619,22 @@ export class Player implements PlayerHandle {
       }
       this.fallDistance = 0;
     }
-    if (this.onGround && !wasGround && this.velocity.y < -6) {
-      this.audio.play('land');
-      this.shake = Math.max(this.shake, 0.04);
+    if (this.onGround && !wasGrounded && !this.inWater && impactVelocity < -3.4) {
+      const floor = this.world.getBlock(this.position.x, this.position.y - 0.15, this.position.z);
+      this.hooks.onLand?.(Math.abs(impactVelocity), floor ? blockById(floor).key : '');
+      if (impactVelocity < -6) {
+        this.audio.play('land');
+        this.shake = Math.max(this.shake, 0.04);
+      }
     }
 
     // Environmental checks.
+    const wasInWater = this.inWater;
     this.inWater = this.checkWater();
+    if (!wasInWater && this.inWater) {
+      this.audio.play('splash');
+      this.hooks.onSplash?.();
+    }
     this.inLava = this.checkLava();
     const eyeBlock = this.world.getBlock(this.position.x, this.position.y + this.eyeHeight, this.position.z);
     this.underwater = isLiquidId(eyeBlock) && blockById(eyeBlock).key === 'water';

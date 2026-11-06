@@ -94,7 +94,7 @@ export class Sky {
   private stars: THREE.Points;
   private starMat: THREE.PointsMaterial;
   private cloudGroup = new THREE.Group();
-  private clouds: Array<{ mesh: THREE.Mesh; speed: number }> = [];
+  private clouds: Array<{ mesh: THREE.Group; speed: number }> = [];
   private rain: THREE.LineSegments;
   private rainPositions: Float32Array;
   private snow: THREE.Points;
@@ -218,26 +218,37 @@ export class Sky {
   private buildClouds(): void {
     this.cloudGroup.name = 'clouds';
     const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshLambertMaterial({
+    const baseMaterial = new THREE.MeshBasicMaterial({
       color: 0xffffff,
       transparent: true,
-      opacity: 0.58,
+      opacity: 0.62,
       depthWrite: false,
       fog: false,
     });
-    for (let i = 0; i < 34; i++) {
-      const mesh = new THREE.Mesh(geometry, material.clone());
-      const scaleX = 10 + Math.random() * 26;
-      const scaleY = 1.2 + Math.random() * 2.4;
-      const scaleZ = 7 + Math.random() * 18;
-      mesh.scale.set(scaleX, scaleY, scaleZ);
+    for (let i = 0; i < 26; i++) {
+      const cloud = new THREE.Group();
+      const puffs = 5 + Math.floor(Math.random() * 4);
+      for (let p = 0; p < puffs; p++) {
+        const mesh = new THREE.Mesh(geometry, baseMaterial.clone());
+        const scaleX = 4 + Math.random() * 7;
+        const scaleY = 1.8 + Math.random() * 2.2;
+        const scaleZ = 3.5 + Math.random() * 6;
+        mesh.scale.set(scaleX, scaleY, scaleZ);
+        mesh.position.set(
+          (Math.random() - 0.5) * 14,
+          (Math.random() - 0.35) * 3,
+          (Math.random() - 0.5) * 9,
+        );
+        mesh.rotation.y = (Math.random() - 0.5) * 0.5;
+        mesh.renderOrder = -50;
+        cloud.add(mesh);
+      }
       const angle = Math.random() * Math.PI * 2;
       const dist = 45 + Math.random() * 230;
-      mesh.position.set(Math.cos(angle) * dist, 78 + Math.random() * 16, Math.sin(angle) * dist);
-      mesh.rotation.y = Math.random() * Math.PI;
-      mesh.renderOrder = -50;
-      this.cloudGroup.add(mesh);
-      this.clouds.push({ mesh, speed: 0.6 + Math.random() * 1.1 });
+      cloud.position.set(Math.cos(angle) * dist, 78 + Math.random() * 16, Math.sin(angle) * dist);
+      cloud.rotation.y = Math.random() * Math.PI;
+      this.cloudGroup.add(cloud);
+      this.clouds.push({ mesh: cloud, speed: 0.6 + Math.random() * 1.1 });
     }
     this.group.add(this.cloudGroup);
   }
@@ -441,9 +452,12 @@ export class Sky {
       if (dz > 270) cloud.mesh.position.z -= 540;
       if (dz < -270) cloud.mesh.position.z += 540;
       cloud.mesh.position.y = 78 + (cloud.mesh.position.y - 78);
-      const mat = cloud.mesh.material as THREE.MeshLambertMaterial;
-      mat.color.copy(cloudColor);
-      mat.opacity = (this.weather === 'clear' ? 0.55 : 0.72) * (0.5 + day * 0.5);
+      cloud.mesh.traverse((child) => {
+        if (!(child instanceof THREE.Mesh)) return;
+        const mat = child.material as THREE.MeshBasicMaterial;
+        mat.color.copy(cloudColor);
+        mat.opacity = (this.weather === 'clear' ? 0.52 : 0.68) * (0.5 + day * 0.5);
+      });
     }
 
     this.updateWeather(dt, cameraPosition, day);
@@ -514,8 +528,10 @@ export class Sky {
     this.moonSprite.material.dispose();
     this.moonSprite.material.map?.dispose();
     for (const cloud of this.clouds) {
-      const mat = cloud.mesh.material as THREE.Material;
-      mat.dispose();
+      cloud.mesh.traverse((child) => {
+        if (!(child instanceof THREE.Mesh)) return;
+        (child.material as THREE.Material).dispose();
+      });
     }
     this.rain.geometry.dispose();
     (this.rain.material as THREE.Material).dispose();
