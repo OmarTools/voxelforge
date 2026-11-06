@@ -984,6 +984,116 @@ export function drawTile(name: string): HTMLCanvasElement {
       px(ctx, 4, 9, '#24112f', 1, 3);
       px(ctx, 11, 10, '#24112f', 1, 2);
       break;
+    case 'supply_cache':
+      paintBase(ctx, rand, '#356b78', 6);
+      px(ctx, 0, 0, '#16323b', TILE, 2);
+      px(ctx, 0, 14, '#16323b', TILE, 2);
+      px(ctx, 0, 0, '#16323b', 2, TILE);
+      px(ctx, 14, 0, '#16323b', 2, TILE);
+      px(ctx, 2, 2, '#4f8b96', 12, 1);
+      px(ctx, 2, 2, '#4f8b96', 1, 12);
+      px(ctx, 2, 13, '#21454e', 12, 1);
+      px(ctx, 13, 2, '#21454e', 1, 12);
+      // Gold cargo band and latch.
+      px(ctx, 2, 7, '#c89534', 12, 2);
+      px(ctx, 2, 7, '#f0cb6a', 12, 1);
+      px(ctx, 6, 5, '#d8a640', 4, 1);
+      px(ctx, 6, 9, '#b38128', 4, 1);
+      px(ctx, 7, 6, '#ffe49a', 2, 3);
+      px(ctx, 5, 8, '#ffe49a', 1, 1);
+      px(ctx, 10, 8, '#ffe49a', 1, 1);
+      // Stencil chevrons.
+      px(ctx, 4, 3, '#bcd7d2', 1, 1);
+      px(ctx, 5, 4, '#bcd7d2', 1, 1);
+      px(ctx, 6, 5, '#bcd7d2', 1, 1);
+      px(ctx, 10, 3, '#bcd7d2', 1, 1);
+      px(ctx, 9, 4, '#bcd7d2', 1, 1);
+      px(ctx, 11, 12, '#6da3ac', 2, 1);
+      px(ctx, 12, 11, '#8dc2c9', 1, 1);
+      break;
+    case 'supply_cache_top':
+      paintBase(ctx, rand, '#2f606c', 5);
+      px(ctx, 0, 0, '#16323b', TILE, 1);
+      px(ctx, 0, 15, '#16323b', TILE, 1);
+      px(ctx, 0, 0, '#16323b', 1, TILE);
+      px(ctx, 15, 0, '#16323b', 1, TILE);
+      // Cross bracing.
+      for (let i = 2; i < 14; i++) {
+        px(ctx, i, i, '#2a4f59', 1, 1);
+        px(ctx, 15 - i, i, '#2a4f59', 1, 1);
+      }
+      px(ctx, 2, 2, '#4f8b96', 12, 1);
+      px(ctx, 2, 2, '#4f8b96', 1, 12);
+      px(ctx, 6, 6, '#d8a640', 4, 4);
+      px(ctx, 7, 7, '#ffe49a', 2, 2);
+      px(ctx, 3, 3, '#8dc2c9', 1, 1);
+      px(ctx, 12, 12, '#8dc2c9', 1, 1);
+      break;
+    case 'siege_core':
+      paintBase(ctx, rand, '#2a1d28', 7);
+      px(ctx, 0, 0, '#120d14', TILE, 2);
+      px(ctx, 0, 14, '#120d14', TILE, 2);
+      px(ctx, 0, 0, '#120d14', 2, TILE);
+      px(ctx, 14, 0, '#120d14', 2, TILE);
+      // Obsidian frame with heated cracks.
+      px(ctx, 2, 2, '#4c2f3b', 12, 1);
+      px(ctx, 2, 2, '#4c2f3b', 1, 12);
+      px(ctx, 2, 13, '#3a202b', 12, 1);
+      px(ctx, 13, 2, '#3a202b', 1, 12);
+      px(ctx, 4, 4, '#8c3822', 1, 2);
+      px(ctx, 11, 4, '#b34b26', 1, 3);
+      px(ctx, 4, 10, '#b34b26', 2, 1);
+      px(ctx, 10, 11, '#7e2c1e', 2, 1);
+      // Molten core.
+      px(ctx, 6, 5, '#c8451f', 4, 1);
+      px(ctx, 5, 6, '#f07a2a', 6, 1);
+      px(ctx, 4, 7, '#ffb44f', 8, 2);
+      px(ctx, 5, 9, '#ffd27a', 6, 1);
+      px(ctx, 6, 10, '#f07a2a', 4, 1);
+      px(ctx, 7, 11, '#c8451f', 2, 1);
+      px(ctx, 7, 7, '#fff0b0', 2, 2);
+      px(ctx, 5, 6, '#ffdf8c', 1, 1);
+      px(ctx, 10, 9, '#ffdf8c', 1, 1);
+      break;
+    case 'siege_turret':
+      paintBase(ctx, rand, '#5c6770', 6);
+      stoneBase(ctx, rand, '#59636c');
+      px(ctx, 0, 0, '#2d353b', TILE, 1);
+      px(ctx, 0, 15, '#2d353b', TILE, 1);
+      px(ctx, 0, 0, '#2d353b', 1, TILE);
+      px(ctx, 15, 0, '#2d353b', 1, TILE);
+      // Iron turret face and glowing lens.
+      px(ctx, 3, 3, '#7d8992', 10, 2);
+      px(ctx, 3, 5, '#3b444b', 10, 6);
+      px(ctx, 4, 5, '#a9b6bd', 1, 5);
+      px(ctx, 11, 5, '#222a2f', 1, 5);
+      px(ctx, 6, 6, '#20272c', 4, 4);
+      px(ctx, 7, 7, '#ff9d3c', 2, 2);
+      px(ctx, 7, 7, '#ffe6a6', 1, 1);
+      px(ctx, 4, 12, '#8b979f', 8, 1);
+      px(ctx, 5, 13, '#394248', 6, 1);
+      px(ctx, 4, 3, '#c9d4d8', 1, 1);
+      px(ctx, 11, 3, '#c9d4d8', 1, 1);
+      px(ctx, 2, 6, '#d8a640', 1, 3);
+      px(ctx, 13, 6, '#d8a640', 1, 3);
+      break;
+    case 'siege_turret_top':
+      paintBase(ctx, rand, '#4d575f', 5);
+      stoneBase(ctx, rand, '#545e66');
+      px(ctx, 0, 0, '#2d353b', TILE, 1);
+      px(ctx, 0, 15, '#2d353b', TILE, 1);
+      px(ctx, 0, 0, '#2d353b', 1, TILE);
+      px(ctx, 15, 0, '#2d353b', 1, TILE);
+      px(ctx, 4, 4, '#333c42', 8, 8);
+      px(ctx, 5, 5, '#77828a', 6, 6);
+      px(ctx, 6, 6, '#ff9d3c', 4, 4);
+      px(ctx, 7, 7, '#ffe6a6', 2, 2);
+      px(ctx, 3, 3, '#c9d4d8', 1, 1);
+      px(ctx, 12, 3, '#c9d4d8', 1, 1);
+      px(ctx, 3, 12, '#c9d4d8', 1, 1);
+      px(ctx, 12, 12, '#c9d4d8', 1, 1);
+      break;
+
     case 'missing':
     default: {
       for (let y = 0; y < TILE; y += 4) {

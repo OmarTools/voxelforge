@@ -1871,6 +1871,266 @@ export const PREFABS: Prefab[] = [
       }
     },
   },
+  {
+    key: 'storm_arena', name: 'Stormfall Arena', description: 'A ruined contest ground with four loot districts, broken cover, storm pylons and a central beacon. Built for eight contestants and one shrinking ring.',
+    size: [61, 24, 61], tags: ['royale', 'arena', 'storm', 'loot'], glyph: '☈',
+    build(s) {
+      s.clear(-30, 0, -30, 30, 22, 30);
+      // Circular fighting floor with worn roads and mossy patches.
+      for (let z = -28; z <= 28; z++) {
+        for (let x = -28; x <= 28; x++) {
+          if (Math.hypot(x, z) > 28.4) continue;
+          let key = 'grass_block';
+          const d = Math.hypot(x, z);
+          if (d > 26.6) key = 'mossy_stone_bricks';
+          else if (Math.abs(x) <= 2 || Math.abs(z) <= 2) key = 'dirt_path';
+          else if ((x * x + z * z) % 41 < 5) key = 'stone_bricks';
+          else if ((x * 7 + z * 11 + 100) % 23 < 3) key = 'podzol';
+          s.set(x, 0, z, key);
+        }
+      }
+      // Central storm beacon.
+      s.fill(-3, 0, -3, 3, 0, 3, 'stone_bricks');
+      s.fill(-2, 1, -2, 2, 1, 2, 'quartz_block');
+      s.fill(-1, 2, -1, 1, 2, 1, 'crystal_block');
+      s.set(0, 3, 0, 'glowstone');
+      s.set(0, 4, 0, 'crystal_block');
+      s.set(0, 5, 0, 'gold_block');
+      s.set(0, 6, 0, 'glowstone');
+      // Outer wall with four broken gates and crenellations.
+      for (let i = -28; i <= 28; i++) {
+        const gate = Math.abs(i) <= 3;
+        if (!gate) {
+          s.fill(i, 1, -28, i, 3, -28, 'mossy_stone_bricks');
+          s.fill(i, 1, 28, i, 3, 28, 'mossy_stone_bricks');
+          s.fill(-28, 1, i, -28, 3, i, 'mossy_stone_bricks');
+          s.fill(28, 1, i, 28, 3, i, 'mossy_stone_bricks');
+          if (i % 4 === 0) {
+            s.set(i, 4, -28, 'stone_bricks');
+            s.set(i, 4, 28, 'stone_bricks');
+            s.set(-28, 4, i, 'stone_bricks');
+            s.set(28, 4, i, 'stone_bricks');
+          }
+        }
+      }
+      // Corner ruins.
+      for (const [cx, cz] of [[-23, -23], [23, -23], [-23, 23], [23, 23]]) {
+        s.fill(cx - 3, 1, cz - 3, cx + 3, 2, cz + 3, 'mossy_stone_bricks');
+        s.fill(cx - 2, 1, cz - 2, cx + 2, 5, cz + 2, 'air');
+        s.fill(cx - 1, 5, cz - 1, cx + 1, 5, cz + 1, 'stone_bricks');
+        s.set(cx, 6, cz, 'glowstone');
+        s.set(cx - 2, 1, cz - 2, 'torch');
+        s.set(cx + 2, 2, cz + 2, 'stone_bricks');
+      }
+      // North-west chapel ruin.
+      s.fill(-18, 1, -18, -11, 1, -11, 'stone_bricks');
+      s.walls(-18, -18, -11, -11, 2, 4, 'stone_bricks');
+      s.fill(-16, 1, -18, -13, 3, -18, 'air');
+      s.fill(-18, 1, -15, -18, 3, -14, 'air');
+      s.fill(-15, 2, -15, -14, 2, -14, 'mossy_stone_bricks');
+      s.set(-17, 2, -17, 'torch');
+      s.set(-12, 1, -12, 'supply_cache');
+      s.set(-13, 1, -17, 'crate');
+      s.set(-17, 1, -12, 'barrel');
+      // North-east market wreck.
+      s.fill(10, 0, -19, 21, 0, -9, 'dirt_path');
+      for (const [x, z] of [[12, -17], [17, -17], [12, -11], [17, -11]]) {
+        s.fill(x, 1, z, x, 3, z, 'oak_log');
+        s.set(x, 4, z, 'wool_orange');
+      }
+      s.fill(11, 3, -18, 18, 3, -10, 'wool_red');
+      s.fill(13, 1, -16, 16, 1, -16, 'oak_planks');
+      s.set(14, 2, -16, 'crate');
+      s.set(15, 2, -12, 'barrel');
+      s.set(19, 1, -18, 'supply_cache');
+      s.set(20, 1, -10, 'supply_cache');
+      s.set(12, 1, -19, 'crate');
+      // South-west warehouse shell.
+      s.fill(-20, 1, 9, -10, 1, 19, 'oak_planks');
+      s.walls(-20, 9, -10, 19, 2, 5, 'spruce_planks');
+      s.fill(-19, 1, 9, -17, 3, 9, 'air');
+      s.fill(-10, 2, 14, -10, 3, 16, 'air');
+      s.fill(-20, 2, 13, -20, 3, 15, 'air');
+      s.fill(-19, 6, 10, -11, 6, 18, 'spruce_planks');
+      s.fill(-17, 1, 15, -13, 1, 15, 'oak_planks');
+      s.set(-15, 2, 15, 'supply_cache');
+      s.set(-19, 1, 12, 'crate');
+      s.set(-18, 1, 18, 'barrel');
+      s.set(-12, 1, 18, 'crate');
+      s.set(-11, 2, 11, 'torch');
+      // South-east rocky pocket with cover.
+      for (const [x, z, h] of [[10, 10, 2], [14, 12, 3], [18, 10, 2], [11, 16, 2], [16, 18, 3], [20, 15, 2]]) {
+        s.fill(x, 1, z, x + 1, h, z + 1, 'mossy_stone_bricks');
+        s.set(x, h + 1, z, 'stone_bricks');
+      }
+      s.set(13, 1, 19, 'supply_cache');
+      s.set(9, 1, 13, 'hay_bale');
+      s.set(19, 1, 13, 'barrel');
+      // Low cover walls across the open field.
+      for (const [x, z, len, dir] of [[-8, -7, 4, 'x'], [7, -8, 5, 'z'], [9, 7, 4, 'x'], [-9, 8, 5, 'z'], [-20, 1, 4, 'z'], [21, -2, 3, 'z']] as Array<[number, number, number, 'x' | 'z']>) {
+        for (let i = 0; i < len; i++) {
+          const bx = dir === 'x' ? x + i : x;
+          const bz = dir === 'z' ? z + i : z;
+          s.set(bx, 1, bz, i % 2 === 0 ? 'mossy_stone_bricks' : 'stone_bricks');
+          if (i === 0 || i === len - 1) s.set(bx, 2, bz, 'stone_bricks');
+        }
+      }
+      // Storm pylons.
+      for (const [x, z] of [[20, 0], [0, 20], [-20, 0], [0, -20]]) {
+        s.fill(x - 1, 1, z - 1, x + 1, 1, z + 1, 'stone_bricks');
+        s.fill(x, 1, z, x, 5, z, 'rune_block');
+        s.set(x, 6, z, 'crystal_block');
+        s.set(x, 7, z, 'glowstone');
+        s.set(x + 2, 1, z, 'torch');
+        s.set(x - 2, 1, z, 'torch');
+      }
+      // Braziers and scattered cover.
+      for (const [x, z] of [[-6, 4], [6, -4], [-4, -12], [8, 12], [-12, 4], [12, -3], [4, 17], [-17, 4]]) {
+        s.fill(x, 1, z, x, 2, z, 'stone_bricks');
+        s.set(x, 3, z, 'glowstone');
+      }
+      for (const [x, z, key] of [[-4, -6, 'crate'], [5, 5, 'barrel'], [-6, 12, 'crate'], [12, 4, 'hay_bale'], [-14, 6, 'barrel'], [2, -11, 'crate']] as Array<[number, number, string]>) {
+        s.set(x, 1, z, key);
+      }
+      // Supply caches: ten ways to change the odds.
+      for (const [x, z] of [[-18, -8], [-9, -19], [6, -20], [19, -11], [21, 5], [14, 19], [1, 21], [-13, 18], [-21, 7], [-5, 9]]) {
+        s.set(x, 1, z, 'supply_cache');
+        s.set(x + 1, 1, z, 'torch');
+      }
+      // Dead trees and banners on the rim.
+      for (const [x, z] of [[-25, -6], [25, 7], [-7, 25], [6, -25]]) {
+        s.fill(x, 1, z, x, 4, z, 'spruce_log');
+        s.fill(x - 1, 4, z, x + 1, 4, z, 'spruce_leaves');
+      }
+      for (const [x, z] of [[-28, -6], [28, 6], [-6, 28], [6, -28]]) {
+        s.fill(x, 1, z, x, 4, z, 'wool_purple');
+      }
+    },
+  },
+  {
+    key: 'emberhold', name: 'Emberhold Keep', description: 'A four-gate fortress yard built around a burning Ember Core: lanes, barracks, clockwork turrets and a repair yard ready for a siege.',
+    size: [57, 22, 57], tags: ['siege', 'fortress', 'defense', 'arena'], glyph: '♜',
+    build(s) {
+      s.clear(-28, 0, -28, 28, 20, 28);
+      // Courtyard floor.
+      s.fill(-26, 0, -26, 26, 0, 26, 'stone_bricks');
+      for (let z = -26; z <= 26; z++) {
+        for (let x = -26; x <= 26; x++) {
+          if ((x + z + 52) % 9 === 0) s.set(x, 0, z, 'cobblestone');
+          if ((x * 5 + z * 7 + 100) % 29 === 0) s.set(x, 0, z, 'mossy_stone_bricks');
+        }
+      }
+      // Cardinal lanes to the core.
+      s.fill(-2, 0, -26, 2, 0, 26, 'dirt_path');
+      s.fill(-26, 0, -2, 26, 0, 2, 'dirt_path');
+      // Outer curtain wall with four gates.
+      for (let i = -26; i <= 26; i++) {
+        const gate = Math.abs(i) <= 3;
+        if (gate) continue;
+        s.fill(i, 1, -26, i, 5, -26, 'stone_bricks');
+        s.fill(i, 1, 26, i, 5, 26, 'stone_bricks');
+        s.fill(-26, 1, i, -26, 5, i, 'stone_bricks');
+        s.fill(26, 1, i, 26, 5, i, 'stone_bricks');
+        if (i % 3 === 0) {
+          s.set(i, 6, -26, 'stone_bricks');
+          s.set(i, 6, 26, 'stone_bricks');
+          s.set(-26, 6, i, 'stone_bricks');
+          s.set(26, 6, i, 'stone_bricks');
+        }
+        if (Math.abs(i) % 9 === 0) {
+          s.set(i, 4, -26, 'glowstone');
+          s.set(i, 4, 26, 'glowstone');
+          s.set(-26, 4, i, 'glowstone');
+          s.set(26, 4, i, 'glowstone');
+        }
+      }
+      // Gatehouses: twin posts, lintel and braziers.
+      for (const [x, z, yaw] of [[0, -26, 0], [0, 26, 0], [-26, 0, 1], [26, 0, 1]]) {
+        if (yaw === 0) {
+          s.fill(x - 4, 1, z, x - 4, 5, z, 'stone_bricks');
+          s.fill(x + 4, 1, z, x + 4, 5, z, 'stone_bricks');
+          s.fill(x - 4, 6, z, x + 4, 6, z, 'stone_bricks');
+          s.set(x - 3, 2, z, 'glowstone');
+          s.set(x + 3, 2, z, 'glowstone');
+        } else {
+          s.fill(x, 1, z - 4, x, 5, z - 4, 'stone_bricks');
+          s.fill(x, 1, z + 4, x, 5, z + 4, 'stone_bricks');
+          s.fill(x, 6, z - 4, x, 6, z + 4, 'stone_bricks');
+          s.set(x, 2, z - 3, 'glowstone');
+          s.set(x, 2, z + 3, 'glowstone');
+        }
+      }
+      // Corner towers.
+      for (const [cx, cz] of [[-22, -22], [22, -22], [-22, 22], [22, 22]]) {
+        s.fill(cx - 3, 1, cz - 3, cx + 3, 8, cz + 3, 'stone_bricks');
+        s.fill(cx - 2, 2, cz - 2, cx + 2, 8, cz + 2, 'air');
+        s.fill(cx - 2, 9, cz - 2, cx + 2, 9, cz + 2, 'stone_bricks');
+        for (const [dx, dz] of [[-2, -2], [2, -2], [-2, 2], [2, 2]]) {
+          s.set(cx + dx, 10, cz + dz, 'stone_bricks');
+        }
+        s.set(cx, 10, cz, 'glowstone');
+        s.set(cx, 5, cz - 3, 'wool_red');
+      }
+      // Central dais and Ember Core.
+      s.fill(-4, 0, -4, 4, 0, 4, 'quartz_block');
+      s.fill(-3, 1, -3, 3, 1, 3, 'stone_bricks');
+      s.fill(-2, 1, -2, 2, 1, 2, 'glowstone');
+      s.set(0, 2, 0, 'siege_core');
+      // Four clockwork turrets on diagonal plinths.
+      for (const [x, z] of [[-7, -7], [7, -7], [-7, 7], [7, 7]]) {
+        s.fill(x - 1, 0, z - 1, x + 1, 0, z + 1, 'stone_bricks');
+        s.fill(x - 1, 1, z - 1, x + 1, 1, z + 1, 'stone_bricks');
+        s.set(x, 2, z, 'siege_turret');
+        s.set(x + 1, 2, z, 'torch');
+      }
+      // Core-side repair yard: crates, barrels and a workbench.
+      s.fill(4, 1, 4, 6, 1, 5, 'oak_planks');
+      s.set(5, 2, 4, 'crafting_table');
+      s.set(6, 2, 5, 'barrel');
+      s.set(3, 1, 5, 'crate');
+      // Barracks in each quadrant, doors facing the courtyard.
+      for (const [bx, bz] of [[-16, -15], [16, -15], [-16, 15], [16, 15]]) {
+        s.fill(bx - 5, 0, bz - 4, bx + 5, 0, bz + 4, 'spruce_planks');
+        s.walls(bx - 5, bz - 4, bx + 5, bz + 4, 1, 4, 'spruce_planks');
+        if (bz < 0) {
+          s.fill(bx - 1, 1, bz + 4, bx + 1, 3, bz + 4, 'air');
+          s.fill(bx - 5, 1, bz - 3, bx - 3, 3, bz - 3, 'stone_bricks');
+        } else {
+          s.fill(bx - 1, 1, bz - 4, bx + 1, 3, bz - 4, 'air');
+          s.fill(bx + 3, 1, bz + 3, bx + 5, 3, bz + 3, 'stone_bricks');
+        }
+        s.fill(bx - 5, 5, bz - 4, bx + 5, 5, bz + 4, 'spruce_planks');
+        s.fill(bx - 3, 5, bz - 2, bx + 3, 5, bz + 2, 'air');
+        s.set(bx - 4, 6, bz - 3, 'glowstone');
+        s.set(bx + 4, 6, bz + 3, 'glowstone');
+        s.fill(bx + 3, 1, bz - 3, bx + 3, 2, bz - 3, 'wool_red');
+        s.set(bx - 4, 1, bz + 3, 'crate');
+        s.set(bx + 4, 1, bz + 2, 'barrel');
+        s.torch(bx, 3, bz);
+      }
+      // Lane braziers and cover that does not block the lanes.
+      for (const [x, z] of [[-12, -4], [12, 4], [-4, 12], [4, -12], [-18, -4], [18, 4], [-4, -18], [4, 18]]) {
+        s.fill(x, 1, z, x, 2, z, 'stone_bricks');
+        s.set(x, 3, z, 'glowstone');
+      }
+      for (const [x, z, key] of [[-10, -10, 'barrel'], [10, -10, 'crate'], [-10, 10, 'crate'], [10, 10, 'barrel'], [-20, 0, 'hay_bale'], [20, 0, 'hay_bale']] as Array<[number, number, string]>) {
+        s.set(x, 1, z, key);
+      }
+      // Banners along the curtain wall.
+      for (const [x, z] of [[-9, -26], [9, -26], [-9, 26], [9, 26], [-26, -9], [-26, 9], [26, -9], [26, 9]]) {
+        s.fill(x, 3, z, x, 5, z, 'wool_red');
+        s.set(x, 2, z, 'torch');
+      }
+      // A shallow fire trench around the core dais.
+      for (let i = -6; i <= 6; i++) {
+        if (Math.abs(i) <= 3) continue;
+        s.set(i, 0, -6, 'magma');
+        s.set(i, 0, 6, 'magma');
+        s.set(-6, 0, i, 'magma');
+        s.set(6, 0, i, 'magma');
+      }
+    },
+  },
 ];
 
 export const PREFAB_BY_KEY = new Map(PREFABS.map((p) => [p.key, p]));

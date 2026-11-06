@@ -3,8 +3,10 @@ import type { GameEntity } from '../../entities/EntityManager';
 import { CookingSystem } from './CookingSystem';
 import { StoreSystem } from './StoreSystem';
 import { LuckySystem } from './LuckySystem';
+import { RoyaleSystem } from './RoyaleSystem';
+import { SiegeSystem } from './SiegeSystem';
 
-export type SimKind = 'cooking' | 'store' | 'lucky';
+export type SimKind = 'cooking' | 'store' | 'lucky' | 'royale' | 'siege';
 
 export interface SimSpot {
   x: number;
@@ -23,6 +25,13 @@ export interface SimSpec {
   maxCustomers?: number;
   /** Lucky-block sessions: blocks the player is expected to open. */
   targetOpen?: number;
+  /** Arena-style sessions: where the storm ring or siege core is centred. */
+  center?: { x: number; z: number };
+  /** Battle royale: number of rival contestants and match length in seconds. */
+  contestants?: number;
+  stormTime?: number;
+  /** Siege: number of assault waves. */
+  waveCount?: number;
 }
 
 export interface SimHudRow {
@@ -64,5 +73,7 @@ export interface SimSystem {
 export function createSim(spec: SimSpec, game: Game): SimSystem {
   if (spec.kind === 'cooking') return new CookingSystem(spec, game);
   if (spec.kind === 'store') return new StoreSystem(spec, game);
+  if (spec.kind === 'royale') return new RoyaleSystem(spec, game);
+  if (spec.kind === 'siege') return new SiegeSystem(spec, game);
   return new LuckySystem(spec, game);
 }

@@ -130,10 +130,11 @@ interface ObjectiveCounters {
   earns: Record<string, number>;
   opens: Record<string, number>;
   cooks: Record<string, number>;
+  defends: Record<string, number>;
 }
 
 function emptyCounters(): ObjectiveCounters {
-  return { kills: {}, crafts: {}, places: {}, talks: {}, serves: {}, sells: {}, restocks: {}, earns: {}, opens: {}, cooks: {} };
+  return { kills: {}, crafts: {}, places: {}, talks: {}, serves: {}, sells: {}, restocks: {}, earns: {}, opens: {}, cooks: {}, defends: {} };
 }
 
 export interface GameSaveData {
@@ -825,6 +826,7 @@ export class Game {
           earns: { ...(save.counters.earns ?? {}) },
           opens: { ...(save.counters.opens ?? {}) },
           cooks: { ...(save.counters.cooks ?? {}) },
+          defends: { ...(save.counters.defends ?? {}) },
         }
       : emptyCounters();
 
@@ -2157,6 +2159,7 @@ export class Game {
         earns: { ...this.counters.earns },
         opens: { ...this.counters.opens },
         cooks: { ...this.counters.cooks },
+        defends: { ...this.counters.defends },
       },
       quests,
       waves: { index: this.wave.index, cleared: this.wave.cleared, timer: this.wave.timer, active: this.wave.active },
@@ -2396,6 +2399,9 @@ export class Game {
       case 'cook':
         state.progress = Math.max(state.progress, this.counters.cooks[target && target !== 'any' ? target : '__any'] ?? 0);
         break;
+      case 'defend':
+        state.progress = Math.max(state.progress, this.counters.defends[target && target !== 'any' ? target : '__any'] ?? 0);
+        break;
       case 'wave':
         state.progress = Math.max(state.progress, this.wave.cleared);
         break;
@@ -2437,13 +2443,14 @@ export class Game {
   }
 
   /** Objective counter bump used by the cooking, shop and lucky simulations. */
-  recordSim(kind: 'serve' | 'sell' | 'restock' | 'earn' | 'open' | 'cook', target: string, amount = 1): void {
+  recordSim(kind: 'serve' | 'sell' | 'restock' | 'earn' | 'open' | 'cook' | 'defend', target: string, amount = 1): void {
     const map = kind === 'serve' ? this.counters.serves
       : kind === 'sell' ? this.counters.sells
       : kind === 'restock' ? this.counters.restocks
       : kind === 'earn' ? this.counters.earns
       : kind === 'open' ? this.counters.opens
-      : this.counters.cooks;
+      : kind === 'cook' ? this.counters.cooks
+      : this.counters.defends;
     map[target] = (map[target] ?? 0) + amount;
     map.__any = (map.__any ?? 0) + amount;
   }

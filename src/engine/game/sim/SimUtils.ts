@@ -66,3 +66,23 @@ export function giveItem(game: Game, item: string, count: number, position?: THR
   }
   return leftover;
 }
+
+/**
+ * Find standing ground for a spawn point, tolerating torches, flowers and other
+ * non-solid decoration that would otherwise block the column scan. Falls back
+ * to nearby columns and finally to the requested fallback height.
+ */
+export function groundAt(game: Game, x: number, z: number, maxY: number, fallbackY: number): number {
+  const direct = game.world.getNearestGround(x, z, maxY);
+  if (direct >= 0) return direct;
+  for (const radius of [1.2, 2.4, 3.6]) {
+    for (let step = 0; step < 8; step++) {
+      const angle = (step / 8) * Math.PI * 2;
+      const sx = x + Math.cos(angle) * radius;
+      const sz = z + Math.sin(angle) * radius;
+      const ground = game.world.getNearestGround(sx, sz, maxY);
+      if (ground >= 0) return ground;
+    }
+  }
+  return fallbackY;
+}

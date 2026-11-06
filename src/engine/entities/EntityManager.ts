@@ -128,6 +128,8 @@ export class GameEntity {
   onGround = false;
   state: 'idle' | 'walk' | 'run' | 'attack' | 'hurt' | 'dead' = 'idle';
   target: PlayerHandle | null = null;
+  /** Scripted destination used by simulation modes such as sieges. */
+  moveOverride: { x: number; z: number; speed: number } | null = null;
   aggro = false;
   attackCooldown = 0;
   hurtTimer = 0;
@@ -405,7 +407,16 @@ export class GameEntity {
     let speed = this.def.speed * (this.aggro ? 1.12 : 0.6);
     let moving = false;
 
-    if (this.def.class === 'npc') {
+    if (this.moveOverride) {
+      const dx = this.moveOverride.x - this.position.x;
+      const dz = this.moveOverride.z - this.position.z;
+      if (Math.hypot(dx, dz) > 0.85) {
+        desiredX = dx;
+        desiredZ = dz;
+        speed = this.moveOverride.speed;
+        moving = true;
+      }
+    } else if (this.def.class === 'npc') {
       // Village guards defend against nearby monsters.
       if (this.behavior === 'guard' && this.def.damage > 0) {
         const threat = this.manager.nearestHostile(this.position, 13, this);
@@ -544,7 +555,10 @@ export class GameEntity {
       moving = true;
     }
 
-    if (this.aggro && this.def.class !== 'npc') {
+    if (this.moveOverride) {
+      const target = this.moveOverride;
+      this.facing = Math.atan2(target.x - this.position.x, target.z - this.position.z);
+    } else if (this.aggro && this.def.class !== 'npc') {
       this.facing = Math.atan2(player.position.x - this.position.x, player.position.z - this.position.z);
     } else if (moving) {
       const len = Math.hypot(desiredX, desiredZ) || 1;

@@ -3,9 +3,9 @@ import type { CameraMode } from '../engine/game/CameraModes';
 import type { ScriptProject } from '../engine/scripting/ScriptTypes';
 import type { SimSpec } from '../engine/game/sim/SimTypes';
 
-export type GameMode = 'creative' | 'survival' | 'skyblock' | 'parkour' | 'arena' | 'rpg' | 'horror' | 'dungeon' | 'racing' | 'army' | 'city' | 'platformer' | 'frostpeak' | 'dune' | 'skytemple' | 'kitchen' | 'shopkeep' | 'lucky' | 'studio';
+export type GameMode = 'creative' | 'survival' | 'skyblock' | 'parkour' | 'arena' | 'rpg' | 'horror' | 'dungeon' | 'racing' | 'army' | 'city' | 'platformer' | 'frostpeak' | 'dune' | 'skytemple' | 'kitchen' | 'shopkeep' | 'lucky' | 'royale' | 'siege' | 'studio';
 export type Difficulty = 'peaceful' | 'easy' | 'normal' | 'hard' | 'nightmare';
-export type ObjectiveKind = 'collect' | 'kill' | 'reach' | 'craft' | 'place' | 'talk' | 'survive' | 'wave' | 'serve' | 'sell' | 'restock' | 'earn' | 'open' | 'cook';
+export type ObjectiveKind = 'collect' | 'kill' | 'reach' | 'craft' | 'place' | 'talk' | 'survive' | 'wave' | 'serve' | 'sell' | 'restock' | 'earn' | 'open' | 'cook' | 'defend';
 
 export interface WorldRules {
   keepInventory: boolean;
@@ -1406,6 +1406,190 @@ onEvent('respawn', () => say('The arena puts you back on your feet. The blocks a
       { label: 'Jackpot', value: 'Random' },
     ],
   },
+  {
+    key: 'royale',
+    name: 'Stormfall: Last Light',
+    subtitle: 'Outlast the ring',
+    description: 'Eight contestants drop into a ruined arena, the storm eats the edges and every supply cache is a gamble. Loot, fight and be the last light standing.',
+    story: 'The Stormfall began as a festival. Then the sky cracked, the ring appeared, and the contestants stopped leaving. The prize is still out there, hanging above the central beacon. So is everyone who tried to claim it.',
+    icon: '☈',
+    accent: '#b98cff',
+    difficulty: 'normal',
+    tags: ['Battle Royale', 'PvE', 'Storm', 'Loot'],
+    preset: 'overworld',
+    heightMode: 'ground',
+    timeOfDay: 17.4,
+    weather: 'ash',
+    music: 'arena',
+    platform: { radius: 34, surface: 'grass_block', border: 'mossy_stone_bricks', clearHeight: 48 },
+    prefabs: [{ prefab: 'storm_arena', x: 0, z: 0 }],
+    spawn: [0, 24],
+    spawnYaw: 0,
+    spawns: [
+      {
+        entity: 'human:ranger_alex', offset: [-5, 0, 20], name: 'Vale', id: 'vale', questId: 'lastlight', behavior: 'stationary',
+        dialogue: 'Eight drop. One ring. Ten caches if the storm has not eaten them yet. The gold crates are supply caches — crack them with a right-click. Keep moving inward and let the others fight over the edges.',
+      },
+      {
+        entity: 'human:explorer_jungle', offset: [5, 0, 20], name: 'Wren', id: 'wren', questId: 'shards', behavior: 'stationary',
+        dialogue: 'The storm leaves shards in its wake. Purple, humming, slightly rude. Bring me four and I will make it worth your while. The cache at the old chapel is the safest first stop.',
+      },
+      { entity: 'creature:bat', offset: [-20, 4, -20], count: 3, spread: 3 },
+      { entity: 'creature:bat', offset: [20, 5, 18], count: 2, spread: 3 },
+    ],
+    objectives: [
+      { id: 'vale', title: 'Speak with Vale', kind: 'talk', target: 'vale', count: 1 },
+      { id: 'cache', title: 'Loot 3 supply caches', kind: 'open', target: 'supply_cache', count: 3, description: 'Right-click the teal cargo crates scattered around the arena.' },
+      { id: 'rivals', title: 'Eliminate all 8 rivals', kind: 'kill', target: 'any', count: 8 },
+      { id: 'survive', title: 'Survive the storm for 2 minutes', kind: 'survive', count: 120, description: 'The ring never stops closing. Be inside it.' },
+    ],
+    quests: [
+      {
+        id: 'lastlight', title: 'Last Light', giver: 'Vale', summary: 'Vale is running the board. Four rivals down and two supply caches cracked will put you in the final circle.',
+        objectives: [
+          { id: 'q-kill', title: 'Eliminate four rivals', kind: 'kill', target: 'any', count: 4 },
+          { id: 'q-cache', title: 'Loot two supply caches', kind: 'open', target: 'supply_cache', count: 2 },
+        ],
+        reward: { xp: 260, items: [{ item: 'rifle', count: 1 }, { item: 'rifle_ammo', count: 12 }], coins: 50 },
+      },
+      {
+        id: 'shards', title: 'Storm Shards', giver: 'Wren', summary: 'Wren wants four storm shards and proof that the caches still hold. The ring is happy to supply both, at a price.',
+        objectives: [
+          { id: 'q-shards', title: 'Collect four storm shards', kind: 'collect', target: 'crystal_shard', count: 4 },
+          { id: 'q-cache2', title: 'Loot two more supply caches', kind: 'open', target: 'supply_cache', count: 2 },
+        ],
+        reward: { xp: 300, items: [{ item: 'diamond', count: 2 }, { item: 'golden_apple', count: 2 }], coins: 40 },
+      },
+    ],
+    waves: [],
+    checkpoints: [
+      { offset: [0, 1, 24], radius: 6, label: 'Drop Gate' },
+      { offset: [0, 1, 8], radius: 7, label: 'Stormheart' },
+    ],
+    startingItems: [
+      { item: 'iron_sword', count: 1 },
+      { item: 'bow', count: 1 },
+      { item: 'arrow', count: 24 },
+      { item: 'shield', count: 1 },
+      { item: 'bread', count: 4 },
+      { item: 'golden_apple', count: 2 },
+      { item: 'torch', count: 8 },
+      { item: 'coin', count: 25 },
+    ],
+    hotbar: ['iron_sword', 'bow', 'arrow', 'shield', 'bread', 'golden_apple', 'torch', 'coin'],
+    sim: {
+      kind: 'royale',
+      center: { x: 0, z: 0 },
+      contestants: 8,
+      stormTime: 170,
+    },
+    rules: { ...BASE_RULES, keepInventory: true, mobSpawning: false, dayCycle: false, pvp: false },
+    fx: { post: 'racing' },
+    scripts: templateScript(`onStart(() => {
+  camera('first');
+  say('Vale and Wren are by the drop gate. Teal cargo crates are supply caches. The storm ring closes from the rim.', 'info');
+  give('torch', 4);
+});
+onEvent('respawn', () => say('The storm spits you back onto the drop gate. It is already closing again.', 'warn'));
+`),
+    stats: [
+      { label: 'Contestants', value: '8' },
+      { label: 'Caches', value: '10 + drops' },
+      { label: 'Storm', value: '170 seconds' },
+    ],
+  },
+  {
+    key: 'siege',
+    name: 'Emberhold Siege',
+    subtitle: 'Hold the core',
+    description: 'A four-gate fortress, one burning core and five escalating assaults. Repair the core, upgrade the clockwork turrets and keep Emberhold standing.',
+    story: 'Emberhold was built around a fire that never went out. Now the warlords have come to put it out. The garrison is dead, the gates are open, and the last engineer has handed you a wrench and a sword.',
+    icon: '♜',
+    accent: '#ff9b4a',
+    difficulty: 'hard',
+    tags: ['Siege', 'Tower Defense', 'Fortress', 'Waves'],
+    preset: 'overworld',
+    heightMode: 'ground',
+    timeOfDay: 17.6,
+    weather: 'ash',
+    music: 'arena',
+    platform: { radius: 32, surface: 'stone_bricks', border: 'stone_bricks', clearHeight: 40 },
+    prefabs: [{ prefab: 'emberhold', x: 0, z: 0 }],
+    spawn: [0, 20],
+    spawnYaw: 0,
+    spawns: [
+      {
+        entity: 'human:captain_steel', offset: [-4, 0, 5], name: 'Captain Steel', id: 'steel', questId: 'hold', behavior: 'stationary',
+        dialogue: 'Four gates, five assaults, one core. The turrets are clockwork — right-click one to upgrade it. The core takes iron and coin to patch. I will hold the south lane; you keep the heart burning.',
+      },
+      {
+        entity: 'human:mage_arcane', offset: [4, 0, 5], name: 'Warden Ilse', id: 'ilse', questId: 'embers', behavior: 'stationary',
+        dialogue: 'The Ember Core is older than the keep. Feed it, shield it, and it will outlast the warlords. The turrets were built to my design; they get meaner with every mark. Bring me storm shards from the assault waves.',
+      },
+      { entity: 'human:knight_royal', offset: [-1, 0, -5], name: 'Sergeant Hallow', behavior: 'guard' },
+      { entity: 'human:ranger_alex', offset: [1, 0, -5], name: 'Scout Fen', behavior: 'guard' },
+      { entity: 'creature:fox', offset: [5, 0, 7], name: 'Cinder' },
+    ],
+    objectives: [
+      { id: 'steel', title: 'Speak with Captain Steel', kind: 'talk', target: 'steel', count: 1 },
+      { id: 'waves', title: 'Repel all 5 assault waves', kind: 'defend', target: 'wave', count: 5 },
+      { id: 'raiders', title: 'Put down 20 raiders', kind: 'kill', target: 'any', count: 20 },
+    ],
+    quests: [
+      {
+        id: 'hold', title: 'Hold the Line', giver: 'Steel', summary: 'Steel wants two assault waves broken and eight raiders down before he will trust the yard to a stranger.',
+        objectives: [
+          { id: 'q-wave', title: 'Repel two assault waves', kind: 'defend', target: 'wave', count: 2 },
+          { id: 'q-kill', title: 'Kill eight raiders', kind: 'kill', target: 'any', count: 8 },
+        ],
+        reward: { xp: 270, items: [{ item: 'iron_chestplate', count: 1 }, { item: 'iron_ingot', count: 4 }], coins: 45 },
+      },
+      {
+        id: 'embers', title: 'Embers and Shards', giver: 'Ilse', summary: 'Ilse needs four storm shards from the assault waves and proof that Emberhold has held for four waves.',
+        objectives: [
+          { id: 'q-waves', title: 'Repel four assault waves', kind: 'defend', target: 'wave', count: 4 },
+          { id: 'q-shards', title: 'Collect four storm shards', kind: 'collect', target: 'crystal_shard', count: 4 },
+        ],
+        reward: { xp: 360, items: [{ item: 'diamond_sword', count: 1 }, { item: 'golden_apple', count: 3 }], coins: 60 },
+      },
+    ],
+    waves: [],
+    checkpoints: [
+      { offset: [0, 1, 20], radius: 6, label: 'South Gate' },
+      { offset: [0, 1, 3], radius: 6, label: 'Ember Core' },
+    ],
+    startingItems: [
+      { item: 'iron_sword', count: 1 },
+      { item: 'bow', count: 1 },
+      { item: 'arrow', count: 30 },
+      { item: 'iron_chestplate', count: 1 },
+      { item: 'shield', count: 1 },
+      { item: 'golden_apple', count: 2 },
+      { item: 'bread', count: 3 },
+      { item: 'torch', count: 8 },
+      { item: 'coin', count: 40 },
+    ],
+    hotbar: ['iron_sword', 'bow', 'arrow', 'iron_chestplate', 'shield', 'golden_apple', 'bread', 'torch', 'coin'],
+    sim: {
+      kind: 'siege',
+      center: { x: 0, z: 0 },
+      waveCount: 5,
+    },
+    rules: { ...BASE_RULES, keepInventory: true, mobSpawning: false, dayCycle: false, pvp: false },
+    fx: { post: 'desert' },
+    scripts: templateScript(`onStart(() => {
+  camera('first');
+  say('Steel and Ilse are by the core. Right-click the Ember Core to repair it and a turret to upgrade it. The first wave hits the four gates in twenty seconds.', 'info');
+  give('coin', 10);
+});
+onEvent('respawn', () => say('The core is still burning. The next assault is already at the gates.', 'warn'));
+`),
+    stats: [
+      { label: 'Waves', value: '5' },
+      { label: 'Gates', value: '4' },
+      { label: 'Turrets', value: '4 upgradable' },
+    ],
+  },
 ];
 
 export const TEMPLATE_BY_KEY = new Map(TEMPLATES.map((t) => [t.key, t]));
@@ -1419,7 +1603,7 @@ export const TEMPLATE_STATS = {
   characters: 27,
   creatures: 24,
   props: 21,
-  blocks: 87,
+  blocks: 90,
   recipes: 100,
 };
 

@@ -274,6 +274,22 @@ cube('cursed_lucky_block', 'Cursed Lucky Block', 'special', 'cursed_lucky_block'
   description: 'A purple question block that whispers bad ideas. Break it anyway.',
 });
 
+/* ------------------------------------------------------------------ */
+/*  STORM AND SIEGE FIXTURES                                          */
+/* ------------------------------------------------------------------ */
+cube('supply_cache', 'Supply Cache', 'special', 'supply_cache', {
+  top: 'supply_cache_top', color: '#3f7684', hardness: 0.8, sound: 'metal', light: 3,
+  description: 'A sealed drop crate. Right-click to crack it open for weapons, coins and storm shards.',
+});
+cube('siege_core', 'Ember Core', 'special', 'siege_core', {
+  color: '#d8752f', hardness: 9999, breakable: false, sound: 'glass', light: 12, unlisted: true,
+  description: 'The burning heart of Emberhold. Keep it alive.',
+});
+cube('siege_turret', 'Siege Turret', 'special', 'siege_turret', {
+  top: 'siege_turret_top', color: '#66737c', hardness: 9999, breakable: false, sound: 'metal', light: 4, unlisted: true,
+  description: 'A clockwork ballista. Right-click to upgrade its damage and range.',
+});
+
 export const BLOCKS: BlockDef[] = defs.map((d, i) => ({ ...d, id: i } as BlockDef));
 export const AIR = BLOCKS[0];
 export const BLOCK_BY_KEY = new Map(BLOCKS.map((b) => [b.key, b]));
