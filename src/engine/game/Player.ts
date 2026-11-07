@@ -70,7 +70,7 @@ export class Player implements PlayerHandle {
   readonly camera: THREE.PerspectiveCamera;
   readonly group = new THREE.Group();
   readonly eyeHeight = 1.62;
-  readonly maxHealth = 20;
+  maxHealth = 20;
 
   yaw = 0;
   pitch = 0;
@@ -337,6 +337,12 @@ export class Player implements PlayerHandle {
   heal(amount: number): void {
     if (!this.alive) return;
     this.health = Math.min(this.maxHealth, this.health + amount);
+  }
+
+  /** Permanent max-health gain used by run-based modes such as Nightfall. */
+  raiseMaxHealth(amount: number): void {
+    this.maxHealth += amount;
+    this.heal(amount);
   }
 
   feed(amount: number): void {

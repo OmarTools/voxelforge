@@ -2217,6 +2217,125 @@ export const PREFABS: Prefab[] = [
       }
     },
   },
+  {
+    key: 'nightfall_hollow', name: 'Nightfall Hollow',
+    description: 'A moonlit clearing ringed by dead spruce: a ruined chapel to the north, a sunken graveyard to the west and a rune circle at its heart. Built for horde survival after dark.',
+    size: [57, 20, 57], tags: ['survivors', 'night', 'horror', 'arena'], glyph: '☾',
+    build(s) {
+      s.clear(-28, 0, -28, 28, 18, 28);
+      // Cold grass, moss and gravel with a podzol fringe.
+      for (let z = -26; z <= 26; z++) {
+        for (let x = -26; x <= 26; x++) {
+          const d = Math.hypot(x, z);
+          let key = 'grass_block';
+          if (d > 21) key = 'podzol';
+          if ((x * 7 + z * 11 + 5000) % 41 < 5) key = 'podzol';
+          if ((x * 13 + z * 3 + 900) % 59 < 3) key = 'moss_block';
+          if ((x * 17 + z * 19 + 70) % 71 < 2) key = 'gravel';
+          s.set(x, 0, z, key);
+        }
+      }
+      // The rune circle: a broken ring of cold stone and crystal.
+      for (let i = 0; i < 40; i++) {
+        const angle = (i / 40) * Math.PI * 2;
+        const x = Math.round(Math.cos(angle) * 7.5);
+        const z = Math.round(Math.sin(angle) * 7.5);
+        s.set(x, 0, z, i % 5 === 0 ? 'crystal_block' : 'rune_block');
+      }
+      s.set(0, 0, 0, 'crystal_block');
+      for (const [dx, dz] of [[-4, 0], [4, 0], [0, -4], [0, 4]]) {
+        s.set(dx, 1, dz, 'obsidian');
+        s.set(dx, 2, dz, 'glowstone');
+      }
+      // Paths: gate to circle, circle to chapel.
+      for (let z = 8; z <= 24; z++) {
+        s.set(0, 0, z, 'dirt_path');
+        s.set(1, 0, z, 'dirt_path');
+      }
+      for (let z = -14; z <= -8; z++) {
+        s.set(0, 0, z, 'dirt_path');
+        s.set(-1, 0, z, 'dirt_path');
+      }
+      // Ruined chapel, north.
+      s.fill(-9, 0, -24, 9, 0, -14, 'stone_bricks');
+      s.walls(-9, -24, 9, -14, 1, 4, 'mossy_stone_bricks');
+      for (let y = 1; y <= 3; y++) {
+        s.set(0, y, -14, 'air');
+        s.set(-1, y, -14, 'air');
+      }
+      for (const z of [-22, -19, -16]) {
+        s.set(-9, 3, z, 'air');
+        s.set(9, 3, z, 'air');
+      }
+      // Collapsed gable roof with gaps.
+      for (let i = 0; i <= 5; i++) {
+        const y = 5 + i;
+        const x0 = -9 + i;
+        const x1 = 9 - i;
+        if (x0 > x1) break;
+        for (let z = -25; z <= -13; z++) {
+          if ((x0 * 3 + z * 5 + 100) % 17 === 0) continue;
+          s.set(x0, y, z, 'spruce_planks');
+          s.set(x1, y, z, 'spruce_planks');
+        }
+      }
+      // Altar and pews.
+      s.set(0, 1, -21, 'rune_block');
+      s.set(0, 2, -21, 'crystal_block');
+      s.set(-2, 1, -21, 'glowstone');
+      s.set(2, 1, -21, 'glowstone');
+      s.torch(-3, 2, -22);
+      s.torch(3, 2, -22);
+      for (const z of [-19, -17]) {
+        for (const x of [-6, -4, 4, 6]) s.set(x, 1, z, 'spruce_planks');
+      }
+      // Sunken graveyard, west.
+      for (const z of [-4, 0, 4, 8, 12]) {
+        for (const x of [-21, -18, -15, -12]) {
+          s.set(x, 0, z, 'dirt_path');
+          if ((x + z + 40) % 5 === 0) continue;
+          s.set(x, 1, z, 'stone_bricks');
+          if ((x * 3 + z * 7 + 50) % 4 === 0) s.torch(x, 2, z);
+        }
+      }
+      // Dead trees: bare spruce trunks with a few crooked branches.
+      const trees: Array<[number, number, number]> = [
+        [-24, -8, 5], [-22, 14, 4], [-12, 24, 5], [6, 24, 4], [21, 18, 5],
+        [24, -4, 4], [19, -21, 6], [2, -25, 4], [-25, -22, 5], [-6, 20, 3],
+        [11, 12, 4], [-15, 18, 3],
+      ];
+      for (const [x, z, h] of trees) {
+        s.fill(x, 0, z, x, h, z, 'spruce_log');
+        s.set(x + 1, h - 1, z, 'spruce_log');
+        s.set(x - 1, h - 2, z, 'spruce_log');
+        s.set(x, h - 2, z + 1, 'spruce_log');
+      }
+      // Boundary trunks, deliberately sparse so the horde can pour in.
+      for (let i = 0; i < 16; i++) {
+        const angle = (i / 16) * Math.PI * 2;
+        const x = Math.round(Math.cos(angle) * 25);
+        const z = Math.round(Math.sin(angle) * 25);
+        s.fill(x, 0, z, x, 3 + ((i * 7) % 3), z, 'spruce_log');
+      }
+      // Rocks and mushrooms.
+      for (const [x, z] of [[10, 12], [14, 6], [-11, 15], [16, -10], [-16, -12], [8, -14]]) {
+        s.set(x, 1, z, 'cobblestone');
+        s.set(x + 1, 1, z, 'mossy_stone_bricks');
+      }
+      for (const [x, z] of [[-8, 18], [9, -6], [-14, 2], [13, 17]]) s.set(x, 1, z, 'pumpkin');
+      // Lantern posts along the approach.
+      for (const [x, z] of [[-6, 12], [6, 12], [-6, 6], [6, 6], [-12, 20], [12, 20]]) {
+        s.fill(x, 1, z, x, 2, z, 'spruce_log');
+        s.set(x, 3, z, 'glowstone');
+      }
+      // Gate arch at the south pad.
+      s.fill(-4, 1, 22, -4, 3, 22, 'obsidian');
+      s.fill(4, 1, 22, 4, 3, 22, 'obsidian');
+      s.fill(-4, 4, 22, 4, 4, 22, 'obsidian');
+      s.set(-3, 3, 22, 'torch');
+      s.set(3, 3, 22, 'torch');
+    },
+  },
 ];
 
 export const PREFAB_BY_KEY = new Map(PREFABS.map((p) => [p.key, p]));

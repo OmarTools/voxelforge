@@ -3,7 +3,7 @@ import type { CameraMode } from '../engine/game/CameraModes';
 import type { ScriptProject } from '../engine/scripting/ScriptTypes';
 import type { SimSpec } from '../engine/game/sim/SimTypes';
 
-export type GameMode = 'creative' | 'survival' | 'skyblock' | 'parkour' | 'arena' | 'rpg' | 'horror' | 'dungeon' | 'racing' | 'army' | 'city' | 'platformer' | 'frostpeak' | 'dune' | 'skytemple' | 'kitchen' | 'shopkeep' | 'lucky' | 'royale' | 'siege' | 'bomber' | 'studio';
+export type GameMode = 'creative' | 'survival' | 'skyblock' | 'parkour' | 'arena' | 'rpg' | 'horror' | 'dungeon' | 'racing' | 'army' | 'city' | 'platformer' | 'frostpeak' | 'dune' | 'skytemple' | 'kitchen' | 'shopkeep' | 'lucky' | 'royale' | 'siege' | 'bomber' | 'survivors' | 'studio';
 export type Difficulty = 'peaceful' | 'easy' | 'normal' | 'hard' | 'nightmare';
 export type ObjectiveKind = 'collect' | 'kill' | 'reach' | 'craft' | 'place' | 'talk' | 'survive' | 'wave' | 'serve' | 'sell' | 'restock' | 'earn' | 'open' | 'cook' | 'defend';
 
@@ -1682,6 +1682,104 @@ onEvent('respawn', () => say('The pit crew drags you back to the south pad. The 
       { label: 'Contestants', value: '4' },
       { label: 'Crates', value: 'Powder drops' },
       { label: 'Fuse', value: '2.4 seconds' },
+    ],
+  },
+  {
+    key: 'survivors',
+    name: 'Nightfall Survivors',
+    subtitle: 'Outlast the dark',
+    description: 'Eight minutes of night, an endless horde and a lantern that fires on its own. Gather soul shards, pick upgrades and hold the hollow until Nightfang falls.',
+    story: 'The sun set on Hollow Reach and never came back. Sister Vela lit the last lantern in the ruined chapel, and the graves began to open. The Lamplighter swears the wyrm sleeps beneath the rune circle. Every soul shard buys another breath. Dawn is eight minutes away.',
+    icon: '☾',
+    accent: '#9b8cff',
+    difficulty: 'hard',
+    tags: ['Survivors', 'Horde', 'Roguelite', 'Night'],
+    preset: 'dark',
+    heightMode: 'ground',
+    timeOfDay: 0.5,
+    weather: 'clear',
+    music: 'horror',
+    platform: { radius: 29, surface: 'grass_block', border: 'podzol', clearHeight: 24 },
+    prefabs: [{ prefab: 'nightfall_hollow', x: 0, z: 0 }],
+    spawn: [0, 20],
+    spawnYaw: 0,
+    fx: { post: 'horror' },
+    spawns: [
+      {
+        entity: 'human:mage_arcane', offset: [-3, 0, -19], name: 'Sister Vela', id: 'vela', questId: 'lantern', behavior: 'stationary',
+        dialogue: 'The lantern is lit and the graves are open. It fires on its own now — your hands are needed for other things. Soul shards carry the strength of what we bury. Take them, and choose what kind of survivor you become. When the wyrm wakes, you must be more than a keeper of flames.',
+      },
+      {
+        entity: 'human:explorer_jungle', offset: [3, 0, 17], name: 'The Lamplighter', id: 'lamplighter', questId: 'wardens', behavior: 'stationary',
+        dialogue: 'South gate is mine. The wardens come up every two minutes, and the wyrm at seven. I have watched a hundred keepers die with a lit lantern in their hands. Do not join them. Bring me proof that you can put a Grave Warden down and I will share the oil I have been saving.',
+      },
+      { entity: 'human:guard_city', offset: [-7, 0, 16], name: 'Gate Watch', behavior: 'guard' },
+      { entity: 'creature:fox', offset: [-7, 0, 12], name: 'Ash' },
+    ],
+    objectives: [
+      { id: 'vela', title: 'Speak with Sister Vela in the chapel', kind: 'talk', target: 'vela', count: 1 },
+      { id: 'survive', title: 'Survive four minutes of night', kind: 'survive', count: 240 },
+      { id: 'wardens', title: 'Put down three Grave Wardens', kind: 'defend', target: 'elite', count: 3 },
+      { id: 'nightfang', title: 'Defeat Nightfang', kind: 'defend', target: 'boss', count: 1 },
+    ],
+    quests: [
+      {
+        id: 'lantern',
+        title: 'The Last Lantern',
+        giver: 'Sister Vela',
+        summary: 'Sister Vela will trade chapel oil for a keeper who can grow stronger and survive an elite. Reach level 4 and fell a Grave Warden.',
+        objectives: [
+          { id: 'q-level', title: 'Reach level 4', kind: 'defend', target: 'level', count: 3 },
+          { id: 'q-elite', title: 'Fell a Grave Warden', kind: 'defend', target: 'elite', count: 1 },
+        ],
+        reward: { xp: 260, items: [{ item: 'golden_apple', count: 2 }, { item: 'soul_shard', count: 6 }], coins: 40 },
+      },
+      {
+        id: 'wardens',
+        title: 'Oil for the Long Night',
+        giver: 'The Lamplighter',
+        summary: 'The Lamplighter wants a keeper who can last. Reach level 8 and put down three Grave Wardens before Nightfang arrives.',
+        objectives: [
+          { id: 'q-elites', title: 'Fell three Grave Wardens', kind: 'defend', target: 'elite', count: 3 },
+          { id: 'q-levels', title: 'Reach level 8', kind: 'defend', target: 'level', count: 7 },
+        ],
+        reward: { xp: 420, items: [{ item: 'golden_apple', count: 3 }, { item: 'soul_shard', count: 12 }], coins: 80 },
+      },
+    ],
+    waves: [],
+    checkpoints: [
+      { offset: [0, 1, 20], radius: 5, label: 'South Gate' },
+      { offset: [0, 1, 0], radius: 5, label: 'Rune Circle' },
+      { offset: [0, 1, -17], radius: 5, label: 'Ruined Chapel' },
+    ],
+    startingItems: [
+      { item: 'iron_sword', count: 1 },
+      { item: 'golden_apple', count: 2 },
+      { item: 'bread', count: 4 },
+      { item: 'torch', count: 8 },
+      { item: 'coin', count: 20 },
+    ],
+    hotbar: ['iron_sword', 'golden_apple', 'bread', 'torch', 'coin'],
+    sim: {
+      kind: 'survivors',
+      center: { x: 0, z: 0 },
+    },
+    rules: {
+      ...BASE_RULES, keepInventory: true, mobSpawning: false, hunger: false, naturalRegen: false,
+      dayCycle: false, blockBreaking: false, blockPlacing: false, dropItems: false, pvp: false,
+    },
+    scripts: templateScript(`onStart(() => {
+  camera('first');
+  say('Sister Vela waits in the ruined chapel and the Lamplighter holds the south gate. The lantern fires on its own: keep moving, gather soul shards, and press 1, 2 or 3 whenever a level offers upgrades. Nightfang comes at seven minutes.', 'info');
+  give('torch', 4);
+});
+onEvent('respawn', () => say('The lantern gutters but holds. The hollow is darker than before.', 'warn'));
+`),
+    stats: [
+      { label: 'Run', value: '8:00' },
+      { label: 'Horde', value: '5 types' },
+      { label: 'Elites', value: '3 Wardens' },
+      { label: 'Boss', value: 'Nightfang' },
     ],
   },
 ];

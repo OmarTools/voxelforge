@@ -1188,6 +1188,15 @@ export class Game {
       player.inventory.setActive(next);
       this.audio.play('click');
     }
+    // Simulation choices (level-up cards, prompts) take priority over hotbar digits.
+    const simActions = this.sim?.hud().actions ?? [];
+    for (const action of simActions) {
+      if (!action.hotkey || action.disabled) continue;
+      if (input.consume(action.hotkey)) {
+        this.simAction(action.id);
+        this.audio.play('click');
+      }
+    }
     for (let digit = 1; digit <= 9; digit++) {
       if (input.consume(`Digit${digit}`)) {
         player.inventory.setActive(digit - 1);
@@ -2116,6 +2125,7 @@ export class Game {
     this.player.revive();
     this.player.teleport(this.respawnPoint.clone());
     this.player.spawnAt(this.respawnPoint.clone(), this.template.spawnYaw ?? 0);
+    this.sim?.onRespawn?.();
     this.scripts.emit('respawn', {});
     this.toast('You wake up at the last checkpoint.', 'info');
     this.audio.play('checkpoint');
@@ -2144,7 +2154,7 @@ export class Game {
       edits: this.world ? this.world.getEdits() : [],
       entities: this.entities
         ? this.entities.entities
-            .filter((e) => e.alive && !e.id.startsWith('cook_customer_') && !e.id.startsWith('shop_customer_') && !e.id.startsWith('cinder_bot_'))
+            .filter((e) => e.alive && !e.id.startsWith('cook_customer_') && !e.id.startsWith('shop_customer_') && !e.id.startsWith('cinder_bot_') && !e.id.startsWith('survivor_') && !e.id.startsWith('royale_rival_') && !e.id.startsWith('siege_raider_'))
             .map((e) => this.serializeEntity(e))
         : [],
       player: {

@@ -6,8 +6,9 @@ import { LuckySystem } from './LuckySystem';
 import { RoyaleSystem } from './RoyaleSystem';
 import { SiegeSystem } from './SiegeSystem';
 import { BomberSystem } from './BomberSystem';
+import { SurvivorsSystem } from './SurvivorsSystem';
 
-export type SimKind = 'cooking' | 'store' | 'lucky' | 'royale' | 'siege' | 'bomber';
+export type SimKind = 'cooking' | 'store' | 'lucky' | 'royale' | 'siege' | 'bomber' | 'survivors';
 
 export interface SimSpot {
   x: number;
@@ -45,6 +46,8 @@ export interface SimHudAction {
   id: string;
   label: string;
   disabled?: boolean;
+  /** KeyboardEvent.code that triggers this action, e.g. Digit1. */
+  hotkey?: string;
 }
 
 export interface SimHud {
@@ -69,6 +72,8 @@ export interface SimSystem {
   onBlockBroken(key: string, x: number, y: number, z: number): boolean;
   /** Called after the player successfully places a block. */
   onBlockPlaced?(key: string, x: number, y: number, z: number): void;
+  /** Called when the player respawns after a death. */
+  onRespawn?(): void;
   action(id: string): void;
   dispose(): void;
 }
@@ -79,5 +84,6 @@ export function createSim(spec: SimSpec, game: Game): SimSystem {
   if (spec.kind === 'royale') return new RoyaleSystem(spec, game);
   if (spec.kind === 'siege') return new SiegeSystem(spec, game);
   if (spec.kind === 'bomber') return new BomberSystem(spec, game);
+  if (spec.kind === 'survivors') return new SurvivorsSystem(spec, game);
   return new LuckySystem(spec, game);
 }

@@ -485,7 +485,9 @@ export class HUD {
     this.simActions.innerHTML = hud.actions
       .map((action, index) => {
         const primary = !action.disabled && !hud.actions.slice(0, index).some((entry) => !entry.disabled);
-        return `<button class="sim-action clickable" data-sim="${action.id}"${action.disabled ? ' disabled' : ''}>${action.label}${primary ? ' <kbd>R</kbd>' : ''}</button>`;
+        const hint = action.hotkey ? action.hotkey.replace(/^Digit/, '') : primary ? 'R' : '';
+        const kbd = hint ? ` <kbd>${hint}</kbd>` : '';
+        return `<button class="sim-action clickable" data-sim="${action.id}"${action.disabled ? ' disabled' : ''}>${action.label}${kbd}</button>`;
       })
       .join('');
     this.simActions.classList.toggle('hidden', hud.actions.length === 0);

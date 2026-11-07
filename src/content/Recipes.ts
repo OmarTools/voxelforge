@@ -266,6 +266,7 @@ add({ key: 'tnt', name: 'TNT', kind: 'block', block: 'tnt', description: 'Light 
 add({ key: 'bomb_up', name: 'Bomb Rack', kind: 'special', description: 'Cinderburst power-up. Keeps one more bomb burning at once.', stack: 8, rarity: 'rare', color: '#ff9b4a' });
 add({ key: 'blast_core', name: 'Blast Core', kind: 'special', description: 'Cinderburst power-up. Adds two blocks of blast reach.', stack: 8, rarity: 'rare', color: '#ff5a3c' });
 add({ key: 'speed_skates', name: 'Cinder Skates', kind: 'special', description: 'Cinderburst power-up. Faster feet on the powder floor.', stack: 8, rarity: 'rare', color: '#7be6ff' });
+add({ key: 'soul_shard', name: 'Soul Shard', kind: 'special', description: 'A cold scrap of night. Nightfall survivors drink these for power.', stack: 64, rarity: 'uncommon', color: '#b9a7ff' });
 add({ key: 'totem', name: 'Totem of Returning', kind: 'special', description: 'Once per life, cheats death and returns you to safety.', stack: 1, rarity: 'legendary', color: '#7be7a8', price: 100 });
 add({ key: 'compass', name: 'Explorer\'s Compass', kind: 'special', description: 'Points toward the nearest objective marker.', stack: 1, rarity: 'uncommon', color: '#d6c089', price: 20 });
 add({ key: 'map', name: 'Region Map', kind: 'special', description: 'Reveals nearby terrain on the minimap for a while.', stack: 1, rarity: 'uncommon', color: '#d8c99d', price: 14 });

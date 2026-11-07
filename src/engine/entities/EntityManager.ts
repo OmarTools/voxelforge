@@ -973,6 +973,19 @@ export class EntityManager {
     return tex;
   }
 
+  /** Pull nearby item drops toward a point. Used by survivor-style magnet pickups. */
+  attractDrops(target: THREE.Vector3, radius: number, dt: number) {
+    for (const drop of this.drops) {
+      const dx = target.x - drop.position.x;
+      const dz = target.z - drop.position.z;
+      const distance = Math.hypot(dx, dz);
+      if (distance > radius || distance < 0.05) continue;
+      const pull = Math.min(distance, (3 + (1 - distance / radius) * 7) * dt);
+      drop.position.x += (dx / distance) * pull;
+      drop.position.z += (dz / distance) * pull;
+    }
+  }
+
   private updateDrops(dt: number) {
     const player = this.player;
     if (!player) return;
