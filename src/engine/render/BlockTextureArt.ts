@@ -232,6 +232,90 @@ function furnaceLikeSide(ctx: Ctx, rand: Rand) {
   px(ctx, 8, 7, '#f0a03a', 1, 1);
 }
 
+/** Cross-rendered crop sprites, drawn on a transparent tile. */
+function cropSprite(ctx: Ctx, rand: Rand, crop: 'wheat' | 'carrot' | 'potato' | 'tomato', stage: number) {
+  ctx.clearRect(0, 0, TILE, TILE);
+  const green = stage === 2 && crop === 'wheat' ? '#c9a849' : '#6f9e42';
+  const light = stage === 2 && crop === 'wheat' ? '#e6cf72' : '#8fc35a';
+  const dark = stage === 2 && crop === 'wheat' ? '#96752e' : '#4c7630';
+
+  if (crop === 'wheat') {
+    const count = stage === 0 ? 5 : 7;
+    for (let i = 0; i < count; i++) {
+      const x = 2 + Math.floor((i * 13) / Math.max(1, count - 1));
+      const h = stage === 0 ? 3 + Math.floor(rand() * 3) : stage === 1 ? 8 + Math.floor(rand() * 3) : 12 + Math.floor(rand() * 3);
+      const top = 15 - h;
+      px(ctx, x, top, dark, 1, h);
+      px(ctx, x, top, green, 1, Math.max(1, h - 1));
+      if (stage > 0) {
+        px(ctx, x - 1, top + 3, light, 1, 2);
+        px(ctx, x + 1, top + 5, light, 1, 2);
+      }
+      if (stage === 2) {
+        px(ctx, x - 1, top - 2, light, 3, 3);
+        px(ctx, x, top - 3, dark, 1, 2);
+        px(ctx, x + 2, top - 2, light, 1, 2);
+      }
+    }
+    return;
+  }
+
+  if (crop === 'carrot') {
+    const height = stage === 0 ? 4 : stage === 1 ? 7 : 10;
+    for (let i = -2; i <= 2; i++) {
+      const x = 8 + i;
+      const lean = i * (stage === 0 ? 1 : 2);
+      for (let y = 0; y < height; y++) {
+        const yy = 14 - y;
+        const xx = x + Math.round((lean * y) / height);
+        px(ctx, xx, yy, y > height - 3 ? dark : green, 1, 1);
+        if (y > 1 && y < height - 1) px(ctx, xx + (i >= 0 ? 1 : -1), yy, light, 1, 1);
+      }
+    }
+    if (stage === 2) {
+      px(ctx, 6, 13, '#d9803a', 5, 2);
+      px(ctx, 7, 12, '#ec9a4f', 3, 1);
+      px(ctx, 5, 15, '#a85c28', 2, 1);
+    }
+    return;
+  }
+
+  if (crop === 'potato') {
+    const height = stage === 0 ? 4 : stage === 1 ? 8 : 11;
+    px(ctx, 7, 15 - height, dark, 2, height);
+    for (let i = 0; i < (stage === 0 ? 5 : stage === 1 ? 9 : 13); i++) {
+      const y = 5 + Math.floor(rand() * (height + 2));
+      const x = 2 + Math.floor(rand() * 12);
+      px(ctx, x, y, rand() > 0.45 ? green : light, 2, 2);
+      px(ctx, x + 1, y + 1, dark, 1, 1);
+    }
+    if (stage === 2) {
+      for (const [x, y] of [[4, 4], [11, 5], [7, 7]]) {
+        px(ctx, x, y, '#f2ecd9', 1, 3);
+        px(ctx, x - 1, y + 1, '#f2ecd9', 3, 1);
+        px(ctx, x, y + 1, '#e0c766', 1, 2);
+      }
+    }
+    return;
+  }
+
+  const height = stage === 0 ? 5 : stage === 1 ? 9 : 12;
+  px(ctx, 7, 15 - height, dark, 2, height);
+  for (let i = 0; i < (stage === 0 ? 4 : stage === 1 ? 8 : 11); i++) {
+    const y = 4 + Math.floor(rand() * (height + 1));
+    const side = rand() > 0.5 ? 1 : -1;
+    px(ctx, 8 + side * (1 + Math.floor(rand() * 3)), y, green, 2, 1);
+    px(ctx, 8 + side * 2, y - 1, light, 1, 1);
+  }
+  if (stage === 2) {
+    for (const [x, y] of [[3, 6], [10, 8], [5, 10]]) {
+      px(ctx, x, y, '#b93f35', 3, 3);
+      px(ctx, x + 1, y + 1, '#d95a4a', 1, 1);
+      px(ctx, x, y - 1, dark, 1, 1);
+    }
+  }
+}
+
 /** Draw a single 16×16 pixel-art tile. */
 export function drawTile(name: string): HTMLCanvasElement {
   const { canvas, ctx } = makeTile();
@@ -819,6 +903,111 @@ export function drawTile(name: string): HTMLCanvasElement {
       for (let i = 0; i < 18; i++) {
         px(ctx, Math.floor(rand() * 14), Math.floor(rand() * 14), '#8f8937', 1 + Math.floor(rand() * 2), 1 + Math.floor(rand() * 2));
       }
+      break;
+    case 'farmland_top':
+      paintBase(ctx, rand, '#5c3f28', 9);
+      for (let y = 1; y < TILE; y += 4) {
+        px(ctx, 0, y, '#422c1b', TILE, 1);
+        px(ctx, 0, y + 1, '#78573a', TILE, 1);
+        px(ctx, 2 + Math.floor(rand() * 10), y + 1, '#4d3521', 3, 1);
+      }
+      speckle(ctx, rand, ['#3d2919', '#7f5c3c', '#4e3722'], 14, 1);
+      break;
+    case 'farmland_side':
+      paintBase(ctx, rand, '#6b4a2e', 11);
+      px(ctx, 0, 0, '#4b3220', TILE, 4);
+      px(ctx, 0, 4, '#3c2818', TILE, 1);
+      for (let x = 0; x < TILE; x += 3) px(ctx, x, 1 + Math.floor(rand() * 3), '#7d5a3a', 1, 1);
+      speckle(ctx, rand, ['#5a3d26', '#7d5a3a'], 9, 1);
+      break;
+    case 'shipping_bin_side':
+      planks(ctx, rand, '#8a6238', '#5f4224', '#a87c4c');
+      px(ctx, 0, 2, '#4c5154', TILE, 2);
+      px(ctx, 0, 11, '#4c5154', TILE, 2);
+      px(ctx, 0, 2, '#788084', TILE, 1);
+      px(ctx, 0, 11, '#788084', TILE, 1);
+      for (const x of [2, 13]) {
+        px(ctx, x, 2, '#363b3e', 1, 11);
+        px(ctx, x + 1, 3, '#8b959a', 1, 8);
+      }
+      break;
+    case 'shipping_bin_front':
+      planks(ctx, rand, '#8a6238', '#5f4224', '#a87c4c');
+      px(ctx, 0, 2, '#4c5154', TILE, 2);
+      px(ctx, 0, 12, '#4c5154', TILE, 2);
+      px(ctx, 3, 5, '#24180f', 10, 5);
+      px(ctx, 4, 6, '#0e0a07', 8, 3);
+      px(ctx, 5, 6, '#c9a849', 2, 1);
+      px(ctx, 8, 7, '#d9873a', 2, 1);
+      px(ctx, 11, 6, '#79a94e', 1, 2);
+      px(ctx, 2, 2, '#363b3e', 1, 11);
+      px(ctx, 13, 2, '#363b3e', 1, 11);
+      break;
+    case 'shipping_bin_top':
+      planks(ctx, rand, '#966c3f', '#684a29', '#b58a57');
+      px(ctx, 3, 3, '#24180f', 10, 10);
+      px(ctx, 4, 4, '#100c08', 8, 8);
+      px(ctx, 5, 5, '#c9a849', 2, 2);
+      px(ctx, 8, 6, '#d9873a', 2, 1);
+      px(ctx, 4, 9, '#79a94e', 2, 1);
+      px(ctx, 0, 0, '#4c5154', TILE, 1);
+      px(ctx, 0, 15, '#4c5154', TILE, 1);
+      break;
+    case 'bed_side':
+      planks(ctx, rand, '#966c3f', '#684a29', '#b58a57');
+      px(ctx, 0, 4, '#a33b3b', TILE, 10);
+      px(ctx, 0, 4, '#c6544e', TILE, 1);
+      px(ctx, 0, 13, '#7d2d2c', TILE, 2);
+      px(ctx, 2, 6, '#f2ecd9', 2, 3);
+      px(ctx, 12, 6, '#f2ecd9', 2, 3);
+      break;
+    case 'bed_top':
+      paintBase(ctx, rand, '#a33b3b', 6);
+      px(ctx, 0, 0, '#7d2d2c', TILE, 2);
+      px(ctx, 0, 14, '#7d2d2c', TILE, 2);
+      px(ctx, 0, 0, '#7d2d2c', 2, TILE);
+      px(ctx, 14, 0, '#7d2d2c', 2, TILE);
+      px(ctx, 3, 2, '#f4efe1', 10, 4);
+      px(ctx, 3, 5, '#d7cfbc', 10, 1);
+      px(ctx, 4, 10, '#c6544e', 8, 1);
+      px(ctx, 4, 12, '#c6544e', 8, 1);
+      for (let i = 0; i < 8; i++) px(ctx, 3 + Math.floor(rand() * 10), 8 + Math.floor(rand() * 6), '#b0443c', 1, 1);
+      break;
+    case 'wheat_crop_0':
+      cropSprite(ctx, rand, 'wheat', 0);
+      break;
+    case 'wheat_crop_1':
+      cropSprite(ctx, rand, 'wheat', 1);
+      break;
+    case 'wheat_crop_2':
+      cropSprite(ctx, rand, 'wheat', 2);
+      break;
+    case 'carrot_crop_0':
+      cropSprite(ctx, rand, 'carrot', 0);
+      break;
+    case 'carrot_crop_1':
+      cropSprite(ctx, rand, 'carrot', 1);
+      break;
+    case 'carrot_crop_2':
+      cropSprite(ctx, rand, 'carrot', 2);
+      break;
+    case 'potato_crop_0':
+      cropSprite(ctx, rand, 'potato', 0);
+      break;
+    case 'potato_crop_1':
+      cropSprite(ctx, rand, 'potato', 1);
+      break;
+    case 'potato_crop_2':
+      cropSprite(ctx, rand, 'potato', 2);
+      break;
+    case 'tomato_crop_0':
+      cropSprite(ctx, rand, 'tomato', 0);
+      break;
+    case 'tomato_crop_1':
+      cropSprite(ctx, rand, 'tomato', 1);
+      break;
+    case 'tomato_crop_2':
+      cropSprite(ctx, rand, 'tomato', 2);
       break;
     case 'crystal_flower': {
       ctx.clearRect(0, 0, TILE, TILE);

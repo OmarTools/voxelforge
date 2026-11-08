@@ -202,6 +202,37 @@ cube('barrel', 'Barrel', 'decoration', 'barrel_side', { top: 'barrel_top', botto
 cube('crate', 'Crate', 'decoration', 'crate', { color: '#a77f4d', hardness: 0.9, sound: 'wood', description: 'A rough wooden supply crate.' });
 cube('hay_bale', 'Hay Bale', 'decoration', 'hay_side', { top: 'hay_top', bottom: 'hay_top', color: '#c9a849', hardness: 0.6, sound: 'grass', description: 'A tightly bound bale of hay.' });
 cube('sponge', 'Sponge', 'decoration', 'sponge', { color: '#c5bc55', hardness: 0.6, sound: 'grass', description: 'A porous yellow sponge.' });
+
+/* ------------------------------------------------------------------ */
+/*  FARM FIXTURES AND CROPS                                           */
+/* ------------------------------------------------------------------ */
+cube('farmland', 'Farmland', 'natural', 'farmland_side', {
+  top: 'farmland_top', bottom: 'dirt', color: '#5d3f28', hardness: 0.5, sound: 'dirt', drop: 'dirt',
+  unlisted: true, description: 'Tilled soil, ready for seeds. Water nearby helps crops grow faster.',
+});
+cube('shipping_bin', 'Shipping Bin', 'decoration', 'shipping_bin_side', {
+  top: 'shipping_bin_top', bottom: 'oak_planks', south: 'shipping_bin_front', color: '#8a6238', hardness: 1.0,
+  sound: 'wood', description: 'A sturdy collection bin. Right-click with produce to sell it.',
+});
+cube('bed', 'Farm Bed', 'decoration', 'bed_side', {
+  top: 'bed_top', bottom: 'oak_planks', color: '#b0443c', hardness: 0.7, sound: 'cloth',
+  description: 'A warm bed. Right-click in the evening to sleep until morning.',
+});
+
+const CROP_STAGE_BLOCKS: Array<[string, string, string]> = [
+  ['wheat', 'Wheat', '#7fa84a'],
+  ['carrot', 'Carrot', '#6f9e42'],
+  ['potato', 'Potato', '#5f9445'],
+  ['tomato', 'Tomato', '#5c8f3f'],
+];
+for (const [crop, label, color] of CROP_STAGE_BLOCKS) {
+  for (let stage = 0; stage < 3; stage++) {
+    plant(`${crop}_crop_${stage}`, `${label} ${stage === 2 ? 'Crop' : 'Sprout'}`, `${crop}_crop_${stage}`, {
+      color, unlisted: true, hardness: 0.03,
+      description: stage === 2 ? `Ripe ${label.toLowerCase()}. Right-click to harvest.` : `A ${label.toLowerCase()} plant, still growing.`,
+    });
+  }
+}
 defs.push({
   key: 'torch', name: 'Torch', category: 'decoration', render: 'cross', solid: false, opaque: false,
   breakable: true, hardness: 0.02, mapColor: '#e6b450', light: 13, sound: 'plant',

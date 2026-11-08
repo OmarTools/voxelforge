@@ -243,6 +243,17 @@ for (const [key, name, hunger, heal, color, desc] of DISHES) {
 
 add({ key: 'milk', name: 'Milk', kind: 'food', description: 'A cold bottle of milk. Drink it, or steam it for coffee.', stack: 16, foodHunger: 2, foodHeal: 1, rarity: 'common', color: '#f3efe2', price: 2 });
 
+const SEEDS: Array<[string, string, string, string, number]> = [
+  ['wheat_seeds', 'Wheat Seeds', '#b7c46a', 'Sow on farmland. Ripens into golden wheat.', 2],
+  ['carrot_seeds', 'Carrot Seeds', '#d9a25a', 'Sow on farmland. Ripens into crisp carrots.', 2],
+  ['potato_seeds', 'Potato Seeds', '#c7b36a', 'Sow on farmland. Ripens into earthy potatoes.', 2],
+  ['tomato_seeds', 'Tomato Seeds', '#c96a4a', 'Sow on farmland. Ripens into warm red tomatoes.', 3],
+];
+
+for (const [key, name, color, desc, price] of SEEDS) {
+  add({ key, name, kind: 'material', description: desc, stack: 64, rarity: 'common', color, price });
+}
+
 const SHOP_GOODS: Array<[string, string, string, string, number, Rarity?]> = [
   ['soap', 'Lavender Soap', '#d9f2e8', 'A neatly wrapped bar of lavender soap.', 6],
   ['candle', 'Honey Candle', '#f0c969', 'A hand-poured candle with a honey scent.', 7],
@@ -429,6 +440,12 @@ r('cooked_chicken', 1, [['chicken_meat', 1]], 'furnace');
 r('cooked_fish', 1, [['raw_fish', 1]], 'furnace');
 r('paper', 3, [['wheat', 1]], 'table');
 r('book', 1, [['paper', 3], ['leather', 1]], 'table');
+r('bed', 1, [['wool_red', 2], ['oak_planks', 3]], 'table', 'Sleep through the night and start the next farm day.');
+r('shipping_bin', 1, [['oak_planks', 4], ['iron_ingot', 1]], 'table', 'Sells produce placed inside it.');
+r('wheat_seeds', 2, [['wheat', 1]], 'hand', 'Save a handful of grain for next season.');
+r('carrot_seeds', 2, [['carrot', 1]], 'hand');
+r('potato_seeds', 2, [['potato', 1]], 'hand');
+r('tomato_seeds', 2, [['tomato', 1]], 'hand');
 
 // Metallurgy and magic.
 r('iron_ingot', 1, [['iron_ore', 1]], 'furnace');

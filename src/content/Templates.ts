@@ -3,9 +3,9 @@ import type { CameraMode } from '../engine/game/CameraModes';
 import type { ScriptProject } from '../engine/scripting/ScriptTypes';
 import type { SimSpec } from '../engine/game/sim/SimTypes';
 
-export type GameMode = 'creative' | 'survival' | 'skyblock' | 'parkour' | 'arena' | 'rpg' | 'horror' | 'dungeon' | 'racing' | 'army' | 'city' | 'platformer' | 'frostpeak' | 'dune' | 'skytemple' | 'kitchen' | 'shopkeep' | 'lucky' | 'royale' | 'siege' | 'bomber' | 'survivors' | 'studio';
+export type GameMode = 'creative' | 'survival' | 'skyblock' | 'parkour' | 'arena' | 'rpg' | 'horror' | 'dungeon' | 'racing' | 'army' | 'city' | 'platformer' | 'frostpeak' | 'dune' | 'skytemple' | 'kitchen' | 'shopkeep' | 'lucky' | 'royale' | 'siege' | 'bomber' | 'survivors' | 'farm' | 'studio';
 export type Difficulty = 'peaceful' | 'easy' | 'normal' | 'hard' | 'nightmare';
-export type ObjectiveKind = 'collect' | 'kill' | 'reach' | 'craft' | 'place' | 'talk' | 'survive' | 'wave' | 'serve' | 'sell' | 'restock' | 'earn' | 'open' | 'cook' | 'defend';
+export type ObjectiveKind = 'collect' | 'kill' | 'reach' | 'craft' | 'place' | 'talk' | 'survive' | 'wave' | 'serve' | 'sell' | 'restock' | 'earn' | 'open' | 'cook' | 'defend' | 'harvest' | 'tend';
 
 export interface WorldRules {
   keepInventory: boolean;
@@ -1780,6 +1780,124 @@ onEvent('respawn', () => say('The lantern gutters but holds. The hollow is darke
       { label: 'Horde', value: '5 types' },
       { label: 'Elites', value: '3 Wardens' },
       { label: 'Boss', value: 'Nightfang' },
+    ],
+  },
+  {
+    key: 'farm',
+    name: 'Willow Creek',
+    subtitle: 'A small farm, a big year',
+    description: 'Work a valley farm through the seasons of a single day: till soil, plant four crops, tend chickens, cows and sheep, fill the shipping bin and take the village\'s daily request before dusk.',
+    story: 'Marigold Thistle sold you the old creek farm for a handshake and a promise to keep the orchard alive. The fields are fallow, the barn is empty, and Berta at the inn already has a list of things she needs by supper. Willow Creek is a place where the day is the whole game: plant in the morning, tend at noon, ship before the light goes, and sleep knowing tomorrow starts it all again.',
+    icon: '❧',
+    accent: '#8fbf5a',
+    difficulty: 'easy',
+    tags: ['Farming', 'Life Sim', 'Cozy', 'Village', 'Day Cycle'],
+    preset: 'overworld',
+    heightMode: 'ground',
+    timeOfDay: 7.4,
+    weather: 'clear',
+    music: 'day',
+    platform: { radius: 34, surface: 'grass_block', border: 'dirt_path', clearHeight: 42 },
+    prefabs: [{ prefab: 'willow_creek', x: 0, z: 0 }],
+    spawn: [0, 22],
+    spawnYaw: 0,
+    spawns: [
+      {
+        entity: 'human:villager_seed_merchant', offset: [9, 0, 18], name: 'Marigold Thistle', id: 'marigold', questId: 'first_harvest', behavior: 'stationary',
+        dialogue: 'Welcome to Willow Creek. The stall has seeds for all four crops and a spare hoe if yours wears out. Till the soil with the hoe, plant on the tilled row, and keep the fields near the water. Bring me six good harvests and I will show you the orchard trade.',
+      },
+      {
+        entity: 'human:chef_inn', offset: [-8, 0, -2], name: 'Berta Loaf', id: 'berta', questId: 'daily_table', behavior: 'stationary',
+        dialogue: 'There you are. The inn needs something fresh every single day, so I will post a request each morning. Bring me what I ask for and the whole valley will hear about it. The shipping bin by the stall takes everything else.',
+      },
+      {
+        entity: 'human:villager_farmer', offset: [0, 0, 6], name: 'Thomas Greenfield', id: 'thomas', questId: 'green_thumb', behavior: 'stationary',
+        dialogue: 'Mornings are for planting, afternoons for animals, evenings for the bin. The creek keeps the west rows damp. The chickens are behind the barn rails; give them a scratch and they will pay you in eggs.',
+      },
+      { entity: 'creature:chicken', offset: [16, 0, 5], count: 4, spread: 5 },
+      { entity: 'creature:cow', offset: [19, 0, 9], count: 2, spread: 3 },
+      { entity: 'creature:sheep', offset: [13, 0, 9], count: 2, spread: 3 },
+      { entity: 'creature:cat', offset: [-10, 0, 2], name: 'Pip' },
+    ],
+    objectives: [
+      { id: 'marigold', title: 'Speak with Marigold at the seed stall', kind: 'talk', target: 'marigold', count: 1 },
+      { id: 'harvest', title: 'Harvest 12 crops', kind: 'harvest', target: 'any', count: 12, description: 'Till soil with the hoe, plant seeds, then right-click ripe crops.' },
+      { id: 'tend', title: 'Tend the animals 4 times', kind: 'tend', target: 'any', count: 4, description: 'Collect eggs, milk and wool from the animals in the pen.' },
+      { id: 'ship', title: 'Ship 20 produce', kind: 'sell', target: 'any', count: 20, description: 'Right-click the shipping bin with produce in your pack.' },
+      { id: 'earn', title: 'Earn 200 coins from the farm', kind: 'earn', target: 'coin', count: 200 },
+    ],
+    quests: [
+      {
+        id: 'first_harvest',
+        title: 'First Harvest',
+        giver: 'Marigold',
+        summary: 'Marigold wants proof that the old creek farm still has life in it: harvest six crops and ship eight pieces of produce before the week is out.',
+        objectives: [
+          { id: 'q-harvest', title: 'Harvest six crops', kind: 'harvest', target: 'any', count: 6 },
+          { id: 'q-ship', title: 'Ship eight produce', kind: 'sell', target: 'any', count: 8 },
+        ],
+        reward: { xp: 220, items: [{ item: 'wheat_seeds', count: 6 }, { item: 'tomato_seeds', count: 4 }], coins: 40 },
+      },
+      {
+        id: 'daily_table',
+        title: 'The Daily Table',
+        giver: 'Berta',
+        summary: 'Berta feeds the whole village from one inn kitchen. Keep the shipping bin moving and the coins coming, and she will make sure Willow Creek knows your name.',
+        objectives: [
+          { id: 'q-ship', title: 'Ship twelve produce', kind: 'sell', target: 'any', count: 12 },
+          { id: 'q-earn', title: 'Earn 100 coins from farm sales', kind: 'earn', target: 'coin', count: 100 },
+        ],
+        reward: { xp: 330, items: [{ item: 'milk', count: 2 }, { item: 'cheese', count: 2 }], coins: 70 },
+      },
+      {
+        id: 'green_thumb',
+        title: 'Green Thumb',
+        giver: 'Thomas',
+        summary: 'Thomas has watched a lot of hired hands give up by the second morning. Bring in ten crops and tend the animals four times, and he will admit you might just make it.',
+        objectives: [
+          { id: 'q-harvest', title: 'Harvest ten crops', kind: 'harvest', target: 'any', count: 10 },
+          { id: 'q-tend', title: 'Tend the animals four times', kind: 'tend', target: 'any', count: 4 },
+        ],
+        reward: { xp: 280, items: [{ item: 'hay_bale', count: 6 }, { item: 'bucket', count: 1 }], coins: 50 },
+      },
+    ],
+    waves: [],
+    checkpoints: [
+      { offset: [0, 1, 22], radius: 5, label: 'South Gate' },
+      { offset: [-13, 1, -5], radius: 5, label: 'Farmhouse Porch' },
+      { offset: [14, 1, -2], radius: 5, label: 'Barn Door' },
+      { offset: [0, 1, -18], radius: 5, label: 'Crop Fields' },
+      { offset: [9, 1, 19], radius: 4, label: 'Seed Stall' },
+    ],
+    startingItems: [
+      { item: 'wood_hoe', count: 1 },
+      { item: 'wheat_seeds', count: 8 },
+      { item: 'carrot_seeds', count: 4 },
+      { item: 'potato_seeds', count: 4 },
+      { item: 'tomato_seeds', count: 4 },
+      { item: 'bread', count: 3 },
+      { item: 'bucket', count: 1 },
+      { item: 'coin', count: 30 },
+    ],
+    hotbar: ['wood_hoe', 'wheat_seeds', 'carrot_seeds', 'potato_seeds', 'tomato_seeds', 'bread', 'bucket', 'coin'],
+    sim: {
+      kind: 'farm',
+      requestGiverId: 'berta',
+      center: { x: 0, z: 0 },
+    },
+    rules: { ...BASE_RULES, keepInventory: true, mobSpawning: false, dayCycle: true, pvp: false },
+    scripts: templateScript(`onStart(() => {
+  camera('first');
+  say('Marigold keeps the seed stall by the south road and Berta posts a daily request from the inn. Till soil with the hoe, plant seeds on farmland, then harvest and ship. Press T in the evening to sleep until morning.', 'info');
+  give('wheat_seeds', 4);
+});
+onEvent('respawn', () => say('Thomas hauls you back to the porch. The animals are still waiting.', 'warn'));
+`),
+    stats: [
+      { label: 'Crops', value: '4 types' },
+      { label: 'Animals', value: '3 species' },
+      { label: 'Day', value: '4:00' },
+      { label: 'Requests', value: 'Daily' },
     ],
   },
 ];

@@ -34,12 +34,39 @@ Keep this file updated when a template ships or the roadmap changes.
 | 21 | Emberhold Siege | `siege` | `siege` | 5-wave fortress defense, upgradable turrets |
 | 22 | Cinderburst | `bomber` | `bomber` | Bomberman arena: TNT, crates, 3 rival bots |
 | 23 | Nightfall Survivors | `survivors` | `survivors` | 8-minute auto-battler: soul shards, 11 upgrades, elites, Nightfang |
+| 24 | Willow Creek | `farm` | `farm` | Day-cycle farm: crops, animals, shipping bin, daily requests |
 
-Current total: **23 templates**.
+Current total: **24 templates**.
 
 ---
 
 ## Recently shipped
+
+### ✅ Willow Creek — `farm`
+
+**Pitch:** A quiet day-cycle farm. Till the creek rows, plant four crops, tend the animals
+and keep the inn's daily table stocked — then sleep and do it again.
+
+| | |
+|---|---|
+| Inspired by | Stardew Valley / Harvest Moon |
+| Core loop | Till → plant → water-adjacent growth → harvest → ship / daily request → sleep → new day |
+| New system | `FarmSystem` (crops, growth stages, watering, animals, shipping, daily requests, sleep) |
+| Reuses | Sky day cycle, NPC dialogue/shops, quests, objectives, prefab system, autosave |
+| Content | `willow_creek` prefab, 3 NPCs, 8 animals, 4 crops × 3 stages, 4 seed items, `farmland`/`shipping_bin`/`bed` blocks |
+| Length | Endless farm days; 5 objectives + 3 quests (Marigold, Berta, Thomas) |
+| Effort | high |
+
+**Verified**
+- [x] `willow_creek` prefab (farmhouse, barn, fields, creek, seed stall, shipping bin)
+- [x] Till → plant → watered growth advantage → 3-stage harvest loop
+- [x] Chickens/cows/sheep with per-entity egg/milk/wool cooldowns
+- [x] Shipping bin sales + coin/produce counters
+- [x] Daily request from Berta, delivered through normal dialogue
+- [x] Sleep at bed or **T** after 17:00; overnight crop growth and autosave
+- [x] 5 objectives, 3 quests, farm counters saved/reloaded (`harvest`, `tend`)
+- [x] Headless QA suite + 24-template smoke test
+- [x] Runtime rebuild, commit, push
 
 ### ✅ Nightfall Survivors — `survivors`
 
@@ -75,8 +102,8 @@ Ranked by value-to-effort. Effort is relative to the existing engine.
 | Priority | Template | Inspired by | Core loop | New system | Reuses | Effort | Status |
 |---|---|---|---|---|---|---|---|
 | 1 | **Nightfall Survivors** | Vampire Survivors / Brotato | Auto-attack horde survival, XP upgrades, boss | `SurvivorsSystem` | Waves, bosses, particles, HUD | medium | ✅ |
-| 2 | **Willow Creek** | Stardew Valley / Harvest Moon | Farm plots, crops, animals, villagers, shipping bin | `FarmSystem` | Day cycle, dialogue, quests, shops | high | 🔜 |
-| 3 | **Hollowwatch** | Plants vs. Zombies / Bloons TD | Place and upgrade towers along lanes, 12 waves + boss | `TowerSystem` (block placement + targeting) | Siege turrets/waves | medium | 💤 |
+| 2 | **Willow Creek** | Stardew Valley / Harvest Moon | Farm plots, crops, animals, villagers, shipping bin | `FarmSystem` | Day cycle, dialogue, quests, shops | high | ✅ |
+| 3 | **Hollowwatch** | Plants vs. Zombies / Bloons TD | Place and upgrade towers along lanes, 12 waves + boss | `TowerSystem` (block placement + targeting) | Siege turrets/waves | medium | 🔜 |
 | 4 | **Bannerfall** | TF2 / Overwatch | Bot teams, CTF + king of the hill, class kits | `MatchSystem` | Entity combat, HUD, objectives | high | 💤 |
 | 5 | **Deadlight** | CoD Zombies | Round-based zombies, barricades, buy weapons, boss round | `ZombiesSystem` | Wave spawner, economy, particles | medium | 💤 |
 | 6 | **Crumble** | Spleef / Fall Guys | 3 quick rounds, collapsing floor, bots | `SpleefSystem` | Royale elimination, arena prefabs | low | 💤 |
@@ -90,8 +117,8 @@ Ranked by value-to-effort. Effort is relative to the existing engine.
 ### Sequenced plan
 
 1. **Nightfall Survivors** — shipped; proves the auto-battler + upgrade-choice pattern.
-2. **Willow Creek** — opposite pacing; validates long-form day systems and saves. (next)
-3. **Hollowwatch** — cheapest combat follow-up; tower placement reuses Siege code.
+2. **Willow Creek** — shipped; validates long-form day systems, persistent counters and saves.
+3. **Hollowwatch** — cheapest combat follow-up; tower placement reuses Siege code. (next)
 4. **Crumble** — quick party mode, small scope, good palette cleanser.
 5. **Deadlight** — round-based horror, reuses waves + economy.
 6. **Titan Trials** — boss-rush showcase for entity phases.
@@ -109,6 +136,7 @@ Ranked by value-to-effort. Effort is relative to the existing engine.
 | Tower placement + targeting | `SiegeSystem` (fixed turrets) | Generalise for Hollowwatch |
 | Round/elimination flow | `RoyaleSystem`, `BomberSystem` | Shared `MatchFlow` for Crumble/Bannerfall |
 | Economy + shop UI | `StoreSystem` | Deadlight, Willow Creek, Gloop Ranch |
+| Day cycle + sleep/save rollover | `FarmSystem`, `Sky` | Reuse for any day-based survival or town mode |
 
 ---
 
@@ -116,6 +144,7 @@ Ranked by value-to-effort. Effort is relative to the existing engine.
 
 | Date | Change |
 |---|---|
+| 2026-11-08 | Willow Creek (`farm`) shipped — day-cycle farm with 4 crops, 3 animal species, shipping bin, daily requests and sleep/save rollover. |
 | 2026-11-07 | Nightfall Survivors (`survivors`) shipped — 8-minute horde run, soul-shard XP, 11 upgrades, 3 elites and Nightfang. |
 | 2026-11-07 | Tracker created. 22 templates shipped, Nightfall Survivors started. |
 | 2026-11-06 | Cinderburst (`bomber`) shipped — Bomberman arena with bots, crates, power-ups. |

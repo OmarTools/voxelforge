@@ -132,10 +132,12 @@ interface ObjectiveCounters {
   opens: Record<string, number>;
   cooks: Record<string, number>;
   defends: Record<string, number>;
+  harvests: Record<string, number>;
+  tends: Record<string, number>;
 }
 
 function emptyCounters(): ObjectiveCounters {
-  return { kills: {}, crafts: {}, places: {}, talks: {}, serves: {}, sells: {}, restocks: {}, earns: {}, opens: {}, cooks: {}, defends: {} };
+  return { kills: {}, crafts: {}, places: {}, talks: {}, serves: {}, sells: {}, restocks: {}, earns: {}, opens: {}, cooks: {}, defends: {}, harvests: {}, tends: {} };
 }
 
 export interface GameSaveData {
@@ -446,6 +448,16 @@ export class Game {
     if (!this.sky) return;
     this.sky.setTime(clamp(Number(hour) || 0, 0, 23.99));
     this.sky.update(0, this.camera.position);
+  }
+
+  /** Sleep fast-forward used by farm beds: dawn, a new day and an autosave. */
+  advanceToMorning(): void {
+    if (!this.started || this.ended || !this.sky) return;
+    this.sky.setTime(7.05);
+    this.sky.update(0, this.camera.position);
+    this.dayCount += 1;
+    this.toast(`Day ${this.dayCount}. Morning comes to the valley.`, 'good');
+    this.saveGame(false);
   }
 
   scriptSetWeather(weather: 'clear' | 'rain' | 'snow' | 'ash'): void {
@@ -832,6 +844,8 @@ export class Game {
           opens: { ...(save.counters.opens ?? {}) },
           cooks: { ...(save.counters.cooks ?? {}) },
           defends: { ...(save.counters.defends ?? {}) },
+          harvests: { ...(save.counters.harvests ?? {}) },
+          tends: { ...(save.counters.tends ?? {}) },
         }
       : emptyCounters();
 
@@ -2186,6 +2200,8 @@ export class Game {
         opens: { ...this.counters.opens },
         cooks: { ...this.counters.cooks },
         defends: { ...this.counters.defends },
+        harvests: { ...this.counters.harvests },
+        tends: { ...this.counters.tends },
       },
       quests,
       waves: { index: this.wave.index, cleared: this.wave.cleared, timer: this.wave.timer, active: this.wave.active },
@@ -2428,6 +2444,12 @@ export class Game {
       case 'defend':
         state.progress = Math.max(state.progress, this.counters.defends[target && target !== 'any' ? target : '__any'] ?? 0);
         break;
+      case 'harvest':
+        state.progress = Math.max(state.progress, this.counters.harvests[target && target !== 'any' ? target : '__any'] ?? 0);
+        break;
+      case 'tend':
+        state.progress = Math.max(state.progress, this.counters.tends[target && target !== 'any' ? target : '__any'] ?? 0);
+        break;
       case 'wave':
         state.progress = Math.max(state.progress, this.wave.cleared);
         break;
@@ -2468,14 +2490,16 @@ export class Game {
     this.counters.crafts.__any = (this.counters.crafts.__any ?? 0) + count;
   }
 
-  /** Objective counter bump used by the cooking, shop and lucky simulations. */
-  recordSim(kind: 'serve' | 'sell' | 'restock' | 'earn' | 'open' | 'cook' | 'defend', target: string, amount = 1): void {
+  /** Objective counter bump used by the cooking, shop, lucky and farm simulations. */
+  recordSim(kind: 'serve' | 'sell' | 'restock' | 'earn' | 'open' | 'cook' | 'defend' | 'harvest' | 'tend', target: string, amount = 1): void {
     const map = kind === 'serve' ? this.counters.serves
       : kind === 'sell' ? this.counters.sells
       : kind === 'restock' ? this.counters.restocks
       : kind === 'earn' ? this.counters.earns
       : kind === 'open' ? this.counters.opens
       : kind === 'cook' ? this.counters.cooks
+      : kind === 'harvest' ? this.counters.harvests
+      : kind === 'tend' ? this.counters.tends
       : this.counters.defends;
     map[target] = (map[target] ?? 0) + amount;
     map.__any = (map.__any ?? 0) + amount;

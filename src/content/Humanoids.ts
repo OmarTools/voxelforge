@@ -145,6 +145,13 @@ export const HUMANOIDS: HumanoidSpec[] = [
     tags: ['npc', 'villager', 'friendly'],
   },
   {
+    key: 'villager_seed_merchant', name: 'Marigold Thistle', role: 'Seed Keeper', body: 'standard',
+    skin: '#d3a377', hair: '#a85d33', hairStyle: 'long', eyes: 'normal', eyeColor: '#4c6b3b',
+    shirt: '#54703e', accent: '#d9b25f', pants: '#594830', boots: '#3c2e20', outfit: 'tunic',
+    headgear: 'straw', headgearColor: '#d9b25f', backpack: true, weapon: 'none',
+    tags: ['npc', 'villager', 'friendly', 'merchant'],
+  },
+  {
     key: 'villager_blacksmith', name: 'Marta Ironhall', role: 'Blacksmith', body: 'bulky',
     skin: '#a8754f', hair: '#49372b', hairStyle: 'long', eyes: 'normal', eyeColor: '#4d3729',
     shirt: '#57422e', accent: '#8b99a8', pants: '#453826', boots: '#2d2419', outfit: 'torn',

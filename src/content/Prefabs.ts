@@ -2218,6 +2218,258 @@ export const PREFABS: Prefab[] = [
     },
   },
   {
+    key: 'willow_creek', name: 'Willow Creek Farm',
+    description: 'A working valley farm: a spruce farmhouse, a red barn, two irrigated crop fields, an apple orchard, a creek with a stone bridge, an animal pen and a seed stall by the road.',
+    size: [57, 16, 57], tags: ['farm', 'village', 'cozy', 'starter'], glyph: '❧',
+    build(s) {
+      s.clear(-28, 0, -28, 28, 18, 28);
+      // Meadow ground with mossy patches and bare earth.
+      for (let z = -27; z <= 27; z++) {
+        for (let x = -27; x <= 27; x++) {
+          let key = 'grass_block';
+          if ((x * 7 + z * 11 + 500) % 43 < 4) key = 'moss_block';
+          if ((x * 13 + z * 5 + 90) % 61 < 2) key = 'dirt';
+          s.set(x, 0, z, key);
+        }
+      }
+
+      // Creek down the west side, with gravel banks.
+      for (let z = -27; z <= 27; z++) {
+        for (let x = -24; x <= -22; x++) s.set(x, 0, z, 'water');
+        s.set(-25, 0, z, (z * 5 + 700) % 7 === 0 ? 'cobblestone' : 'gravel');
+        s.set(-21, 0, z, (z * 3 + 120) % 9 === 0 ? 'cobblestone' : 'gravel');
+        if ((z * 7 + 300) % 11 === 0) s.set(-26, 0, z, 'moss_block');
+      }
+      // Stone bridge over the creek.
+      for (let z = 17; z <= 19; z++) {
+        for (let x = -25; x <= -20; x++) s.set(x, 1, z, 'stone_bricks');
+        s.set(-25, 2, z, 'oak_planks');
+        s.set(-20, 2, z, 'oak_planks');
+      }
+      for (const [x, z] of [[-25, 17], [-25, 19], [-20, 17], [-20, 19]]) s.fill(x, 1, z, x, 2, z, 'oak_log');
+
+      // Roads: south gate to the farmyard, west to the house, east to the stall.
+      for (let z = -4; z <= 27; z++) {
+        for (let x = -1; x <= 1; x++) s.set(x, 0, z, 'dirt_path');
+      }
+      for (let x = -14; x <= -1; x++) {
+        for (let z = -3; z <= -1; z++) s.set(x, 0, z, 'dirt_path');
+      }
+      for (let x = 1; x <= 13; x++) {
+        for (let z = 18; z <= 20; z++) s.set(x, 0, z, 'dirt_path');
+      }
+      for (let x = -20; x <= -1; x++) {
+        for (let z = 18; z <= 19; z++) s.set(x, 0, z, 'dirt_path');
+      }
+      for (let z = -19; z <= -4; z++) {
+        for (let x = -1; x <= 1; x++) s.set(x, 0, z, 'dirt_path');
+      }
+      for (let x = -9; x <= 9; x++) {
+        for (let z = -19; z <= -18; z++) s.set(x, 0, z, 'dirt_path');
+      }
+
+      // Farmhouse, west side of the yard.
+      s.fill(-19, 0, -18, -7, 0, -8, 'oak_planks');
+      s.walls(-19, -18, -7, -8, 1, 4, 'spruce_planks');
+      for (const [x, z] of [[-19, -18], [-7, -18], [-19, -8], [-7, -8]]) s.fill(x, 1, z, x, 4, z, 'oak_log');
+      for (const x of [-16, -15, -10, -9]) {
+        s.window(x, 2, -8);
+        s.window(x, 3, -18);
+      }
+      for (let y = 1; y <= 3; y++) {
+        s.set(-13, y, -8, 'air');
+        s.set(-12, y, -8, 'air');
+      }
+      s.fill(-14, 4, -9, -11, 4, -8, 'spruce_planks');
+      s.fill(-19, 4, -18, -7, 4, -8, 'spruce_planks');
+      // Porch with posts and a lantern.
+      s.fill(-17, 0, -7, -8, 0, -6, 'oak_planks');
+      for (const [x, z] of [[-17, -6], [-8, -6]]) s.fill(x, 1, z, x, 3, z, 'oak_log');
+      s.fill(-18, 4, -7, -7, 4, -5, 'spruce_planks');
+      s.lamp(-16, 3, -6);
+      s.lamp(-9, 3, -6);
+      // Gable roof and chimney.
+      s.gableRoof(-20, -19, -6, -7, 5, 'spruce_planks');
+      s.fill(-9, 5, -17, -8, 9, -16, 'cobblestone');
+      s.set(-9, 10, -17, 'air');
+      s.set(-8, 10, -16, 'air');
+      // Interior: bed, chest, workbench, lantern.
+      s.set(-17, 1, -16, 'bed');
+      s.set(-17, 1, -15, 'bed');
+      s.set(-16, 1, -17, 'barrel');
+      s.set(-15, 1, -16, 'crafting_table');
+      s.set(-15, 1, -15, 'chest');
+      s.set(-9, 3, -9, 'glowstone');
+      s.set(-18, 3, -17, 'glowstone');
+      s.set(-14, 1, -17, 'furnace');
+      s.set(-13, 1, -17, 'crate');
+      s.set(-12, 1, -17, 'barrel');
+
+      // Barn, east side.
+      s.fill(7, 0, -17, 21, 0, -4, 'oak_planks');
+      s.clear(8, 1, -16, 20, 8, -5);
+      s.walls(7, -17, 21, -4, 1, 5, 'wool_red');
+      for (const [x, z] of [[7, -17], [21, -17], [7, -4], [21, -4]]) s.fill(x, 1, z, x, 5, z, 'spruce_log');
+      // White trim bands and a cross on the big doors.
+      s.fill(7, 5, -17, 21, 5, -4, 'concrete_white');
+      for (let y = 1; y <= 4; y++) {
+        s.set(7, y, -11, 'concrete_white');
+        s.set(21, y, -11, 'concrete_white');
+      }
+      for (let y = 1; y <= 3; y++) {
+        s.set(13, y, -4, 'air');
+        s.set(14, y, -4, 'air');
+        s.set(15, y, -4, 'air');
+      }
+      s.fill(13, 4, -4, 15, 4, -4, 'concrete_white');
+      s.set(14, 1, -4, 'concrete_white');
+      s.set(14, 2, -4, 'concrete_white');
+      s.set(14, 3, -4, 'concrete_white');
+      s.window(7, 3, -8);
+      s.window(21, 3, -8);
+      s.gableRoof(6, -18, 22, -3, 6, 'spruce_planks');
+      s.lamp(14, 4, -10);
+      s.lamp(9, 3, -16);
+      // Hay, feed and tack inside the barn.
+      for (const [x, z] of [[8, -16], [8, -15], [9, -16], [19, -6], [20, -6], [19, -7]]) s.set(x, 1, z, 'hay_bale');
+      for (const [x, z] of [[10, -16], [20, -16], [10, -5]]) s.set(x, 1, z, 'barrel');
+      for (const [x, z] of [[11, -16], [19, -16], [9, -5], [20, -5]]) s.set(x, 1, z, 'crate');
+      s.set(12, 1, -14, 'counter');
+      s.set(12, 1, -13, 'counter');
+
+      // Two irrigated fields north of the farmhouse and barn.
+      const field = (x0: number, x1: number, z0: number, z1: number) => {
+        for (let z = z0; z <= z1; z++) {
+          for (let x = x0; x <= x1; x++) s.set(x, 0, z, 'farmland');
+        }
+        const waterZ = Math.floor((z0 + z1) / 2);
+        for (let x = x0; x <= x1; x++) s.set(x, 0, waterZ, 'water');
+        for (const [x, z] of [[x0 - 1, z0 - 1], [x1 + 1, z0 - 1], [x0 - 1, z1 + 1], [x1 + 1, z1 + 1]]) {
+          s.set(x, 0, z, 'hay_bale');
+          s.set(x, 1, z, 'hay_bale');
+        }
+      };
+      field(-8, -2, -26, -20);
+      field(2, 8, -26, -20);
+      // Scarecrow beside the east field.
+      s.set(9, 1, -23, 'hay_bale');
+      s.set(9, 2, -23, 'pumpkin');
+      s.set(8, 2, -23, 'wool_white');
+      s.set(10, 2, -23, 'wool_white');
+      s.set(9, 1, -24, 'hay_bale');
+      // Compost and tools at the field edge.
+      s.set(-10, 1, -21, 'barrel');
+      s.set(-10, 1, -20, 'crate');
+      s.set(-10, 1, -19, 'crafting_table');
+      s.set(10, 1, -19, 'barrel');
+      s.set(10, 1, -20, 'crate');
+
+      // Apple orchard between the house and the creek.
+      const orchard: Array<[number, number, number]> = [
+        [-19, 3, 6], [-14, 3, 7], [-19, 10, 6], [-14, 10, 7], [-17, 14, 5], [-11, 13, 6],
+      ];
+      for (const [x, z, h] of orchard) s.tree(x, z, h);
+      for (const [x, z] of [[-20, 8], [-13, 6], [-16, 12], [-10, 9], [-21, 14]]) {
+        s.set(x, 1, z, (x + z) % 2 === 0 ? 'poppy' : 'dandelion');
+      }
+
+      // Willow trees along the creek.
+      const willow = (x: number, z: number, h: number) => {
+        s.fill(x, 0, z, x, h, z, 'oak_log');
+        for (let dy = h - 3; dy <= h; dy++) {
+          const radius = dy === h ? 1 : dy === h - 1 ? 2 : 3;
+          for (let dz = -radius; dz <= radius; dz++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+              if (dx * dx + dz * dz > radius * radius + 1) continue;
+              if (s.get(x + dx, dy, z + dz) === 0) s.set(x + dx, dy, z + dz, 'oak_leaves');
+            }
+          }
+        }
+        for (let i = 0; i < 10; i++) {
+          const angle = (i / 10) * Math.PI * 2;
+          const dx = Math.round(Math.cos(angle) * 3);
+          const dz = Math.round(Math.sin(angle) * 3);
+          for (let y = h - 2; y >= h - 5; y--) {
+            if (s.get(x + dx, y, z + dz) === 0) s.set(x + dx, y, z + dz, 'oak_leaves');
+          }
+        }
+      };
+      willow(-27, 23, 7);
+      willow(-26, 11, 6);
+      willow(-27, 1, 7);
+
+      // Animal pen, east of the yard.
+      for (let x = 11; x <= 22; x++) {
+        for (const z of [0, 12]) {
+          if ((x - 11) % 3 === 0) s.fill(x, 1, z, x, 2, z, 'oak_log');
+          else s.set(x, 1, z, 'oak_planks');
+        }
+      }
+      for (let z = 0; z <= 12; z++) {
+        for (const x of [11, 22]) {
+          if (z % 3 === 0) s.fill(x, 1, z, x, 2, z, 'oak_log');
+          else if (!(x === 11 && z >= 6 && z <= 7)) s.set(x, 1, z, 'oak_planks');
+        }
+      }
+      s.set(11, 1, 6, 'air');
+      s.set(11, 1, 7, 'air');
+      // Trough and feed.
+      for (const x of [19, 20]) {
+        for (const z of [9, 10]) s.set(x, 0, z, 'water');
+      }
+      for (const [x, z] of [[18, 8], [18, 9], [18, 10], [18, 11], [21, 8], [21, 11]]) s.set(x, 1, z, 'cobblestone');
+      for (const [x, z] of [[12, 2], [13, 2], [12, 3], [21, 2]]) s.set(x, 1, z, 'hay_bale');
+      s.set(20, 1, 2, 'barrel');
+      s.set(19, 1, 2, 'crate');
+
+      // Seed stall and shipping bin beside the south road.
+      for (let z = 15; z <= 17; z++) {
+        for (let x = 6; x <= 12; x++) {
+          s.set(x, 4, z, (x + z) % 2 === 0 ? 'wool_yellow' : 'wool_white');
+        }
+      }
+      for (const [x, z] of [[6, 15], [12, 15], [6, 17], [12, 17]]) s.fill(x, 1, z, x, 3, z, 'oak_log');
+      for (let x = 7; x <= 11; x++) s.set(x, 1, 16, 'counter');
+      s.set(7, 1, 15, 'crate');
+      s.set(8, 1, 15, 'barrel');
+      s.set(11, 1, 15, 'hay_bale');
+      s.set(13, 1, 17, 'shipping_bin');
+      s.set(13, 1, 18, 'crate');
+      s.set(5, 1, 18, 'crate');
+      s.set(5, 1, 19, 'barrel');
+
+      // Village well by the road.
+      for (let dz = -1; dz <= 1; dz++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          s.set(4 + dx, 0, 9 + dz, dx === 0 && dz === 0 ? 'water' : 'cobblestone');
+        }
+      }
+      for (const [x, z] of [[3, 8], [5, 8], [3, 10], [5, 10]]) s.fill(x, 1, z, x, 3, z, 'oak_log');
+      s.fill(2, 4, 7, 6, 4, 11, 'spruce_planks');
+      s.lamp(4, 3, 9);
+
+      // Flowers, shrubs and loose stones around the meadow edges.
+      const flowers: Array<[number, number, string]> = [
+        [-6, 6, 'poppy'], [-9, 12, 'dandelion'], [3, 4, 'tall_grass'], [6, 6, 'poppy'],
+        [2, 22, 'dandelion'], [-5, 16, 'tall_grass'], [14, 16, 'poppy'], [-12, 20, 'tall_grass'],
+        [18, 14, 'dandelion'], [-18, 0, 'tall_grass'], [24, 4, 'tall_grass'], [24, 9, 'poppy'],
+      ];
+      for (const [x, z, key] of flowers) {
+        if (s.get(x, 0, z) === block('grass_block').id && s.get(x, 1, z) === 0) s.set(x, 1, z, key);
+      }
+      for (const [x, z] of [[-11, -4], [24, 16], [-22, 16], [10, 14], [-8, 18]]) {
+        s.set(x, 1, z, (x + z) % 2 === 0 ? 'cobblestone' : 'mossy_stone_bricks');
+      }
+
+      // South gate: two posts with lanterns.
+      for (const x of [-4, 4]) {
+        s.fill(x, 1, 26, x, 4, 26, 'oak_log');
+        s.set(x, 5, 26, 'glowstone');
+      }
+      s.fill(-4, 5, 26, 4, 5, 26, 'spruce_planks');
+    },
+  },
+  {
     key: 'nightfall_hollow', name: 'Nightfall Hollow',
     description: 'A moonlit clearing ringed by dead spruce: a ruined chapel to the north, a sunken graveyard to the west and a rune circle at its heart. Built for horde survival after dark.',
     size: [57, 20, 57], tags: ['survivors', 'night', 'horror', 'arena'], glyph: '☾',

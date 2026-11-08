@@ -7,8 +7,9 @@ import { RoyaleSystem } from './RoyaleSystem';
 import { SiegeSystem } from './SiegeSystem';
 import { BomberSystem } from './BomberSystem';
 import { SurvivorsSystem } from './SurvivorsSystem';
+import { FarmSystem } from './FarmSystem';
 
-export type SimKind = 'cooking' | 'store' | 'lucky' | 'royale' | 'siege' | 'bomber' | 'survivors';
+export type SimKind = 'cooking' | 'store' | 'lucky' | 'royale' | 'siege' | 'bomber' | 'survivors' | 'farm';
 
 export interface SimSpot {
   x: number;
@@ -34,6 +35,8 @@ export interface SimSpec {
   stormTime?: number;
   /** Siege: number of assault waves. */
   waveCount?: number;
+  /** Farm: entity id of the villager who posts the daily request. */
+  requestGiverId?: string;
 }
 
 export interface SimHudRow {
@@ -85,5 +88,6 @@ export function createSim(spec: SimSpec, game: Game): SimSystem {
   if (spec.kind === 'siege') return new SiegeSystem(spec, game);
   if (spec.kind === 'bomber') return new BomberSystem(spec, game);
   if (spec.kind === 'survivors') return new SurvivorsSystem(spec, game);
+  if (spec.kind === 'farm') return new FarmSystem(spec, game);
   return new LuckySystem(spec, game);
 }
