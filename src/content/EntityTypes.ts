@@ -81,6 +81,17 @@ villager_seed_merchant: { class: 'npc', behavior: 'stationary', health: 18, role
   bard_wanderer: { class: 'npc', behavior: 'wander', health: 20, role: 'Wandering Bard', dialogue: 'A song for a coin? A story for free? You drive a hard bargain.' },
   chef_inn: { class: 'npc', behavior: 'stationary', health: 22, role: 'Innkeeper', dialogue: 'Hot stew, warm beds, and no questions about the cellar.', shop: [{ item: 'stew', price: 6 }, { item: 'bread', price: 2, count: 2 }, { item: 'cooked_porkchop', price: 5 }] },
   guard_city: { class: 'npc', behavior: 'guard', health: 38, damage: 7, role: 'City Guard', dialogue: 'Keep the peace and you will find no trouble here.' },
+  watch_warden: {
+    class: 'npc', behavior: 'stationary', health: 46, role: 'Watch Warden',
+    dialogue: 'The Hollow Gate has held for three hundred years, and tonight it holds because of you. I sell lantern, frost and mortar towers. Buy one, then place it on a rune pad. Right-click a tower to upgrade it. Call a wave early if you are impatient, and keep the gate repaired.',
+    shop: [
+      { item: 'lantern_tower', price: 30 },
+      { item: 'frost_tower', price: 45 },
+      { item: 'mortar_tower', price: 65 },
+      { item: 'arrow', price: 8, count: 16 },
+      { item: 'golden_apple', price: 16 },
+    ],
+  },
   bandit_road: { class: 'monster', behavior: 'hostile', health: 30, damage: 7, role: 'Road Bandit', speed: 2.8, xp: 20, hostileToPlayer: true, drops: [{ item: 'coin', min: 3, max: 8 }, { item: 'iron_sword', min: 1, max: 1, chance: 0.12 }] },
   snow_hunter: { class: 'npc', behavior: 'wander', health: 28, role: 'Frost Hunter', dialogue: 'The snow hides more than tracks. Watch the ridge.' },
   desert_nomad: { class: 'npc', behavior: 'wander', health: 26, role: 'Desert Nomad', dialogue: 'Water is worth more than gold out here. Remember that.', shop: [{ item: 'water_bottle', price: 4 }, { item: 'bread', price: 2, count: 2 }, { item: 'sandstone', price: 2, count: 12 }] },

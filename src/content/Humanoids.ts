@@ -257,6 +257,14 @@ export const HUMANOIDS: HumanoidSpec[] = [
     tags: ['npc', 'guard', 'melee'],
   },
   {
+    key: 'watch_warden', name: 'Warden Maelin', role: 'Watch Warden', body: 'bulky',
+    skin: '#c79a72', hair: '#3a2f2a', hairStyle: 'short', eyes: 'glow', eyeColor: '#b9a7ff',
+    shirt: '#33405c', accent: '#d8b45a', pants: '#2b3242', boots: '#1f242e', outfit: 'armor',
+    headgear: 'helmet', helmetMetal: '#5c6680', shoulder: true, shoulderColor: '#6d7894',
+    cape: 'royal', capeColor: '#2f3a5c', weapon: 'lantern', glow: '#b9a7ff',
+    tags: ['npc', 'warden', 'hollowwatch'],
+  },
+  {
     key: 'bandit_road', name: 'Road Bandit', role: 'Bandit', body: 'hero',
     skin: '#b47f57', hair: '#322820', hairStyle: 'short', eyes: 'normal', eyeColor: '#56402f',
     shirt: '#5b4432', accent: '#8f3f32', pants: '#463728', boots: '#2f251b', outfit: 'torn', sleeveStyle: 'torn',

@@ -35,12 +35,40 @@ Keep this file updated when a template ships or the roadmap changes.
 | 22 | Cinderburst | `bomber` | `bomber` | Bomberman arena: TNT, crates, 3 rival bots |
 | 23 | Nightfall Survivors | `survivors` | `survivors` | 8-minute auto-battler: soul shards, 11 upgrades, elites, Nightfang |
 | 24 | Willow Creek | `farm` | `farm` | Day-cycle farm: crops, animals, shipping bin, daily requests |
+| 25 | Hollowwatch | `hollowwatch` | `hollowwatch` | 12-wave tower defense: 3 tower types, 16 pads, rune gate, Hollow King |
 
-Current total: **24 templates**.
+Current total: **25 templates**.
 
 ---
 
 ## Recently shipped
+
+### ✅ Hollowwatch — `hollowwatch`
+
+**Pitch:** Five lanes, sixteen rune pads and one cracked gate between the moor and the
+village. Raise and upgrade towers through twelve waves and put the Hollow King down.
+
+| | |
+|---|---|
+| Inspired by | Plants vs. Zombies / Bloons TD |
+| Core loop | Buy towers → place on rune pads → upgrade Mk I–III → call waves → repair the gate → break the Hollow King |
+| New system | `HollowwatchSystem` (block towers, pad validation, targeting, slow/splash, gate attacks, repair, waves) |
+| Reuses | Siege waves, entity combat, particles, HUD actions, NPC shops, objectives, quests, saves |
+| Content | `hollowwatch` prefab (5 lanes, 16 pads, 93-block rune gate, gatehouse, watchtower, camps), 3 tower blocks, Warden Maelin + Tinker Ives + Ser Aldric, 12 waves |
+| Length | 12 waves + boss; 5 objectives + 3 quests |
+| Effort | high |
+
+**Verified**
+- [x] `hollowwatch` prefab (five lanes, 16 tower pads, long rune gate, gatehouse, watchtower, camps, dead trees)
+- [x] Lantern / frost / mortar towers with Mk I–III upgrades (right-click; 50c then 70c)
+- [x] Placement only on empty pads; invalid placement removed and refunded; breaking a tower packs it up
+- [x] Single-target, slow and splash targeting with per-level range/damage/rate scaling
+- [x] Gate HP 200, enemy gate attacks, 20c / 40 HP repair, defeat + rematch
+- [x] 12 waves with elites and **The Hollow King** (frost dragon, 1.25× scale, 5× health)
+- [x] Kill coins, wave rewards (coins/XP/arrows/apples), Warden Maelin tower shop
+- [x] 5 objectives, 3 quests (Maelin, Ives, Aldric), `hollow_enemy_` save filtering
+- [x] Headless QA suite + 25-template smoke test
+- [x] Runtime rebuild, commit, push
 
 ### ✅ Willow Creek — `farm`
 
@@ -103,7 +131,7 @@ Ranked by value-to-effort. Effort is relative to the existing engine.
 |---|---|---|---|---|---|---|---|
 | 1 | **Nightfall Survivors** | Vampire Survivors / Brotato | Auto-attack horde survival, XP upgrades, boss | `SurvivorsSystem` | Waves, bosses, particles, HUD | medium | ✅ |
 | 2 | **Willow Creek** | Stardew Valley / Harvest Moon | Farm plots, crops, animals, villagers, shipping bin | `FarmSystem` | Day cycle, dialogue, quests, shops | high | ✅ |
-| 3 | **Hollowwatch** | Plants vs. Zombies / Bloons TD | Place and upgrade towers along lanes, 12 waves + boss | `TowerSystem` (block placement + targeting) | Siege turrets/waves | medium | 🔜 |
+| 3 | **Hollowwatch** | Plants vs. Zombies / Bloons TD | Place and upgrade towers along lanes, 12 waves + boss | `HollowwatchSystem` (block placement + targeting) | Siege turrets/waves | medium | ✅ |
 | 4 | **Bannerfall** | TF2 / Overwatch | Bot teams, CTF + king of the hill, class kits | `MatchSystem` | Entity combat, HUD, objectives | high | 💤 |
 | 5 | **Deadlight** | CoD Zombies | Round-based zombies, barricades, buy weapons, boss round | `ZombiesSystem` | Wave spawner, economy, particles | medium | 💤 |
 | 6 | **Crumble** | Spleef / Fall Guys | 3 quick rounds, collapsing floor, bots | `SpleefSystem` | Royale elimination, arena prefabs | low | 💤 |
@@ -118,8 +146,8 @@ Ranked by value-to-effort. Effort is relative to the existing engine.
 
 1. **Nightfall Survivors** — shipped; proves the auto-battler + upgrade-choice pattern.
 2. **Willow Creek** — shipped; validates long-form day systems, persistent counters and saves.
-3. **Hollowwatch** — cheapest combat follow-up; tower placement reuses Siege code. (next)
-4. **Crumble** — quick party mode, small scope, good palette cleanser.
+3. **Hollowwatch** — shipped; validates player-placed towers, pad validation, upgrades and a shared gate pool.
+4. **Crumble** — quick party mode, small scope, good palette cleanser. (next)
 5. **Deadlight** — round-based horror, reuses waves + economy.
 6. **Titan Trials** — boss-rush showcase for entity phases.
 7. **Bannerfall** — team AI and objective modes; biggest combat investment.
@@ -133,7 +161,7 @@ Ranked by value-to-effort. Effort is relative to the existing engine.
 |---|---|---|
 | Timed spawn director | `RoyaleSystem`, `SiegeSystem` | Extract a `SpawnDirector` helper by the third user |
 | Upgrade choice | `SurvivorsSystem` | Reuse for roguelike modifiers in other modes |
-| Tower placement + targeting | `SiegeSystem` (fixed turrets) | Generalise for Hollowwatch |
+| Tower placement + targeting | `HollowwatchSystem`, `SiegeSystem` | Generalised block towers; reuse for future defense modes |
 | Round/elimination flow | `RoyaleSystem`, `BomberSystem` | Shared `MatchFlow` for Crumble/Bannerfall |
 | Economy + shop UI | `StoreSystem` | Deadlight, Willow Creek, Gloop Ranch |
 | Day cycle + sleep/save rollover | `FarmSystem`, `Sky` | Reuse for any day-based survival or town mode |
@@ -144,6 +172,7 @@ Ranked by value-to-effort. Effort is relative to the existing engine.
 
 | Date | Change |
 |---|---|
+| 2026-11-08 | Hollowwatch (`hollowwatch`) shipped — 12-wave tower defense with player-placed lantern/frost/mortar towers, Mk I–III upgrades, 16 rune pads, a 200 HP gate and the Hollow King. |
 | 2026-11-08 | Willow Creek (`farm`) shipped — day-cycle farm with 4 crops, 3 animal species, shipping bin, daily requests and sleep/save rollover. |
 | 2026-11-07 | Nightfall Survivors (`survivors`) shipped — 8-minute horde run, soul-shard XP, 11 upgrades, 3 elites and Nightfang. |
 | 2026-11-07 | Tracker created. 22 templates shipped, Nightfall Survivors started. |

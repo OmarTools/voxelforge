@@ -8,8 +8,9 @@ import { SiegeSystem } from './SiegeSystem';
 import { BomberSystem } from './BomberSystem';
 import { SurvivorsSystem } from './SurvivorsSystem';
 import { FarmSystem } from './FarmSystem';
+import { HollowwatchSystem } from './HollowwatchSystem';
 
-export type SimKind = 'cooking' | 'store' | 'lucky' | 'royale' | 'siege' | 'bomber' | 'survivors' | 'farm';
+export type SimKind = 'cooking' | 'store' | 'lucky' | 'royale' | 'siege' | 'bomber' | 'survivors' | 'farm' | 'hollowwatch';
 
 export interface SimSpot {
   x: number;
@@ -89,5 +90,6 @@ export function createSim(spec: SimSpec, game: Game): SimSystem {
   if (spec.kind === 'bomber') return new BomberSystem(spec, game);
   if (spec.kind === 'survivors') return new SurvivorsSystem(spec, game);
   if (spec.kind === 'farm') return new FarmSystem(spec, game);
+  if (spec.kind === 'hollowwatch') return new HollowwatchSystem(spec, game);
   return new LuckySystem(spec, game);
 }

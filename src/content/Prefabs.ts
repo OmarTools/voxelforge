@@ -2588,6 +2588,183 @@ export const PREFABS: Prefab[] = [
       s.set(3, 3, 22, 'torch');
     },
   },
+  {
+    key: 'hollowwatch', name: 'Hollowwatch',
+    description: 'A moonlit causeway fort: five worn lanes climb from the south camp to the long rune gate, sixteen tower pads guard the approach, and a cracked watchtower stands over the hollow. Built for wave defense.',
+    size: [61, 22, 61], tags: ['tower defense', 'night', 'fort', 'arena'], glyph: '⚔',
+    build(s) {
+      s.clear(-30, 0, -30, 30, 24, 30);
+      // Cold moor ground with worn patches and old stone.
+      for (let z = -29; z <= 29; z++) {
+        for (let x = -29; x <= 29; x++) {
+          let key = 'grass_block';
+          if ((x * 7 + z * 11 + 9100) % 37 < 6) key = 'podzol';
+          if ((x * 13 + z * 5 + 410) % 53 < 4) key = 'moss_block';
+          if ((x * 17 + z * 19 + 55) % 67 < 3) key = 'gravel';
+          s.set(x, 0, z, key);
+        }
+      }
+
+      // Five worn lanes from the south camp to the gate.
+      for (const lx of [-12, -6, 0, 6, 12]) {
+        for (let z = -13; z <= 27; z++) {
+          s.set(lx, 0, z, 'dirt_path');
+          s.set(lx - 1, 0, z, (z * 3 + lx + 500) % 7 === 0 ? 'cobblestone' : 'gravel');
+          s.set(lx + 1, 0, z, (z * 5 + lx + 300) % 9 === 0 ? 'cobblestone' : 'gravel');
+        }
+      }
+
+      // Tower pads: four rows of four, set between the lanes on stone plazas.
+      for (const z of [12, 4, -4, -12]) {
+        for (const x of [-9, -3, 3, 9]) {
+          for (let dz = -1; dz <= 1; dz++) {
+            for (let dx = -1; dx <= 1; dx++) s.set(x + dx, 0, z + dz, 'mossy_stone_bricks');
+          }
+          s.set(x, 0, z, 'tower_pad');
+          s.set(x + 1, 1, z, 'torch');
+        }
+      }
+
+      // Rune gate: a long warded barrier across the causeway.
+      for (let x = -15; x <= 15; x++) {
+        for (let y = 1; y <= 3; y++) s.set(x, y, -18, 'hollow_gate');
+      }
+      s.fill(-16, 1, -18, -18, 7, -18, 'mossy_stone_bricks');
+      s.fill(16, 1, -18, 18, 7, -18, 'mossy_stone_bricks');
+      s.fill(-15, 4, -18, 15, 5, -18, 'stone_bricks');
+      for (let x = -15; x <= 15; x += 3) s.set(x, 6, -18, 'mossy_stone_bricks');
+      // Flanking pillars and braziers.
+      for (const x of [-17, 17]) {
+        s.fill(x, 1, -17, x, 7, -17, 'stone_bricks');
+        s.set(x, 8, -17, 'glowstone');
+        s.set(x, 6, -19, 'wool_purple');
+      }
+      // Gatehouse back wall and side walls.
+      s.walls(-16, -24, 16, -19, 1, 5, 'stone_bricks');
+      for (let y = 1; y <= 4; y++) {
+        s.set(0, y, -24, 'air');
+        s.set(1, y, -24, 'air');
+        s.set(-1, y, -24, 'air');
+      }
+      s.fill(-16, 4, -24, -3, 4, -19, 'stone_bricks');
+      s.fill(3, 4, -24, 16, 4, -19, 'stone_bricks');
+      s.fill(-2, 5, -23, 2, 5, -20, 'stone_bricks');
+      s.set(-10, 3, -21, 'glowstone');
+      s.set(10, 3, -21, 'glowstone');
+      s.set(0, 1, -22, 'rune_block');
+      s.set(0, 2, -22, 'crystal_block');
+      // Camp benches and the warden's stall inside the gatehouse.
+      for (const [x, z] of [[-6, -15], [-5, -15], [5, -15], [6, -15]]) s.set(x, 1, z, 'counter');
+      for (const [x, z] of [[-8, -15], [8, -15]]) {
+        s.fill(x, 1, z, x, 3, z, 'spruce_log');
+        s.set(x, 4, z, 'wool_purple');
+      }
+      s.set(-7, 1, -16, 'crate');
+      s.set(7, 1, -16, 'barrel');
+
+      // Courtyard floor between the lanes and the gate.
+      for (let z = -17; z <= -13; z++) {
+        for (let x = -15; x <= 15; x++) {
+          s.set(x, 0, z, (x + z + 300) % 11 === 0 ? 'mossy_stone_bricks' : 'stone_bricks');
+        }
+      }
+      for (const [x, z] of [[-13, -15], [13, -15]]) {
+        s.fill(x, 1, z, x, 2, z, 'stone_bricks');
+        s.set(x, 3, z, 'glowstone');
+      }
+
+      // South camp, east: tents, supplies and the tower stall.
+      for (const x of [17, 19, 21]) {
+        for (const z of [18, 20, 22]) s.set(x, 0, z, 'dirt');
+      }
+      for (const [x, z] of [[17, 18], [21, 18], [17, 22], [21, 22]]) s.fill(x, 1, z, x, 3, z, 'spruce_log');
+      s.fill(16, 4, 17, 22, 4, 23, 'wool_black');
+      for (const [x, z] of [[17, 19], [21, 19], [17, 21], [21, 21], [18, 23], [20, 23]]) s.set(x, 2, z, 'wool_black');
+      s.set(18, 1, 19, 'crate');
+      s.set(20, 1, 19, 'crate');
+      s.set(19, 1, 21, 'hay_bale');
+      s.set(22, 1, 19, 'barrel');
+      s.set(16, 1, 20, 'barrel');
+      s.lamp(19, 3, 18);
+      // Camp banner.
+      s.fill(23, 1, 17, 23, 5, 17, 'spruce_log');
+      s.fill(24, 4, 17, 25, 5, 17, 'wool_purple');
+
+      // West camp: wagon, feed and a cook fire.
+      for (const x of [-22, -20, -18]) {
+        for (const z of [18, 20, 22]) s.set(x, 0, z, 'dirt');
+      }
+      s.fill(-23, 1, 19, -18, 1, 21, 'oak_planks');
+      for (const [x, z] of [[-23, 19], [-18, 19], [-23, 21], [-18, 21]]) s.fill(x, 1, z, x, 2, z, 'oak_log');
+      s.set(-22, 2, 20, 'hay_bale');
+      s.set(-21, 2, 20, 'crate');
+      s.set(-20, 2, 20, 'barrel');
+      // Fire pit.
+      for (const [dx, dz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) s.set(-20 + dx, 0, 16 + dz, 'cobblestone');
+      s.set(-20, 0, 16, 'glowstone');
+      s.fill(-19, 1, 15, -19, 2, 15, 'oak_log');
+      s.fill(-21, 1, 15, -21, 2, 15, 'oak_log');
+      s.set(-20, 3, 15, 'glowstone');
+      for (const [x, z] of [[-18, 17], [-22, 17]]) s.set(x, 1, z, 'crate');
+
+      // Broken outer walls framing the lanes, with deliberate gaps.
+      for (let z = -12; z <= 24; z++) {
+        if (z % 9 === 0 || z % 9 === 1) continue;
+        for (const x of [-22, 22]) {
+          s.set(x, 0, z, 'mossy_stone_bricks');
+          if (z % 4 !== 0) s.set(x, 1, z, 'mossy_stone_bricks');
+          if (z % 7 === 2) s.set(x, 2, z, 'stone_bricks');
+        }
+      }
+      // Outer gateposts at the southern approach.
+      for (const x of [-6, 6]) {
+        s.fill(x, 1, 27, x, 5, 27, 'mossy_stone_bricks');
+        s.set(x, 6, 27, 'glowstone');
+      }
+      s.fill(-6, 6, 27, 6, 6, 27, 'stone_bricks');
+
+      // Watchtower behind the gate.
+      s.fill(-2, 1, -28, 2, 1, -25, 'stone_bricks');
+      s.fill(-2, 1, -28, 2, 11, -28, 'stone_bricks');
+      s.fill(-2, 1, -25, -2, 11, -25, 'stone_bricks');
+      s.fill(2, 1, -25, 2, 11, -25, 'stone_bricks');
+      s.fill(-2, 12, -28, 2, 12, -25, 'stone_bricks');
+      s.set(0, 13, -26, 'glowstone');
+      s.set(0, 10, -26, 'crystal_block');
+      s.set(-1, 1, -24, 'air');
+      s.set(0, 1, -24, 'air');
+      s.set(1, 1, -24, 'air');
+
+      // Dead trees and standing stones beyond the walls.
+      const trees: Array<[number, number, number]> = [
+        [-26, -8, 6], [-25, 6, 5], [-27, 14, 7], [26, -10, 6], [25, 8, 5], [27, 16, 7],
+        [-24, -20, 5], [24, -22, 6], [-15, 26, 4], [15, 26, 4],
+      ];
+      for (const [x, z, h] of trees) {
+        s.fill(x, 0, z, x, h, z, 'spruce_log');
+        s.set(x + 1, h - 1, z, 'spruce_log');
+        s.set(x - 1, h - 2, z, 'spruce_log');
+        s.set(x, h - 3, z + 1, 'spruce_log');
+      }
+      for (const [x, z] of [[-25, 0], [25, 2], [-20, -26], [20, -26], [-27, 22], [27, 24]]) {
+        s.fill(x, 1, z, x, 3, z, 'mossy_stone_bricks');
+        s.set(x, 4, z, 'rune_block');
+      }
+      // Grave markers along the west wall.
+      for (const [x, z] of [[-21, -8], [-19, -6], [-21, -4], [-19, -2], [-21, 2]]) {
+        s.set(x, 1, z, 'stone_bricks');
+        s.set(x, 2, z, 'stone_bricks');
+      }
+      // Loose bones, mushrooms and stones.
+      for (const [x, z, key] of [
+        [-16, 8, 'mushroom_brown'], [-17, 10, 'mushroom_red'], [16, 12, 'mushroom_brown'],
+        [19, 6, 'mushroom_red'], [-20, 10, 'cobblestone'], [20, 14, 'cobblestone'],
+        [-14, 20, 'tall_grass'], [14, 20, 'tall_grass'], [-10, 24, 'dead_bush'], [10, 24, 'dead_bush'],
+      ] as Array<[number, number, string]>) {
+        if (s.get(x, 0, z) === block('grass_block').id && s.get(x, 1, z) === 0) s.set(x, 1, z, key);
+      }
+    },
+  },
 ];
 
 export const PREFAB_BY_KEY = new Map(PREFABS.map((p) => [p.key, p]));

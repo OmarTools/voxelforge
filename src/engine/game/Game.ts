@@ -2168,7 +2168,7 @@ export class Game {
       edits: this.world ? this.world.getEdits() : [],
       entities: this.entities
         ? this.entities.entities
-            .filter((e) => e.alive && !e.id.startsWith('cook_customer_') && !e.id.startsWith('shop_customer_') && !e.id.startsWith('cinder_bot_') && !e.id.startsWith('survivor_') && !e.id.startsWith('royale_rival_') && !e.id.startsWith('siege_raider_'))
+            .filter((e) => e.alive && !e.id.startsWith('cook_customer_') && !e.id.startsWith('shop_customer_') && !e.id.startsWith('cinder_bot_') && !e.id.startsWith('survivor_') && !e.id.startsWith('royale_rival_') && !e.id.startsWith('siege_raider_') && !e.id.startsWith('hollow_enemy_'))
             .map((e) => this.serializeEntity(e))
         : [],
       player: {

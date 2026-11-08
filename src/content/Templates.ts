@@ -3,7 +3,7 @@ import type { CameraMode } from '../engine/game/CameraModes';
 import type { ScriptProject } from '../engine/scripting/ScriptTypes';
 import type { SimSpec } from '../engine/game/sim/SimTypes';
 
-export type GameMode = 'creative' | 'survival' | 'skyblock' | 'parkour' | 'arena' | 'rpg' | 'horror' | 'dungeon' | 'racing' | 'army' | 'city' | 'platformer' | 'frostpeak' | 'dune' | 'skytemple' | 'kitchen' | 'shopkeep' | 'lucky' | 'royale' | 'siege' | 'bomber' | 'survivors' | 'farm' | 'studio';
+export type GameMode = 'creative' | 'survival' | 'skyblock' | 'parkour' | 'arena' | 'rpg' | 'horror' | 'dungeon' | 'racing' | 'army' | 'city' | 'platformer' | 'frostpeak' | 'dune' | 'skytemple' | 'kitchen' | 'shopkeep' | 'lucky' | 'royale' | 'siege' | 'bomber' | 'survivors' | 'farm' | 'hollowwatch' | 'studio';
 export type Difficulty = 'peaceful' | 'easy' | 'normal' | 'hard' | 'nightmare';
 export type ObjectiveKind = 'collect' | 'kill' | 'reach' | 'craft' | 'place' | 'talk' | 'survive' | 'wave' | 'serve' | 'sell' | 'restock' | 'earn' | 'open' | 'cook' | 'defend' | 'harvest' | 'tend';
 
@@ -1898,6 +1898,120 @@ onEvent('respawn', () => say('Thomas hauls you back to the porch. The animals ar
       { label: 'Animals', value: '3 species' },
       { label: 'Day', value: '4:00' },
       { label: 'Requests', value: 'Daily' },
+    ],
+  },
+  {
+    key: 'hollowwatch',
+    name: 'Hollowwatch',
+    subtitle: 'Hold the gate until dawn',
+    description: 'Five lanes, sixteen rune pads and one cracked gate between the moor and the village. Raise lantern, frost and mortar towers, upgrade them through three marks, and break twelve waves of hollow things before their king arrives.',
+    story: 'Three hundred years the Hollow Gate has stood at the end of the causeway, and every autumn something on the moor remembers it. This year the watch is one warden, one tinker and whatever towers you can raise. Warden Maelin has the keys to the gatehouse. Tinker Ives has the plans. The rest is twelve waves of things that used to be people, and a king who never was.',
+    icon: '⚔',
+    accent: '#a98bff',
+    difficulty: 'hard',
+    tags: ['Tower Defense', 'Waves', 'Night', 'Fortress', 'Boss'],
+    preset: 'overworld',
+    heightMode: 'ground',
+    timeOfDay: 21.6,
+    weather: 'clear',
+    music: 'night',
+    platform: { radius: 36, surface: 'grass_block', border: 'mossy_stone_bricks', clearHeight: 46 },
+    prefabs: [{ prefab: 'hollowwatch', x: 0, z: 0 }],
+    spawn: [0, 22],
+    spawnYaw: 0,
+    spawns: [
+      {
+        entity: 'human:watch_warden', offset: [-4, 0, -14], name: 'Warden Maelin', id: 'maelin', questId: 'first_watch', behavior: 'stationary',
+        dialogue: 'The gate is yours tonight. Buy lantern, frost and mortar towers from my stall, then place them on the rune pads along the lanes. Right-click a tower to upgrade it through three marks. The gate itself takes coin to patch. Sound the horn when you are ready and hold until the Hollow King falls.',
+      },
+      {
+        entity: 'human:dwarf_smith', offset: [4, 0, -14], name: 'Tinker Ives', id: 'ives', questId: 'gatewright', behavior: 'stationary',
+        dialogue: 'A good tower is three parts iron and one part stubbornness. Lantern towers are quick, frost towers slow the dead, and mortars make a mess of a crowd. I want to see six of them standing at once. Bring me the parts and I will keep your blade sharp.',
+      },
+      { entity: 'human:guard_city', offset: [3, 0, -10], name: 'Watchman Orrin', behavior: 'guard' },
+      { entity: 'human:knight_royal', offset: [1, 0, -14], name: 'Ser Aldric', id: 'aldric', questId: 'hollow_king', behavior: 'stationary',
+        dialogue: 'I have watched the Hollow King walk this causeway for nine autumns. Every time the gate held. This time I am too old to meet him, so I will watch from the gatehouse. Break all twelve waves and put him down, and the watch is yours.' },
+      { entity: 'human:knight_royal', offset: [10, 0, 18], name: 'Relief Rider', behavior: 'wander' },
+      { entity: 'creature:cat', offset: [11, 0, 20], name: 'Ash' },
+    ],
+    objectives: [
+      { id: 'maelin', title: 'Speak with Warden Maelin', kind: 'talk', target: 'maelin', count: 1 },
+      { id: 'towers', title: 'Raise 4 towers on the rune pads', kind: 'defend', target: 'build', count: 4 },
+      { id: 'waves', title: 'Break all 12 hollow waves', kind: 'defend', target: 'wave', count: 12 },
+      { id: 'kills', title: 'Put down 30 hollow things', kind: 'defend', target: 'kill', count: 30 },
+      { id: 'earn', title: 'Earn 300 coins on the watch', kind: 'earn', target: 'coin', count: 300 },
+    ],
+    quests: [
+      {
+        id: 'first_watch',
+        title: 'The First Watch',
+        giver: 'Maelin',
+        summary: 'Maelin needs a watch she can trust: raise three towers and break the first two waves before the moor sends worse.',
+        objectives: [
+          { id: 'q-towers', title: 'Raise three towers', kind: 'defend', target: 'build', count: 3 },
+          { id: 'q-waves', title: 'Break two waves', kind: 'defend', target: 'wave', count: 2 },
+        ],
+        reward: { xp: 300, items: [{ item: 'frost_tower', count: 1 }, { item: 'bread', count: 3 }], coins: 60 },
+      },
+      {
+        id: 'gatewright',
+        title: 'Gatewright',
+        giver: 'Ives',
+        summary: 'Ives wants six towers on the pads and twelve hollow things down. He says the gate only looks strong from the outside.',
+        objectives: [
+          { id: 'q-build', title: 'Raise five towers', kind: 'defend', target: 'build', count: 5 },
+          { id: 'q-kills', title: 'Kill twelve hollow things', kind: 'defend', target: 'kill', count: 12 },
+        ],
+        reward: { xp: 380, items: [{ item: 'mortar_tower', count: 1 }, { item: 'arrow', count: 24 }], coins: 90 },
+      },
+      {
+        id: 'hollow_king',
+        title: 'The Hollow King',
+        giver: 'Aldric',
+        summary: 'Ser Aldric has watched the causeway for nine autumns. Break every wave and put the Hollow King down, and he will sign the watch over to you himself.',
+        objectives: [
+          { id: 'q-waves', title: 'Break all twelve waves', kind: 'defend', target: 'wave', count: 12 },
+          { id: 'q-boss', title: 'Defeat the Hollow King', kind: 'defend', target: 'boss', count: 1 },
+        ],
+        reward: { xp: 620, items: [{ item: 'diamond_sword', count: 1 }, { item: 'golden_apple', count: 3 }], coins: 220 },
+      },
+    ],
+    waves: [],
+    checkpoints: [
+      { offset: [0, 1, 22], radius: 6, label: 'South Camp' },
+      { offset: [0, 1, 4], radius: 6, label: 'Middle Pads' },
+      { offset: [0, 1, -14], radius: 6, label: 'Gatehouse' },
+    ],
+    startingItems: [
+      { item: 'iron_sword', count: 1 },
+      { item: 'bow', count: 1 },
+      { item: 'arrow', count: 40 },
+      { item: 'shield', count: 1 },
+      { item: 'lantern_tower', count: 1 },
+      { item: 'golden_apple', count: 1 },
+      { item: 'bread', count: 3 },
+      { item: 'torch', count: 10 },
+      { item: 'coin', count: 40 },
+    ],
+    hotbar: ['iron_sword', 'bow', 'arrow', 'lantern_tower', 'shield', 'golden_apple', 'bread', 'torch', 'coin'],
+    sim: {
+      kind: 'hollowwatch',
+      center: { x: 0, z: -18 },
+      waveCount: 12,
+    },
+    rules: { ...BASE_RULES, keepInventory: true, mobSpawning: false, dayCycle: false, pvp: false },
+    scripts: templateScript(`onStart(() => {
+  camera('first');
+  say('Maelin and Ives are under the gatehouse. Buy towers, place them on the rune pads beside the lanes, and right-click a tower to upgrade it. Press R to call the wave early; right-click the gate to repair it. Twelve waves, then the Hollow King.', 'info');
+  give('coin', 10);
+});
+onEvent('respawn', () => say('The watch drags you back to the gatehouse. The gate is still standing — barely.', 'warn'));
+`),
+    stats: [
+      { label: 'Waves', value: '12' },
+      { label: 'Towers', value: '3 upgradable' },
+      { label: 'Pads', value: '16' },
+      { label: 'Boss', value: 'Hollow King' },
     ],
   },
 ];

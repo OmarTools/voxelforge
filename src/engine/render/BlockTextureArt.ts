@@ -1283,6 +1283,111 @@ export function drawTile(name: string): HTMLCanvasElement {
       px(ctx, 12, 12, '#c9d4d8', 1, 1);
       break;
 
+    case 'hollow_gate':
+      paintBase(ctx, rand, '#2c2238', 6);
+      // Iron-banded planks.
+      for (let x = 2; x < 14; x += 3) {
+        px(ctx, x, 1, '#4a3b52', 2, 14);
+        px(ctx, x, 1, '#5c4a68', 1, 14);
+      }
+      px(ctx, 1, 2, '#1b1424', 14, 1);
+      px(ctx, 1, 7, '#1b1424', 14, 1);
+      px(ctx, 1, 12, '#1b1424', 14, 1);
+      px(ctx, 1, 2, '#7b6a8c', 14, 1);
+      // Rivets.
+      for (const y of [2, 7, 12]) {
+        px(ctx, 3, y, '#c9b9d6', 1, 1);
+        px(ctx, 12, y, '#c9b9d6', 1, 1);
+      }
+      // Rune lock.
+      px(ctx, 6, 8, '#6f52a3', 4, 4);
+      px(ctx, 7, 9, '#8f74c4', 2, 2);
+      px(ctx, 7, 8, '#b9a7ff', 2, 1);
+      px(ctx, 5, 9, '#b9a7ff', 1, 2);
+      px(ctx, 10, 9, '#b9a7ff', 1, 2);
+      px(ctx, 7, 11, '#b9a7ff', 2, 1);
+      break;
+    case 'tower_pad':
+      paintBase(ctx, rand, '#6b6a58', 5);
+      stoneBase(ctx, rand, '#6b6a58');
+      px(ctx, 0, 0, '#3c3d33', TILE, 1);
+      px(ctx, 0, 15, '#3c3d33', TILE, 1);
+      px(ctx, 0, 0, '#3c3d33', 1, TILE);
+      px(ctx, 15, 0, '#3c3d33', 1, TILE);
+      // Rune ring.
+      for (let i = 0; i < 12; i++) {
+        const angle = (i / 12) * Math.PI * 2;
+        px(ctx, 8 + Math.round(Math.cos(angle) * 5), 8 + Math.round(Math.sin(angle) * 5), '#b9a7ff', 1, 1);
+      }
+      px(ctx, 5, 5, '#8f74c4', 6, 1);
+      px(ctx, 5, 10, '#8f74c4', 6, 1);
+      px(ctx, 5, 5, '#8f74c4', 1, 6);
+      px(ctx, 10, 5, '#8f74c4', 1, 6);
+      px(ctx, 7, 7, '#4a3b52', 2, 2);
+      px(ctx, 7, 7, '#e2b65a', 1, 1);
+      px(ctx, 3, 3, '#9b9a86', 1, 1);
+      px(ctx, 12, 12, '#9b9a86', 1, 1);
+      break;
+    case 'lantern_tower':
+      paintBase(ctx, rand, '#4a3f2e', 6);
+      stoneBase(ctx, rand, '#5d5340');
+      // Iron cage foot.
+      px(ctx, 3, 11, '#2d2a24', 10, 4);
+      px(ctx, 3, 11, '#6b6354', 10, 1);
+      // Brass column.
+      px(ctx, 6, 5, '#8f6d2c', 4, 7);
+      px(ctx, 7, 5, '#c99a3e', 2, 7);
+      // Lantern housing.
+      px(ctx, 4, 1, '#2d2a24', 8, 4);
+      px(ctx, 5, 1, '#c98f3c', 6, 3);
+      px(ctx, 6, 2, '#ffe6a6', 4, 2);
+      px(ctx, 7, 2, '#fff6cf', 2, 1);
+      px(ctx, 4, 0, '#e2b65a', 8, 1);
+      px(ctx, 5, 5, '#e2b65a', 6, 1);
+      // Side rivets.
+      px(ctx, 4, 6, '#9a7a3a', 1, 4);
+      px(ctx, 11, 6, '#9a7a3a', 1, 4);
+      break;
+    case 'frost_tower':
+      paintBase(ctx, rand, '#33414a', 6);
+      stoneBase(ctx, rand, '#4a5a66');
+      px(ctx, 3, 11, '#26323a', 10, 4);
+      px(ctx, 3, 11, '#7a99a8', 10, 1);
+      // Crystal spire.
+      px(ctx, 7, 0, '#b9f2ff', 2, 2);
+      px(ctx, 6, 2, '#7fd6e8', 4, 2);
+      px(ctx, 5, 4, '#5bb6cc', 6, 4);
+      px(ctx, 4, 8, '#3f8fa6', 8, 3);
+      px(ctx, 7, 1, '#e8fbff', 1, 2);
+      px(ctx, 6, 5, '#b9f2ff', 1, 3);
+      px(ctx, 10, 6, '#8fe6ff', 1, 2);
+      // Frost shards.
+      px(ctx, 3, 6, '#8fe6ff', 1, 3);
+      px(ctx, 12, 7, '#8fe6ff', 1, 2);
+      px(ctx, 2, 10, '#5bb6cc', 2, 1);
+      px(ctx, 12, 10, '#5bb6cc', 2, 1);
+      break;
+    case 'mortar_tower':
+      paintBase(ctx, rand, '#3c302a', 6);
+      stoneBase(ctx, rand, '#5d4a3c');
+      // Squat iron barrel.
+      px(ctx, 3, 4, '#2d2724', 10, 10);
+      px(ctx, 4, 3, '#4a403a', 8, 2);
+      px(ctx, 3, 12, '#241f1c', 10, 2);
+      px(ctx, 4, 5, '#7a6a5c', 1, 6);
+      px(ctx, 11, 5, '#3a332e', 1, 6);
+      // Muzzle.
+      px(ctx, 5, 1, '#26211e', 6, 4);
+      px(ctx, 6, 2, '#403833', 4, 2);
+      px(ctx, 7, 2, '#ff9d3c', 2, 2);
+      px(ctx, 7, 2, '#ffe6a6', 1, 1);
+      // Bands and fuse.
+      px(ctx, 3, 7, '#8f6d2c', 10, 1);
+      px(ctx, 3, 10, '#8f6d2c', 10, 1);
+      px(ctx, 12, 4, '#c9a15a', 2, 1);
+      px(ctx, 13, 3, '#ffd27a', 1, 1);
+      break;
+
     case 'missing':
     default: {
       for (let y = 0; y < TILE; y += 4) {

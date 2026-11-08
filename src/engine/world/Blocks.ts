@@ -321,6 +321,30 @@ cube('siege_turret', 'Siege Turret', 'special', 'siege_turret', {
   description: 'A clockwork ballista. Right-click to upgrade its damage and range.',
 });
 
+/* ------------------------------------------------------------------ */
+/*  HOLLOWWATCH TOWER DEFENSE FIXTURES                                */
+/* ------------------------------------------------------------------ */
+cube('hollow_gate', 'Hollow Gate', 'special', 'hollow_gate', {
+  color: '#4b3a63', hardness: 9999, breakable: false, sound: 'metal', light: 8, unlisted: true,
+  description: 'The warded gate between the moor and the village. Keep it standing.',
+});
+cube('tower_pad', 'Tower Pad', 'special', 'tower_pad', {
+  color: '#6d6a58', hardness: 9999, breakable: false, sound: 'stone', light: 3, unlisted: true,
+  description: 'A rune-cut socket. Place a tower block on it to raise a defender.',
+});
+cube('lantern_tower', 'Lantern Tower', 'special', 'lantern_tower', {
+  color: '#e2b65a', hardness: 1.8, sound: 'metal', light: 11,
+  description: 'A fast lantern ballista. Right-click the tower to upgrade it.',
+});
+cube('frost_tower', 'Frost Tower', 'special', 'frost_tower', {
+  color: '#7fd6e8', hardness: 1.8, sound: 'glass', light: 8,
+  description: 'A crystal spire that chills the hollow. Slows whatever it hits.',
+});
+cube('mortar_tower', 'Mortar Tower', 'special', 'mortar_tower', {
+  color: '#8c5a3c', hardness: 1.8, sound: 'metal', light: 5,
+  description: 'A squat iron mortar. Slow, splashy and very loud.',
+});
+
 export const BLOCKS: BlockDef[] = defs.map((d, i) => ({ ...d, id: i } as BlockDef));
 export const AIR = BLOCKS[0];
 export const BLOCK_BY_KEY = new Map(BLOCKS.map((b) => [b.key, b]));
