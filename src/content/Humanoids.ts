@@ -265,6 +265,14 @@ export const HUMANOIDS: HumanoidSpec[] = [
     tags: ['npc', 'warden', 'hollowwatch'],
   },
   {
+    key: 'crumble_host', name: 'Marla Vane', role: 'Ringmaster', body: 'hero',
+    skin: '#d9a077', hair: '#3a2620', hairStyle: 'long', eyes: 'normal', eyeColor: '#4a6f6a',
+    shirt: '#b6482f', accent: '#e1b84c', pants: '#3f315a', boots: '#2e2442', outfit: 'tunic',
+    headgear: 'tricorn', headgearColor: '#2a2730', cape: 'royal', capeColor: '#8c3232',
+    shoulder: true, shoulderColor: '#e1b84c', weapon: 'scepter', glow: '#ffd27a',
+    tags: ['npc', 'ringmaster', 'party', 'crumble'],
+  },
+  {
     key: 'bandit_road', name: 'Road Bandit', role: 'Bandit', body: 'hero',
     skin: '#b47f57', hair: '#322820', hairStyle: 'short', eyes: 'normal', eyeColor: '#56402f',
     shirt: '#5b4432', accent: '#8f3f32', pants: '#463728', boots: '#2f251b', outfit: 'torn', sleeveStyle: 'torn',

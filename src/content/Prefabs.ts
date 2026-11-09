@@ -1,5 +1,6 @@
 import { block } from '../engine/world/Blocks';
 import type { VoxelWorld } from '../engine/world/VoxelWorld';
+import { CRUMBLE_TIERS, crumbleTileAt, crumbleTileKey } from './CrumbleLayout';
 
 /**
  * Deterministic block structures used by the game templates and the studio.
@@ -2763,6 +2764,147 @@ export const PREFABS: Prefab[] = [
       ] as Array<[number, number, string]>) {
         if (s.get(x, 0, z) === block('grass_block').id && s.get(x, 1, z) === 0) s.set(x, 1, z, key);
       }
+    },
+  },
+  {
+    key: 'crumble_arena', name: 'Crumble Ring',
+    description: 'Three stacked festival rings floating above the clouds: a wide cream-and-teal floor, a middle ring and a crown, all rimmed in quartz. A skydeck with a betting counter hangs to the south. Built for six contestants and very short footing.',
+    size: [50, 18, 50], tags: ['party', 'spleef', 'arena', 'sky', 'pvp'], glyph: '✺',
+    build(s) {
+      s.clear(-24, 0, -22, 24, 17, 26);
+
+      // Three floating rings. Every tier is a playable tile disc inside a quartz rim.
+      for (const tier of CRUMBLE_TIERS) {
+        const y = tier.level;
+        const r = tier.radius;
+        for (let dz = -r; dz <= r; dz++) {
+          for (let dx = -r; dx <= r; dx++) {
+            if (dx * dx + dz * dz > r * r) continue;
+            s.set(dx, y, dz, crumbleTileAt(dx, dz, tier) ? crumbleTileKey(dx, dz) : 'quartz_block');
+          }
+        }
+        // Glowstone studs on the eight compass points of the rim.
+        for (let k = 0; k < 8; k++) {
+          const a = (k / 8) * Math.PI * 2;
+          const rx = Math.round(Math.cos(a) * (r - 0.5));
+          const rz = Math.round(Math.sin(a) * (r - 0.5));
+          s.set(rx, y, rz, 'glowstone');
+        }
+        // Stone keel under each ring, tapering toward the centre.
+        for (let dz = -r; dz <= r; dz++) {
+          for (let dx = -r; dx <= r; dx++) {
+            const d2 = dx * dx + dz * dz;
+            if (d2 > r * r) continue;
+            s.set(dx, y - 1, dz, d2 > (r - 2) * (r - 2) ? 'quartz_block' : 'stone_bricks');
+            if (d2 <= (r * 0.66) * (r * 0.66)) s.set(dx, y - 2, dz, 'stone_bricks');
+            if (d2 <= (r * 0.36) * (r * 0.36)) s.set(dx, y - 3, dz, 'stone');
+          }
+        }
+        // Inset lamps under the rim.
+        for (let k = 0; k < 4; k++) {
+          const a = (k / 4) * Math.PI * 2 + Math.PI / 4;
+          const rx = Math.round(Math.cos(a) * (r - 2));
+          const rz = Math.round(Math.sin(a) * (r - 2));
+          s.set(rx, y - 2, rz, 'glowstone');
+        }
+      }
+
+      // Runway from the skydeck to the lower ring.
+      for (let z = 15; z <= 18; z++) {
+        for (let x = -2; x <= 2; x++) s.set(x, 0, z, x === 0 ? 'quartz_block' : 'stone_bricks');
+        if (z >= 16) {
+          s.set(-2, 1, z, 'glass');
+          s.set(2, 1, z, 'glass');
+        }
+      }
+
+      // Skydeck floor: pale checker, stone trim and a red carpet aisle.
+      for (let z = 18; z <= 24; z++) {
+        for (let x = -6; x <= 6; x++) {
+          let key = ((x + z) & 1) === 0 ? 'quartz_block' : 'concrete_white';
+          if (Math.abs(x) === 6 || z === 24) key = 'stone_bricks';
+          s.set(x, 0, z, key);
+        }
+      }
+      for (let z = 19; z <= 23; z++) {
+        for (let x = -1; x <= 1; x++) s.set(x, 0, z, 'wool_red');
+      }
+      // Tapered underside so the deck reads as a floating platform.
+      for (let z = 18; z <= 24; z++) {
+        for (let x = -6; x <= 6; x++) s.set(x, -1, z, 'spruce_planks');
+      }
+      for (let z = 19; z <= 23; z++) {
+        for (let x = -4; x <= 4; x++) s.set(x, -2, z, 'stone_bricks');
+      }
+      for (let z = 20; z <= 22; z++) {
+        for (let x = -2; x <= 2; x++) s.set(x, -3, z, 'stone');
+      }
+
+      // Glass rails, with a centre gap facing the runway.
+      for (let z = 18; z <= 24; z++) {
+        s.set(-6, 1, z, 'glass');
+        s.set(6, 1, z, 'glass');
+      }
+      for (let x = -6; x <= 6; x++) s.set(x, 1, 24, 'glass');
+      for (let x = -6; x <= 6; x++) {
+        if (Math.abs(x) > 1) s.set(x, 1, 18, 'glass');
+      }
+
+      // Scoreboard wall and lantern posts.
+      s.fill(-2, 1, 24, 2, 3, 24, 'stone_bricks');
+      s.set(0, 2, 24, 'chalkboard');
+      s.set(0, 3, 24, 'glowstone');
+      for (const [x, z] of [[-6, 22], [6, 22], [-6, 20], [6, 20]]) {
+        s.fill(x, 1, z, x, 2, z, 'spruce_log');
+        s.set(x, 3, z, 'glowstone');
+      }
+
+      // Banner poles at the runway mouth.
+      for (const x of [-5, 5]) {
+        s.fill(x, 1, 18, x, 5, 18, 'spruce_log');
+        s.set(x, 4, 19, 'wool_red');
+        s.set(x, 3, 19, 'wool_yellow');
+      }
+
+      // Betting counter and crates.
+      for (let x = -3; x <= 3; x++) s.set(x, 1, 23, 'counter');
+      s.set(-4, 1, 23, 'barrel');
+      s.set(4, 1, 23, 'barrel');
+      s.set(-4, 1, 22, 'crate');
+      s.set(4, 1, 22, 'crate');
+
+      // A golden crown hung over the arena.
+      for (let k = 0; k < 12; k++) {
+        const a = (k / 12) * Math.PI * 2;
+        s.set(Math.round(Math.cos(a) * 4), 14, Math.round(Math.sin(a) * 4), 'gold_block');
+      }
+      for (const [dx, dz] of [[-4, 0], [4, 0], [0, -4], [0, 4]]) {
+        s.set(dx, 15, dz, 'gold_block');
+        s.set(dx, 16, dz, 'glowstone');
+      }
+      s.set(0, 14, 0, 'crystal_block');
+
+      // A few clouds for scale, kept well clear of the rings.
+      const clouds: Array<[number, number, number, number, number]> = [
+        [-21, 4, -7, 5, 3],
+        [20, 7, 7, 4, 3],
+        [-18, 11, 13, 3, 2],
+        [22, 3, -14, 4, 2],
+        [0, 12, -21, 5, 3],
+        [12, 16, 20, 3, 2],
+      ];
+      for (const [cx, cy, cz, sx, sz] of clouds) {
+        for (let dz = -sz; dz <= sz; dz++) {
+          for (let dx = -sx; dx <= sx; dx++) {
+            if ((dx / sx) * (dx / sx) + (dz / sz) * (dz / sz) > 1) continue;
+            s.set(cx + dx, cy, cz + dz, ((dx * 3 + dz * 7) & 3) === 0 ? 'snow_block' : 'wool_white');
+            if (Math.abs(dx) < sx - 1 && Math.abs(dz) < sz - 1) s.set(cx + dx, cy + 1, cz + dz, 'wool_white');
+          }
+        }
+      }
+
+      // Hanging crystal under the lowest ring.
+      s.set(0, -4, 0, 'crystal_block');
     },
   },
 ];

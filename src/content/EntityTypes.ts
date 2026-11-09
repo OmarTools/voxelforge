@@ -92,6 +92,10 @@ villager_seed_merchant: { class: 'npc', behavior: 'stationary', health: 18, role
       { item: 'golden_apple', price: 16 },
     ],
   },
+  crumble_host: {
+    class: 'npc', behavior: 'stationary', health: 40, role: 'Ringmaster',
+    dialogue: 'Welcome to the Crumble Ring, where the floor is a rumour and the crowd is always right. Three rounds, first to two. Every tile you touch starts to give way, so keep moving. Right-click a rival to shove them toward the rim, or press R. Fall through the bottom and you lose the round; if you lose the match, the ring keeps what is left. Marla Vane runs a clean game. Mostly.',
+  },
   bandit_road: { class: 'monster', behavior: 'hostile', health: 30, damage: 7, role: 'Road Bandit', speed: 2.8, xp: 20, hostileToPlayer: true, drops: [{ item: 'coin', min: 3, max: 8 }, { item: 'iron_sword', min: 1, max: 1, chance: 0.12 }] },
   snow_hunter: { class: 'npc', behavior: 'wander', health: 28, role: 'Frost Hunter', dialogue: 'The snow hides more than tracks. Watch the ridge.' },
   desert_nomad: { class: 'npc', behavior: 'wander', health: 26, role: 'Desert Nomad', dialogue: 'Water is worth more than gold out here. Remember that.', shop: [{ item: 'water_bottle', price: 4 }, { item: 'bread', price: 2, count: 2 }, { item: 'sandstone', price: 2, count: 12 }] },

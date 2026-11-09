@@ -52,6 +52,7 @@ const HUMAN_META: Record<string, { category: AssetCategory; size: [number, numbe
   bandit_road: { category: 'villains', size: [0.72, 1.8, 0.58] },
   snow_hunter: { category: 'heroes', size: [0.72, 1.8, 0.58] },
   desert_nomad: { category: 'heroes', size: [0.7, 1.8, 0.58] },
+  crumble_host: { category: 'heroes', size: [0.8, 1.9, 0.64] },
 };
 
 const CREATURE_META: Record<string, { category: AssetCategory; size: [number, number, number]; solid?: boolean }> = {

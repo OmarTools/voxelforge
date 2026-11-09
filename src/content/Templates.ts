@@ -3,7 +3,7 @@ import type { CameraMode } from '../engine/game/CameraModes';
 import type { ScriptProject } from '../engine/scripting/ScriptTypes';
 import type { SimSpec } from '../engine/game/sim/SimTypes';
 
-export type GameMode = 'creative' | 'survival' | 'skyblock' | 'parkour' | 'arena' | 'rpg' | 'horror' | 'dungeon' | 'racing' | 'army' | 'city' | 'platformer' | 'frostpeak' | 'dune' | 'skytemple' | 'kitchen' | 'shopkeep' | 'lucky' | 'royale' | 'siege' | 'bomber' | 'survivors' | 'farm' | 'hollowwatch' | 'studio';
+export type GameMode = 'creative' | 'survival' | 'skyblock' | 'parkour' | 'arena' | 'rpg' | 'horror' | 'dungeon' | 'racing' | 'army' | 'city' | 'platformer' | 'frostpeak' | 'dune' | 'skytemple' | 'kitchen' | 'shopkeep' | 'lucky' | 'royale' | 'siege' | 'bomber' | 'survivors' | 'farm' | 'hollowwatch' | 'crumble' | 'studio';
 export type Difficulty = 'peaceful' | 'easy' | 'normal' | 'hard' | 'nightmare';
 export type ObjectiveKind = 'collect' | 'kill' | 'reach' | 'craft' | 'place' | 'talk' | 'survive' | 'wave' | 'serve' | 'sell' | 'restock' | 'earn' | 'open' | 'cook' | 'defend' | 'harvest' | 'tend';
 
@@ -2012,6 +2012,111 @@ onEvent('respawn', () => say('The watch drags you back to the gatehouse. The gat
       { label: 'Towers', value: '3 upgradable' },
       { label: 'Pads', value: '16' },
       { label: 'Boss', value: 'Hollow King' },
+    ],
+  },
+  {
+    key: 'crumble',
+    name: 'Crumble',
+    subtitle: 'Six go up, one comes down',
+    description: 'Three festival rings stacked above the clouds, six contestants and a floor that cracks the moment you trust it. Shove rivals over the rim, keep moving and win two rounds of three for the crown.',
+    story: 'Marla Vane built the Crumble Ring for a harvest festival that never happened. The farmers stayed home, so she invited the drifters, the duellists and the desperate. Bix the Bookmaker took one look at the stacked floors and opened a ledger. The rules are painted on the skydeck rail: keep moving, keep shoving, and do not look down. The crown is real gold. So is the drop.',
+    icon: '✺',
+    accent: '#f2a65a',
+    difficulty: 'normal',
+    tags: ['Party', 'Spleef', 'Arena', 'Sky', 'Bots'],
+    preset: 'sky',
+    heightMode: 'sky',
+    skyBase: 78,
+    timeOfDay: 10.4,
+    weather: 'clear',
+    music: 'arena',
+    prefabs: [{ prefab: 'crumble_arena', x: 0, z: 0 }],
+    spawn: [0, 19],
+    spawnYaw: 0,
+    spawns: [
+      {
+        entity: 'human:crumble_host', offset: [-3, 0, 21], name: 'Marla Vane', id: 'marla', questId: 'first_fall', behavior: 'stationary',
+        dialogue: 'Welcome to the Crumble Ring. Three rounds, first to two. Every tile you touch starts to give way, so keep moving; the rings below will catch you once, then the sky will not. Right-click a rival to shove them toward the rim, or press R. Fall through the bottom and you lose the round; if you lose the match, the ring keeps what is left. Marla Vane runs a clean game. Mostly.',
+      },
+      {
+        entity: 'human:bard_wanderer', offset: [3, 0, 20], name: 'Bix the Bookmaker', id: 'bix', questId: 'crown', behavior: 'stationary',
+        dialogue: 'I have odds on every contestant, including you. The trick is not the fall, it is the floor. Win two rounds and I will pay out the long odds. Win the crown and I will pretend I always believed in you.',
+      },
+      { entity: 'human:adventurer', offset: [5, 0, 19], name: 'Lucky Lunt', behavior: 'wander' },
+      { entity: 'creature:cat', offset: [-5, 0, 23], name: 'Buttons' },
+    ],
+    objectives: [
+      { id: 'marla', title: 'Speak with Marla Vane', kind: 'talk', target: 'marla', count: 1 },
+      { id: 'tiles', title: 'Break 60 crumble tiles', kind: 'defend', target: 'tile', count: 60 },
+      { id: 'drops', title: 'Drop 10 rivals through the ring', kind: 'defend', target: 'rival', count: 10 },
+      { id: 'round', title: 'Win a round', kind: 'defend', target: 'round', count: 1 },
+      { id: 'match', title: 'Win the Crumble Ring', kind: 'defend', target: 'match', count: 1 },
+    ],
+    quests: [
+      {
+        id: 'first_fall',
+        title: 'The First Fall',
+        giver: 'Marla',
+        summary: 'Marla wants a contestant worth watching: put twenty-five tiles out of their misery and drop four rivals before the crowd loses interest.',
+        objectives: [
+          { id: 'q-tiles', title: 'Break twenty-five tiles', kind: 'defend', target: 'tile', count: 25 },
+          { id: 'q-drops', title: 'Drop four rivals', kind: 'defend', target: 'rival', count: 4 },
+        ],
+        reward: { xp: 260, items: [{ item: 'golden_apple', count: 2 }], coins: 70 },
+      },
+      {
+        id: 'crown',
+        title: 'The Long Odds',
+        giver: 'Bix',
+        summary: 'Bix has you at long odds. Win two rounds and take the whole match, and he will pay out with a straight face.',
+        objectives: [
+          { id: 'q-rounds', title: 'Win two rounds', kind: 'defend', target: 'round', count: 2 },
+          { id: 'q-match', title: 'Win the match', kind: 'defend', target: 'match', count: 1 },
+        ],
+        reward: { xp: 520, items: [{ item: 'diamond', count: 1 }, { item: 'golden_apple', count: 3 }], coins: 160 },
+      },
+    ],
+    waves: [],
+    checkpoints: [
+      { offset: [0, 1, 19], radius: 5, label: 'Skydeck' },
+    ],
+    startingItems: [
+      { item: 'iron_shovel', count: 1 },
+      { item: 'stone_sword', count: 1 },
+      { item: 'golden_apple', count: 2 },
+      { item: 'bread', count: 3 },
+      { item: 'coin', count: 30 },
+    ],
+    hotbar: ['iron_shovel', 'stone_sword', 'golden_apple', 'bread', 'coin'],
+    sim: {
+      kind: 'crumble',
+      center: { x: 0, z: 0 },
+      rounds: 3,
+      bots: 5,
+    },
+    rules: {
+      ...BASE_RULES,
+      keepInventory: true,
+      mobSpawning: false,
+      hunger: false,
+      dayCycle: false,
+      fallDamage: false,
+      blockPlacing: false,
+      dropItems: false,
+      pvp: false,
+    },
+    scripts: templateScript(`onStart(() => {
+  camera('first');
+  say('Marla Vane has the rules and Bix has the odds. The count starts you on the crown: every tile cracks underfoot. Right-click a rival or press R to shove. First to two rounds takes the crown.', 'info');
+  give('coin', 5);
+});
+onEvent('respawn', () => say('The ring resets. Three rounds, first to two. Keep moving.', 'warn'));
+`),
+    stats: [
+      { label: 'Rounds', value: 'Best of 3' },
+      { label: 'Contestants', value: '6' },
+      { label: 'Rings', value: '3' },
+      { label: 'Move', value: 'Shove' },
     ],
   },
 ];

@@ -1388,6 +1388,62 @@ export function drawTile(name: string): HTMLCanvasElement {
       px(ctx, 13, 3, '#ffd27a', 1, 1);
       break;
 
+    case 'crumble_tile':
+      paintBase(ctx, rand, '#e6cfa6', 6);
+      // Painted grout frame.
+      px(ctx, 0, 0, '#a98255', TILE, 1);
+      px(ctx, 0, 15, '#a98255', TILE, 1);
+      px(ctx, 0, 0, '#a98255', 1, TILE);
+      px(ctx, 15, 0, '#a98255', 1, TILE);
+      px(ctx, 1, 1, '#f6e7c9', 14, 1);
+      px(ctx, 1, 1, '#f6e7c9', 1, 14);
+      px(ctx, 1, 14, '#c8a170', 14, 1);
+      px(ctx, 14, 1, '#c8a170', 1, 14);
+      // Coral festival chevron.
+      for (let i = 0; i < 6; i++) {
+        px(ctx, 4 + i, 5 + i, '#e07a52', 2, 1);
+        px(ctx, 11 - i, 5 + i, '#e07a52', 2, 1);
+      }
+      px(ctx, 7, 11, '#f2b48c', 2, 2);
+      speckle(ctx, rand, ['#d4b887', '#f4dfba'], 5, 1);
+      break;
+    case 'crumble_tile_alt':
+      paintBase(ctx, rand, '#9fd8c8', 6);
+      px(ctx, 0, 0, '#4f9487', TILE, 1);
+      px(ctx, 0, 15, '#4f9487', TILE, 1);
+      px(ctx, 0, 0, '#4f9487', 1, TILE);
+      px(ctx, 15, 0, '#4f9487', 1, TILE);
+      px(ctx, 1, 1, '#c9f0e3', 14, 1);
+      px(ctx, 1, 1, '#c9f0e3', 1, 14);
+      px(ctx, 1, 14, '#78bbaa', 14, 1);
+      px(ctx, 14, 1, '#78bbaa', 1, 14);
+      // Gold star.
+      px(ctx, 7, 4, '#f5d27a', 2, 8);
+      px(ctx, 4, 7, '#f5d27a', 8, 2);
+      px(ctx, 5, 5, '#fff0bd', 2, 2);
+      px(ctx, 9, 9, '#fff0bd', 2, 2);
+      speckle(ctx, rand, ['#84c4b3', '#b9e8da'], 5, 1);
+      break;
+    case 'crumble_cracked':
+      paintBase(ctx, rand, '#c9b79c', 8);
+      px(ctx, 0, 0, '#7c6a52', TILE, 1);
+      px(ctx, 0, 15, '#7c6a52', TILE, 1);
+      px(ctx, 0, 0, '#7c6a52', 1, TILE);
+      px(ctx, 15, 0, '#7c6a52', 1, TILE);
+      // Jagged cracks.
+      px(ctx, 7, 1, '#5d4d3a', 1, 6);
+      px(ctx, 8, 6, '#5d4d3a', 4, 1);
+      px(ctx, 11, 7, '#5d4d3a', 1, 3);
+      px(ctx, 3, 9, '#5d4d3a', 4, 1);
+      px(ctx, 3, 10, '#5d4d3a', 1, 3);
+      px(ctx, 10, 11, '#5d4d3a', 3, 1);
+      px(ctx, 12, 12, '#5d4d3a', 1, 2);
+      px(ctx, 6, 7, '#6d5c47', 2, 1);
+      px(ctx, 8, 7, '#8a765b', 1, 2);
+      px(ctx, 2, 5, '#b3a084', 1, 1);
+      px(ctx, 13, 4, '#b3a084', 1, 1);
+      break;
+
     case 'missing':
     default: {
       for (let y = 0; y < TILE; y += 4) {

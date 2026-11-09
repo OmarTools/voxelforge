@@ -9,8 +9,9 @@ import { BomberSystem } from './BomberSystem';
 import { SurvivorsSystem } from './SurvivorsSystem';
 import { FarmSystem } from './FarmSystem';
 import { HollowwatchSystem } from './HollowwatchSystem';
+import { CrumbleSystem } from './CrumbleSystem';
 
-export type SimKind = 'cooking' | 'store' | 'lucky' | 'royale' | 'siege' | 'bomber' | 'survivors' | 'farm' | 'hollowwatch';
+export type SimKind = 'cooking' | 'store' | 'lucky' | 'royale' | 'siege' | 'bomber' | 'survivors' | 'farm' | 'hollowwatch' | 'crumble';
 
 export interface SimSpot {
   x: number;
@@ -36,6 +37,9 @@ export interface SimSpec {
   stormTime?: number;
   /** Siege: number of assault waves. */
   waveCount?: number;
+  /** Crumble: best-of round count and contestants per round. */
+  rounds?: number;
+  bots?: number;
   /** Farm: entity id of the villager who posts the daily request. */
   requestGiverId?: string;
 }
@@ -91,5 +95,6 @@ export function createSim(spec: SimSpec, game: Game): SimSystem {
   if (spec.kind === 'survivors') return new SurvivorsSystem(spec, game);
   if (spec.kind === 'farm') return new FarmSystem(spec, game);
   if (spec.kind === 'hollowwatch') return new HollowwatchSystem(spec, game);
+  if (spec.kind === 'crumble') return new CrumbleSystem(spec, game);
   return new LuckySystem(spec, game);
 }

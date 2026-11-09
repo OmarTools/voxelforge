@@ -345,6 +345,22 @@ cube('mortar_tower', 'Mortar Tower', 'special', 'mortar_tower', {
   description: 'A squat iron mortar. Slow, splashy and very loud.',
 });
 
+/* ------------------------------------------------------------------ */
+/*  CRUMBLE PARTY FLOOR                                               */
+/* ------------------------------------------------------------------ */
+cube('crumble_tile', 'Crumble Tile', 'special', 'crumble_tile', {
+  color: '#e6cfa6', hardness: 0.18, sound: 'cloth', drop: 'none', unlisted: true,
+  description: 'A painted festival tile. It cracks the moment you stand on it.',
+});
+cube('crumble_tile_alt', 'Teal Crumble Tile', 'special', 'crumble_tile_alt', {
+  color: '#9fd8c8', hardness: 0.18, sound: 'cloth', drop: 'none', unlisted: true,
+  description: 'A teal festival tile. It cracks just as fast as the cream ones.',
+});
+cube('crumble_cracked', 'Cracked Tile', 'special', 'crumble_cracked', {
+  color: '#c2ad8e', hardness: 0.12, sound: 'cloth', drop: 'none', unlisted: true,
+  description: 'A floor tile on its last legs. Move.',
+});
+
 export const BLOCKS: BlockDef[] = defs.map((d, i) => ({ ...d, id: i } as BlockDef));
 export const AIR = BLOCKS[0];
 export const BLOCK_BY_KEY = new Map(BLOCKS.map((b) => [b.key, b]));

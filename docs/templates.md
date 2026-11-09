@@ -36,12 +36,39 @@ Keep this file updated when a template ships or the roadmap changes.
 | 23 | Nightfall Survivors | `survivors` | `survivors` | 8-minute auto-battler: soul shards, 11 upgrades, elites, Nightfang |
 | 24 | Willow Creek | `farm` | `farm` | Day-cycle farm: crops, animals, shipping bin, daily requests |
 | 25 | Hollowwatch | `hollowwatch` | `hollowwatch` | 12-wave tower defense: 3 tower types, 16 pads, rune gate, Hollow King |
+| 26 | Crumble | `crumble` | `crumble` | 3-round sky spleef: cracking tiles, 5 bots, shove, best-of-three |
 
-Current total: **25 templates**.
+Current total: **26 templates**.
 
 ---
 
 ## Recently shipped
+
+### ✅ Crumble — `crumble`
+
+**Pitch:** Three festival rings stacked above the clouds, six contestants and a floor that
+cracks the moment you trust it. Shove rivals over the rim, keep moving and win two rounds
+of three for the crown.
+
+| | |
+|---|---|
+| Inspired by | Spleef / Fall Guys |
+| Core loop | Countdown → tiles crack underfoot → dig or shove rivals → survive the stacked rings → first to 2 round wins takes the match |
+| New system | `CrumbleSystem` (tile pressure, cracking, collapse, rival bots, shove, ring-out, best-of-three flow) |
+| Reuses | Royale elimination, entity bots, prefab system, HUD actions, objectives, quests, saves |
+| Content | `crumble_arena` prefab (3 stacked rings, 947 tiles, quartz rims, runway, skydeck, betting counter, gold crown), `crumble_tile` / `crumble_tile_alt` / `crumble_cracked` blocks, Marla Vane + Bix the Bookmaker |
+| Length | 3 rounds, first to 2; 5 objectives + 2 quests |
+| Effort | medium |
+
+**Verified**
+- [x] `crumble_arena` prefab (crown/middle/lower rings, quartz rims, stone keel, runway, skydeck, counter, scoreboard, clouds, hanging crown)
+- [x] Tile pressure per contestant, crack stage, manual shovel digs, auto-collapse at 38s and a 115s round cap
+- [x] Five named rival bots per round with steering, gap avoidance, shoving and self-preservation
+- [x] Shove (right-click / **R**) with 2.4s cooldown, 3.8-block range and stagger; stacked rings catch one fall
+- [x] Best-of-three flow: deck respawn on a lost round, 60c round + 300c match payouts, rematch on a win
+- [x] 5 objectives, 2 quests (Marla Vane, Bix the Bookmaker), `crumble_bot_` save filtering
+- [x] Headless QA suite + 26-template smoke test
+- [x] Runtime rebuild, commit, push
 
 ### ✅ Hollowwatch — `hollowwatch`
 
@@ -134,7 +161,7 @@ Ranked by value-to-effort. Effort is relative to the existing engine.
 | 3 | **Hollowwatch** | Plants vs. Zombies / Bloons TD | Place and upgrade towers along lanes, 12 waves + boss | `HollowwatchSystem` (block placement + targeting) | Siege turrets/waves | medium | ✅ |
 | 4 | **Bannerfall** | TF2 / Overwatch | Bot teams, CTF + king of the hill, class kits | `MatchSystem` | Entity combat, HUD, objectives | high | 💤 |
 | 5 | **Deadlight** | CoD Zombies | Round-based zombies, barricades, buy weapons, boss round | `ZombiesSystem` | Wave spawner, economy, particles | medium | 💤 |
-| 6 | **Crumble** | Spleef / Fall Guys | 3 quick rounds, collapsing floor, bots | `SpleefSystem` | Royale elimination, arena prefabs | low | 💤 |
+| 6 | **Crumble** | Spleef / Fall Guys | 3 quick rounds, collapsing floor, bots | `CrumbleSystem` | Royale elimination, arena prefabs | low | ✅ |
 | 7 | **Titan Trials** | Shadow of the Colossus / Cuphead | 3 phased bosses with arena hazards | `BossRushSystem` | Boss entities, arena FX, HUD | medium | 💤 |
 | 8 | **Skyhold** | Minecraft Bed Wars | Generators, bridges, destroy the enemy core | `BedwarsSystem` | Skyblock + siege | high | 💤 |
 | 9 | **Cogworks** | Factorio / Create | Drills, conveyors, smelters, quotas | Block-entity / logistics layer | Big engine addition | very high | 💤 |
@@ -147,8 +174,8 @@ Ranked by value-to-effort. Effort is relative to the existing engine.
 1. **Nightfall Survivors** — shipped; proves the auto-battler + upgrade-choice pattern.
 2. **Willow Creek** — shipped; validates long-form day systems, persistent counters and saves.
 3. **Hollowwatch** — shipped; validates player-placed towers, pad validation, upgrades and a shared gate pool.
-4. **Crumble** — quick party mode, small scope, good palette cleanser. (next)
-5. **Deadlight** — round-based horror, reuses waves + economy.
+4. **Crumble** — shipped; validates 3D spleef tiles, shove physics, bot elimination and best-of-three flow.
+5. **Deadlight** — round-based horror, reuses waves + economy. (next)
 6. **Titan Trials** — boss-rush showcase for entity phases.
 7. **Bannerfall** — team AI and objective modes; biggest combat investment.
 8. **Skyhold** — needs generators + bridging + core destruction.
@@ -162,7 +189,7 @@ Ranked by value-to-effort. Effort is relative to the existing engine.
 | Timed spawn director | `RoyaleSystem`, `SiegeSystem` | Extract a `SpawnDirector` helper by the third user |
 | Upgrade choice | `SurvivorsSystem` | Reuse for roguelike modifiers in other modes |
 | Tower placement + targeting | `HollowwatchSystem`, `SiegeSystem` | Generalised block towers; reuse for future defense modes |
-| Round/elimination flow | `RoyaleSystem`, `BomberSystem` | Shared `MatchFlow` for Crumble/Bannerfall |
+| Round/elimination flow | `RoyaleSystem`, `BomberSystem`, `CrumbleSystem` | Shared `MatchFlow` for Bannerfall |
 | Economy + shop UI | `StoreSystem` | Deadlight, Willow Creek, Gloop Ranch |
 | Day cycle + sleep/save rollover | `FarmSystem`, `Sky` | Reuse for any day-based survival or town mode |
 
@@ -172,6 +199,7 @@ Ranked by value-to-effort. Effort is relative to the existing engine.
 
 | Date | Change |
 |---|---|
+| 2026-11-09 | Crumble (`crumble`) shipped — 3-round best-of-three sky spleef with 947 cracking tiles, five rival bots, shove (**R**), stacked safety rings, skydeck and 2 quests. |
 | 2026-11-08 | Hollowwatch (`hollowwatch`) shipped — 12-wave tower defense with player-placed lantern/frost/mortar towers, Mk I–III upgrades, 16 rune pads, a 200 HP gate and the Hollow King. |
 | 2026-11-08 | Willow Creek (`farm`) shipped — day-cycle farm with 4 crops, 3 animal species, shipping bin, daily requests and sleep/save rollover. |
 | 2026-11-07 | Nightfall Survivors (`survivors`) shipped — 8-minute horde run, soul-shard XP, 11 upgrades, 3 elites and Nightfang. |
