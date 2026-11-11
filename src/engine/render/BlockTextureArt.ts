@@ -1388,6 +1388,62 @@ export function drawTile(name: string): HTMLCanvasElement {
       px(ctx, 13, 3, '#ffd27a', 1, 1);
       break;
 
+    case 'deadlight_barricade':
+      planks(ctx, rand, '#7a5432', '#4a2f1b', '#9a6d45');
+      px(ctx, 0, 0, '#3a2414', TILE, 1);
+      px(ctx, 0, 15, '#3a2414', TILE, 1);
+      px(ctx, 0, 0, '#3a2414', 1, TILE);
+      px(ctx, 15, 0, '#3a2414', 1, TILE);
+      // Diagonal brace across the boards.
+      for (let i = 0; i < 12; i++) px(ctx, 2 + i, 12 - i, '#5a3a22', 2, 2);
+      for (let i = 0; i < 12; i++) px(ctx, 2 + i, 3 + i, '#8a5f3a', 1, 1);
+      // Nails.
+      for (const [nx, ny] of [[3, 2], [12, 2], [3, 12], [12, 12], [7, 7]]) {
+        px(ctx, nx, ny, '#c9c2b0', 1, 1);
+        px(ctx, nx + 1, ny + 1, '#6b5a44', 1, 1);
+      }
+      speckle(ctx, rand, ['#5e3d24', '#a5774c'], 6, 1);
+      break;
+    case 'deadlight_armory':
+      paintBase(ctx, rand, '#44503c', 6);
+      px(ctx, 0, 0, '#232b20', TILE, 1);
+      px(ctx, 0, 15, '#232b20', TILE, 1);
+      px(ctx, 0, 0, '#232b20', 1, TILE);
+      px(ctx, 15, 0, '#232b20', 1, TILE);
+      // Riveted metal panels.
+      px(ctx, 1, 1, '#55654c', 14, 6);
+      px(ctx, 1, 9, '#35402f', 14, 5);
+      for (const [rx, ry] of [[2, 2], [13, 2], [2, 13], [13, 13], [2, 7], [13, 7]]) px(ctx, rx, ry, '#aab2a2', 1, 1);
+      // Rifle silhouette.
+      px(ctx, 2, 6, '#c8ccc3', 10, 1);
+      px(ctx, 2, 7, '#8c5a37', 5, 2);
+      px(ctx, 7, 7, '#5a6157', 4, 1);
+      px(ctx, 11, 7, '#d7b35a', 2, 1);
+      px(ctx, 4, 5, '#9aa094', 1, 2);
+      // Bullet strip.
+      for (let i = 0; i < 5; i++) px(ctx, 3 + i * 2, 12, '#d7b35a', 1, 2);
+      speckle(ctx, rand, ['#2e3729', '#6d7a61'], 5, 1);
+      break;
+    case 'deadlight_perk':
+      paintBase(ctx, rand, '#453156', 6);
+      px(ctx, 0, 0, '#241a30', TILE, 1);
+      px(ctx, 0, 15, '#241a30', TILE, 1);
+      px(ctx, 0, 0, '#241a30', 1, TILE);
+      px(ctx, 15, 0, '#241a30', 1, TILE);
+      // Recessed panel.
+      px(ctx, 2, 2, '#5a3f74', 12, 12);
+      px(ctx, 3, 3, '#6e4f8b', 10, 1);
+      // Glowing elixir bottle.
+      px(ctx, 6, 4, '#8ff4e6', 4, 7);
+      px(ctx, 5, 6, '#c8fff7', 1, 4);
+      px(ctx, 10, 6, '#5bc9bd', 1, 4);
+      px(ctx, 6, 3, '#d8fff9', 4, 1);
+      px(ctx, 7, 11, '#3f8f88', 2, 2);
+      // Indicator lights.
+      for (const [lx, ly] of [[2, 2], [13, 2], [2, 13], [13, 13]]) px(ctx, lx, ly, '#f0c969', 1, 1);
+      px(ctx, 7, 14, '#b48cff', 2, 1);
+      speckle(ctx, rand, ['#332342', '#7a5a99'], 5, 1);
+      break;
     case 'crumble_tile':
       paintBase(ctx, rand, '#e6cfa6', 6);
       // Painted grout frame.

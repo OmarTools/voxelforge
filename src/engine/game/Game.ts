@@ -262,6 +262,8 @@ export class Game {
   ended = false;
   started = false;
   studioOpen = false;
+  /** True while a template is being generated so the menu backdrop stops driving the sky. */
+  private preparingSession = false;
 
   hud: HUD;
   touchControls: TouchControls;
@@ -613,16 +615,19 @@ export class Game {
     this.menus.hideEnd();
     this.menus.hidePause();
     this.menus.showLoading(template.name, template.subtitle);
+    this.preparingSession = true;
     try {
       await this.start(template, save, (fraction, label, detail) => this.menus.setLoading(fraction, label, detail));
     } catch (error) {
       console.error(error);
+      this.preparingSession = false;
       this.menus.hideLoading();
       this.endSession();
       this.toast('The world failed to generate. Check the console for details.', 'bad');
       this.onExitToMenu?.();
       return;
     }
+    this.preparingSession = false;
     this.menus.hideLoading();
     this.hud.el.classList.remove('hidden');
     this.started = true;
@@ -1171,7 +1176,7 @@ export class Game {
         return;
       }
     } else {
-      this.renderMenuBackdrop(dt);
+      if (!this.preparingSession) this.renderMenuBackdrop(dt);
     }
     this.renderFrame(dt);
     this.input.endFrame();
@@ -2168,7 +2173,7 @@ export class Game {
       edits: this.world ? this.world.getEdits() : [],
       entities: this.entities
         ? this.entities.entities
-            .filter((e) => e.alive && !e.id.startsWith('cook_customer_') && !e.id.startsWith('shop_customer_') && !e.id.startsWith('cinder_bot_') && !e.id.startsWith('survivor_') && !e.id.startsWith('royale_rival_') && !e.id.startsWith('siege_raider_') && !e.id.startsWith('hollow_enemy_') && !e.id.startsWith('crumble_bot_'))
+            .filter((e) => e.alive && !e.id.startsWith('cook_customer_') && !e.id.startsWith('shop_customer_') && !e.id.startsWith('cinder_bot_') && !e.id.startsWith('survivor_') && !e.id.startsWith('royale_rival_') && !e.id.startsWith('siege_raider_') && !e.id.startsWith('hollow_enemy_') && !e.id.startsWith('crumble_bot_') && !e.id.startsWith('deadlight_zombie_'))
             .map((e) => this.serializeEntity(e))
         : [],
       player: {

@@ -3,7 +3,7 @@ import type { CameraMode } from '../engine/game/CameraModes';
 import type { ScriptProject } from '../engine/scripting/ScriptTypes';
 import type { SimSpec } from '../engine/game/sim/SimTypes';
 
-export type GameMode = 'creative' | 'survival' | 'skyblock' | 'parkour' | 'arena' | 'rpg' | 'horror' | 'dungeon' | 'racing' | 'army' | 'city' | 'platformer' | 'frostpeak' | 'dune' | 'skytemple' | 'kitchen' | 'shopkeep' | 'lucky' | 'royale' | 'siege' | 'bomber' | 'survivors' | 'farm' | 'hollowwatch' | 'crumble' | 'studio';
+export type GameMode = 'creative' | 'survival' | 'skyblock' | 'parkour' | 'arena' | 'rpg' | 'horror' | 'dungeon' | 'racing' | 'army' | 'city' | 'platformer' | 'frostpeak' | 'dune' | 'skytemple' | 'kitchen' | 'shopkeep' | 'lucky' | 'royale' | 'siege' | 'bomber' | 'survivors' | 'farm' | 'hollowwatch' | 'crumble' | 'deadlight' | 'studio';
 export type Difficulty = 'peaceful' | 'easy' | 'normal' | 'hard' | 'nightmare';
 export type ObjectiveKind = 'collect' | 'kill' | 'reach' | 'craft' | 'place' | 'talk' | 'survive' | 'wave' | 'serve' | 'sell' | 'restock' | 'earn' | 'open' | 'cook' | 'defend' | 'harvest' | 'tend';
 
@@ -2117,6 +2117,130 @@ onEvent('respawn', () => say('The ring resets. Three rounds, first to two. Keep 
       { label: 'Contestants', value: '6' },
       { label: 'Rings', value: '3' },
       { label: 'Move', value: 'Shove' },
+    ],
+  },
+  {
+    key: 'deadlight',
+    name: 'Deadlight',
+    subtitle: 'Hold the chapel until dawn',
+    description: 'Eight rounds, four boarded windows and one ruined chapel on a moor full of the restless dead. Tear the boards down or nail them back up, buy rifles and elixirs from the walls, and survive long enough to meet the Gravewarden.',
+    story: 'The coach road dried up years ago, but the chapel kept a light burning. Travellers learned to aim for it, then learned not to travel at all. Sergeant Vale still calls the rounds from the nave. Sister Halley still prays over the graves, and Cobb still sells rifles out of the vestry because somebody has to. Every night the dead remember the warmth inside, and every night the boards come down again. Dawn is eight rounds away. Nobody has counted that high in a long time.',
+    icon: '☠',
+    accent: '#8ff4e6',
+    difficulty: 'nightmare',
+    tags: ['Zombies', 'Waves', 'Survival', 'Night', 'Boss'],
+    preset: 'overworld',
+    heightMode: 'ground',
+    timeOfDay: 22.4,
+    weather: 'clear',
+    music: 'horror',
+    platform: { radius: 30, surface: 'grass_block', border: 'mossy_stone_bricks', clearHeight: 40 },
+    prefabs: [{ prefab: 'deadlight_yard', x: 0, z: 0 }],
+    spawn: [0, 2],
+    spawnYaw: 0,
+    fx: { post: 'horror' },
+    spawns: [
+      {
+        entity: 'human:knight_royal', offset: [-1, 0, -3], name: 'Sergeant Vale', id: 'vale', questId: 'hold_the_line', behavior: 'stationary',
+        dialogue: 'You picked the only lit building on the moor. Good. Four windows, four ways in, and enough boards to hold them if you keep moving. I will call the rounds. You keep the chapel standing. Do not go into the yard after dark; that is how the last watch ended.',
+      },
+      {
+        entity: 'human:priest_light', offset: [2, 0, -2], name: 'Sister Halley', id: 'halley', questId: 'board_and_bone', behavior: 'stationary',
+        dialogue: 'The dead do not hate us. They simply remember a warmth they no longer have. Board a window and they forget for a while. The planks come from the crates; the nails come from the pews. When the boards fail, run, and I will light your way.',
+      },
+      {
+        entity: 'human:dwarf_smith', offset: [2, 0, 1], name: 'Cobb the Armorer', id: 'cobb', questId: 'gravewarden', behavior: 'stationary',
+        dialogue: 'Rifle on the wall is 120 points. Rounds are 40 after that. The machine in the corner sells things that make you harder to kill. I did not build it; I just keep it humming. Pay first. The dead do not take credit.',
+      },
+    ],
+    objectives: [
+      { id: 'vale', title: 'Speak with Sergeant Vale', kind: 'talk', target: 'vale', count: 1 },
+      { id: 'rounds', title: 'Survive five rounds', kind: 'defend', target: 'round', count: 5 },
+      { id: 'kills', title: 'Put down 40 of the dead', kind: 'defend', target: 'zombie', count: 40 },
+      { id: 'repairs', title: 'Nail 18 boards back up', kind: 'defend', target: 'repair', count: 18 },
+      { id: 'armory', title: 'Buy a wall weapon', kind: 'defend', target: 'buy', count: 1 },
+      { id: 'boss', title: 'Defeat the Gravewarden', kind: 'defend', target: 'boss', count: 1 },
+      { id: 'match', title: 'Survive until dawn', kind: 'defend', target: 'match', count: 1 },
+    ],
+    quests: [
+      {
+        id: 'hold_the_line',
+        title: 'Hold the Line',
+        giver: 'Vale',
+        summary: 'Vale wants three rounds held and twenty of the dead put down. He says the first three are the ones that teach you what the chapel is for.',
+        objectives: [
+          { id: 'q-rounds', title: 'Survive three rounds', kind: 'defend', target: 'round', count: 3 },
+          { id: 'q-kills', title: 'Kill twenty of the dead', kind: 'defend', target: 'zombie', count: 20 },
+        ],
+        reward: { xp: 320, items: [{ item: 'rifle_ammo', count: 30 }, { item: 'golden_apple', count: 1 }], coins: 80 },
+      },
+      {
+        id: 'board_and_bone',
+        title: 'Board and Bone',
+        giver: 'Halley',
+        summary: 'Halley has buried every watch before yours. She asks for eighteen boards nailed back up and fifteen of the dead laid to rest, and she will pray for the difference.',
+        objectives: [
+          { id: 'q-repairs', title: 'Nail eighteen boards', kind: 'defend', target: 'repair', count: 18 },
+          { id: 'q-kills', title: 'Lay fifteen of the dead to rest', kind: 'defend', target: 'zombie', count: 15 },
+        ],
+        reward: { xp: 280, items: [{ item: 'arrow', count: 30 }, { item: 'golden_apple', count: 2 }], coins: 70 },
+      },
+      {
+        id: 'gravewarden',
+        title: 'The Gravewarden',
+        giver: 'Cobb',
+        summary: 'Cobb has heard the heavy footsteps under the yard for six nights. Put the Gravewarden down and see the dawn, and he will hand over the rifle he has been saving.',
+        objectives: [
+          { id: 'q-boss', title: 'Defeat the Gravewarden', kind: 'defend', target: 'boss', count: 1 },
+          { id: 'q-match', title: 'Survive until dawn', kind: 'defend', target: 'match', count: 1 },
+        ],
+        reward: { xp: 700, items: [{ item: 'diamond_sword', count: 1 }, { item: 'golden_apple', count: 3 }], coins: 240 },
+      },
+    ],
+    waves: [],
+    checkpoints: [
+      { offset: [0, 1, 2], radius: 5, label: 'Chapel Nave' },
+    ],
+    startingItems: [
+      { item: 'iron_sword', count: 1 },
+      { item: 'bow', count: 1 },
+      { item: 'arrow', count: 40 },
+      { item: 'golden_apple', count: 2 },
+      { item: 'bread', count: 3 },
+      { item: 'torch', count: 8 },
+      { item: 'coin', count: 140 },
+    ],
+    hotbar: ['iron_sword', 'bow', 'arrow', 'golden_apple', 'bread', 'torch'],
+    sim: {
+      kind: 'deadlight',
+      center: { x: 0, z: 0 },
+      rounds: 8,
+    },
+    rules: {
+      ...BASE_RULES,
+      keepInventory: true,
+      mobSpawning: false,
+      hunger: false,
+      naturalRegen: false,
+      dayCycle: false,
+      fallDamage: false,
+      blockBreaking: false,
+      blockPlacing: false,
+      dropItems: false,
+      pvp: false,
+    },
+    scripts: templateScript(`onStart(() => {
+  camera('first');
+  say('Four windows, four ways in. Right-click a boarded window or press R to nail the planks back up. The armory on the west wall sells the rifle; the machine on the east wall sells perks. Vale calls the first round in twenty seconds.', 'warn');
+  give('coin', 10);
+});
+onEvent('respawn', () => say('The night starts over. Board the windows and hold until dawn.', 'warn'));
+`),
+    stats: [
+      { label: 'Rounds', value: '8' },
+      { label: 'Windows', value: '4' },
+      { label: 'Boss', value: 'Gravewarden' },
+      { label: 'Perks', value: '3' },
     ],
   },
 ];

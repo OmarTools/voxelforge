@@ -346,6 +346,22 @@ cube('mortar_tower', 'Mortar Tower', 'special', 'mortar_tower', {
 });
 
 /* ------------------------------------------------------------------ */
+/*  DEADLIGHT CHAPEL SIEGE                                            */
+/* ------------------------------------------------------------------ */
+cube('deadlight_barricade', 'Barricade', 'special', 'deadlight_barricade', {
+  color: '#7a5432', hardness: 2.2, sound: 'wood', drop: 'none', unlisted: true,
+  description: 'Nailed boards over a chapel window. Right-click to repair the breach.',
+});
+cube('deadlight_armory', 'Armory Crate', 'special', 'deadlight_armory', {
+  color: '#44503c', hardness: 2.6, sound: 'metal', drop: 'none', unlisted: true, light: 4, breakable: false,
+  description: 'A wall-mounted rifle rack. Right-click to buy a weapon or ammunition.',
+});
+cube('deadlight_perk', 'Perk Machine', 'special', 'deadlight_perk', {
+  color: '#5a3f74', hardness: 2.6, sound: 'metal', drop: 'none', unlisted: true, light: 6, breakable: false,
+  description: 'A humming elixir cabinet. Right-click to buy a perk.',
+});
+
+/* ------------------------------------------------------------------ */
 /*  CRUMBLE PARTY FLOOR                                               */
 /* ------------------------------------------------------------------ */
 cube('crumble_tile', 'Crumble Tile', 'special', 'crumble_tile', {

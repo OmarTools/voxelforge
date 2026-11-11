@@ -37,12 +37,42 @@ Keep this file updated when a template ships or the roadmap changes.
 | 24 | Willow Creek | `farm` | `farm` | Day-cycle farm: crops, animals, shipping bin, daily requests |
 | 25 | Hollowwatch | `hollowwatch` | `hollowwatch` | 12-wave tower defense: 3 tower types, 16 pads, rune gate, Hollow King |
 | 26 | Crumble | `crumble` | `crumble` | 3-round sky spleef: cracking tiles, 5 bots, shove, best-of-three |
+| 27 | Deadlight | `deadlight` | `deadlight` | 8-round chapel zombie siege: barricades, wall buys, perks, the Gravewarden |
 
-Current total: **26 templates**.
+Current total: **27 templates**.
 
 ---
 
 ## Recently shipped
+
+### ✅ Deadlight — `deadlight`
+
+**Pitch:** One lit chapel in a walled graveyard, four boarded windows and eight rounds
+until dawn. Tear the boards back up between waves, buy a rifle off the wall and put the
+Gravewarden down before it breaks the nave open.
+
+| | |
+|---|---|
+| Inspired by | Call of Duty: Zombies |
+| Core loop | Prep countdown → undead tear boards off a window → repair (right-click / **R**) → shoot, earn coins → wall buys and perks → clear the round → boss round 8 → dawn |
+| New system | `DeadlightSystem` (round director, breach/board damage, repair economy, wall buys, perks, boss round, win/rematch, chapel lights) |
+| Reuses | Wave spawner patterns, entity combat, economy, particles, HUD actions, objectives, quests, saves |
+| Content | `deadlight_yard` prefab (walled graveyard, chapel, altar, graves, dead trees, campfire, lantern posts), `deadlight_barricade` / `deadlight_armory` / `deadlight_perk` blocks, Sergeant Vale + Sister Halley + Cobb the Armorer, 8 rounds |
+| Length | 8 rounds + boss; 7 objectives + 3 quests |
+| Effort | medium |
+
+**Verified**
+- [x] `deadlight_yard` prefab — 40×40 walled yard, 11×11 chapel, open nave with plank eaves, permanent south door, altar, graves, dead trees, campfire, four lantern posts
+- [x] Four windows × 9 boards (36 total); zombies spawn outside the window they attack, tear one board per swing (boss: three) and rush in once open
+- [x] Repair a whole breach at 4c per board (right-click / **R**), counts toward the repair objective
+- [x] Wall buys: Service Rifle + 30 rounds (120c, then 40c per 30); Juggernog 100c, Stamin-Up 80c, Quick Revive 120c, then golden apples 25c
+- [x] Rounds 1–7 field `4 + round × 3` undead (7 → 25) with walkers, skeletons, wisps and orc brutes; rewards `5 + round × 2` coins
+- [x] Round 8 is the boss round: 14 adds plus **The Gravewarden** (stone golem, 1.15× scale, 5× health, 3-board blows)
+- [x] Round-clear payout `20 + round × 6` coins + XP; victory 300c / 500 XP and a rematch action
+- [x] 7 objectives, 3 quests (Vale, Halley, Cobb), `deadlight_zombie_` save filtering
+- [x] Night launch fix — `preparingSession` guard keeps template `timeOfDay` (Deadlight 22.4) from being overwritten by the menu backdrop
+- [x] Headless QA suite (45 checks) + 27-template smoke test
+- [x] Runtime rebuild, commit, push
 
 ### ✅ Crumble — `crumble`
 
@@ -160,9 +190,9 @@ Ranked by value-to-effort. Effort is relative to the existing engine.
 | 2 | **Willow Creek** | Stardew Valley / Harvest Moon | Farm plots, crops, animals, villagers, shipping bin | `FarmSystem` | Day cycle, dialogue, quests, shops | high | ✅ |
 | 3 | **Hollowwatch** | Plants vs. Zombies / Bloons TD | Place and upgrade towers along lanes, 12 waves + boss | `HollowwatchSystem` (block placement + targeting) | Siege turrets/waves | medium | ✅ |
 | 4 | **Bannerfall** | TF2 / Overwatch | Bot teams, CTF + king of the hill, class kits | `MatchSystem` | Entity combat, HUD, objectives | high | 💤 |
-| 5 | **Deadlight** | CoD Zombies | Round-based zombies, barricades, buy weapons, boss round | `ZombiesSystem` | Wave spawner, economy, particles | medium | 💤 |
+| 5 | **Deadlight** | CoD Zombies | Round-based zombies, barricades, buy weapons, boss round | `DeadlightSystem` | Wave spawner, economy, particles | medium | ✅ |
 | 6 | **Crumble** | Spleef / Fall Guys | 3 quick rounds, collapsing floor, bots | `CrumbleSystem` | Royale elimination, arena prefabs | low | ✅ |
-| 7 | **Titan Trials** | Shadow of the Colossus / Cuphead | 3 phased bosses with arena hazards | `BossRushSystem` | Boss entities, arena FX, HUD | medium | 💤 |
+| 7 | **Titan Trials** | Shadow of the Colossus / Cuphead | 3 phased bosses with arena hazards | `BossRushSystem` | Boss entities, arena FX, HUD | medium | 🔜 |
 | 8 | **Skyhold** | Minecraft Bed Wars | Generators, bridges, destroy the enemy core | `BedwarsSystem` | Skyblock + siege | high | 💤 |
 | 9 | **Cogworks** | Factorio / Create | Drills, conveyors, smelters, quotas | Block-entity / logistics layer | Big engine addition | very high | 💤 |
 | 10 | **Gloop Ranch** | Slime Rancher / Pikmin | Catch, feed, breed and sell creatures | `RanchSystem` | Creatures, NPC quests, economy | high | 💤 |
@@ -175,8 +205,8 @@ Ranked by value-to-effort. Effort is relative to the existing engine.
 2. **Willow Creek** — shipped; validates long-form day systems, persistent counters and saves.
 3. **Hollowwatch** — shipped; validates player-placed towers, pad validation, upgrades and a shared gate pool.
 4. **Crumble** — shipped; validates 3D spleef tiles, shove physics, bot elimination and best-of-three flow.
-5. **Deadlight** — round-based horror, reuses waves + economy. (next)
-6. **Titan Trials** — boss-rush showcase for entity phases.
+5. **Deadlight** — shipped; validates round-based siege pacing, destructible barricades, wall buys and a boss round.
+6. **Titan Trials** — boss-rush showcase for entity phases. (next)
 7. **Bannerfall** — team AI and objective modes; biggest combat investment.
 8. **Skyhold** — needs generators + bridging + core destruction.
 9. **Gloop Ranch** — creature husbandry and economy.
@@ -199,6 +229,7 @@ Ranked by value-to-effort. Effort is relative to the existing engine.
 
 | Date | Change |
 |---|---|
+| 2026-11-11 | Deadlight (`deadlight`) shipped — 8-round chapel zombie siege with 4 boarded windows (36 boards), breach repairs, rifle/perk wall buys, the Gravewarden boss round, 3 quests and a night-launch fix for all night templates. |
 | 2026-11-09 | Crumble (`crumble`) shipped — 3-round best-of-three sky spleef with 947 cracking tiles, five rival bots, shove (**R**), stacked safety rings, skydeck and 2 quests. |
 | 2026-11-08 | Hollowwatch (`hollowwatch`) shipped — 12-wave tower defense with player-placed lantern/frost/mortar towers, Mk I–III upgrades, 16 rune pads, a 200 HP gate and the Hollow King. |
 | 2026-11-08 | Willow Creek (`farm`) shipped — day-cycle farm with 4 crops, 3 animal species, shipping bin, daily requests and sleep/save rollover. |

@@ -1,6 +1,7 @@
 import { block } from '../engine/world/Blocks';
 import type { VoxelWorld } from '../engine/world/VoxelWorld';
 import { CRUMBLE_TIERS, crumbleTileAt, crumbleTileKey } from './CrumbleLayout';
+import { DEADLIGHT_BREACHES } from './DeadlightLayout';
 
 /**
  * Deterministic block structures used by the game templates and the studio.
@@ -2763,6 +2764,139 @@ export const PREFABS: Prefab[] = [
         [-14, 20, 'tall_grass'], [14, 20, 'tall_grass'], [-10, 24, 'dead_bush'], [10, 24, 'dead_bush'],
       ] as Array<[number, number, string]>) {
         if (s.get(x, 0, z) === block('grass_block').id && s.get(x, 1, z) === 0) s.set(x, 1, z, key);
+      }
+    },
+  },
+  {
+    key: 'deadlight_yard', name: 'Deadlight Chapel',
+    description: 'A ruined chapel in a walled graveyard, lit by four lantern posts and a hanging moon. Four boarded windows are the only way in, and the yard is full of things that remember being alive.',
+    size: [44, 14, 44], tags: ['horror', 'survival', 'zombies', 'defense', 'night'], glyph: '🕯',
+    build(s) {
+      s.clear(-22, 0, -22, 22, 14, 22);
+
+      // Cold, patchy graveyard ground.
+      for (let z = -20; z <= 20; z++) {
+        for (let x = -20; x <= 20; x++) {
+          const n = (x * 31 + z * 17) & 15;
+          s.set(x, 0, z, n === 0 ? 'gravel' : n < 3 ? 'podzol' : n < 5 ? 'dirt_path' : 'grass_block');
+        }
+      }
+
+      // Outer wall with broken crenellations.
+      s.walls(-20, -20, 20, 20, 1, 3, 'mossy_stone_bricks');
+      for (let i = -20; i <= 20; i++) {
+        for (const [x, z] of [[i, -20], [i, 20], [-20, i], [20, i]]) {
+          if (((i * 5 + z * 3) & 7) === 0) s.set(x, 3, z, 'air');
+          if (((i * 3 + x * 5) & 3) === 0) s.set(x, 4, z, 'stone_bricks');
+          if (((i * 7 + z * 11) & 5) === 0) s.set(x, 1, z, 'cobblestone');
+        }
+      }
+
+      // Chapel shell.
+      s.fill(-5, 0, -5, 5, 0, 5, 'stone_bricks');
+      s.fill(-1, 0, 0, 1, 0, 4, 'wool_red');
+      s.walls(-5, -5, 5, 5, 1, 4, 'stone_bricks');
+      for (let y = 1; y <= 4; y++) {
+        for (let i = -5; i <= 5; i++) {
+          for (const [x, z] of [[i, -5], [i, 5], [-5, i], [5, i]]) {
+            if (Math.abs(x) === 5 && Math.abs(z) === 5) continue;
+            if (((x * 7 + z * 11 + y * 13) & 7) === 0) s.set(x, y, z, 'mossy_stone_bricks');
+            else if (((x * 5 + z * 3 + y * 7) & 11) === 0) s.set(x, y, z, 'cobblestone');
+          }
+        }
+      }
+
+      // A permanent doorway on the south wall, east of the window.
+      s.fill(3, 1, 5, 4, 2, 5, 'air');
+
+      // Carve the four window openings; boards go back in at the end.
+      for (const breach of DEADLIGHT_BREACHES) {
+        for (const board of breach.boards) s.set(board.x, board.y, board.z, 'air');
+      }
+
+      // Ruined roof: a plank eave around the nave, open to the moon above.
+      s.fill(-6, 5, -6, 6, 5, -4, 'spruce_planks');
+      s.fill(-6, 5, 4, 6, 5, 6, 'spruce_planks');
+      s.fill(-6, 5, -3, -4, 5, 3, 'spruce_planks');
+      s.fill(4, 5, -3, 6, 5, 3, 'spruce_planks');
+      for (const [x, z] of [[-5, -5], [5, -5], [-5, 5], [5, 5]]) s.set(x, 5, z, 'stone_bricks');
+      // Broken beams over the open nave.
+      for (const z of [-3, 0, 3]) {
+        s.set(-2, 5, z, 'spruce_log');
+        s.set(2, 5, z, 'spruce_log');
+      }
+      for (const [x, z] of [[-4, -4], [4, -4], [-4, 4], [4, 4]]) s.set(x, 4, z, 'glowstone');
+
+      // Interior: a small altar, two stations, crates and candles.
+      s.set(-3, 1, -3, 'quartz_block');
+      s.set(-3, 2, -3, 'glowstone');
+      s.set(3, 1, 2, 'deadlight_perk');
+      s.set(-3, 1, 2, 'deadlight_armory');
+      s.set(4, 1, 3, 'crate');
+      s.set(-4, 1, 4, 'barrel');
+      s.set(4, 1, 4, 'barrel');
+      for (const [x, z] of [[-4, -4], [4, -4], [-4, 4]]) s.set(x, 1, z, 'torch');
+
+      // Board every window.
+      for (const breach of DEADLIGHT_BREACHES) {
+        for (const board of breach.boards) s.set(board.x, board.y, board.z, 'deadlight_barricade');
+      }
+
+      // Gravel approach lanes from each window.
+      const lanes: Array<[number, number, number, number]> = [
+        [-1, -12, 1, -6], [-1, 6, 1, 12], [-12, -1, -6, 1], [6, -1, 12, 1],
+      ];
+      for (const [x0, z0, x1, z1] of lanes) {
+        for (let z = z0; z <= z1; z++) {
+          for (let x = x0; x <= x1; x++) {
+            if (s.get(x, 0, z) === block('grass_block').id || s.get(x, 0, z) === block('podzol').id) s.set(x, 0, z, 'gravel');
+          }
+        }
+      }
+
+      // Lantern posts at the chapel corners.
+      for (const [x, z] of [[-7, -7], [7, -7], [-7, 7], [7, 7]]) {
+        s.fill(x, 1, z, x, 3, z, 'spruce_log');
+        s.set(x, 4, z, 'glowstone');
+      }
+
+      // Gravestones, kept out of the approach lanes.
+      const graves: Array<[number, number]> = [
+        [-15, -11], [-12, -15], [-17, -5], [-10, -17], [-16, 10], [-13, 15],
+        [15, -12], [12, -16], [17, 5], [10, 17], [16, 11], [13, 16],
+      ];
+      for (const [x, z] of graves) {
+        s.set(x, 1, z, 'stone_bricks');
+        s.set(x, 2, z, 'quartz_block');
+        s.set(x + 1, 1, z, 'cobblestone');
+        if ((x + z) % 3 === 0) s.set(x, 1, z + 1, 'dead_bush');
+      }
+
+      // Dead trees.
+      for (const [x, z] of [[-16, 4], [16, -6], [-14, -17], [9, 16]]) {
+        for (let y = 1; y <= 4; y++) s.set(x, y, z, 'spruce_log');
+        s.set(x + 1, 3, z, 'spruce_log');
+        s.set(x, 3, z + 1, 'spruce_log');
+        s.set(x - 1, 2, z, 'spruce_log');
+        s.set(x, 1, z + 1, 'dead_bush');
+        s.set(x + 1, 1, z - 1, 'dead_bush');
+      }
+
+      // A cold campfire and scattered yard furniture.
+      s.set(-10, 0, 10, 'netherrack');
+      s.set(-10, 1, 10, 'magma');
+      s.set(-9, 0, 10, 'cobblestone');
+      s.set(-11, 0, 10, 'cobblestone');
+      for (const [x, z, key] of [[-11, -9, 'crate'], [11, 9, 'barrel'], [12, -9, 'crate'], [-12, 12, 'barrel']] as Array<[number, number, string]>) {
+        s.set(x, 1, z, key);
+      }
+
+      // Torches on the outer wall.
+      for (let i = -18; i <= 18; i += 6) {
+        s.set(i, 3, -19, 'torch');
+        s.set(i, 3, 19, 'torch');
+        s.set(-19, 3, i, 'torch');
+        s.set(19, 3, i, 'torch');
       }
     },
   },
