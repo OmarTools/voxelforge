@@ -3,7 +3,7 @@ import type { CameraMode } from '../engine/game/CameraModes';
 import type { ScriptProject } from '../engine/scripting/ScriptTypes';
 import type { SimSpec } from '../engine/game/sim/SimTypes';
 
-export type GameMode = 'creative' | 'survival' | 'skyblock' | 'parkour' | 'arena' | 'rpg' | 'horror' | 'dungeon' | 'racing' | 'army' | 'city' | 'platformer' | 'frostpeak' | 'dune' | 'skytemple' | 'kitchen' | 'shopkeep' | 'lucky' | 'royale' | 'siege' | 'bomber' | 'survivors' | 'farm' | 'hollowwatch' | 'crumble' | 'deadlight' | 'studio';
+export type GameMode = 'creative' | 'survival' | 'skyblock' | 'parkour' | 'arena' | 'rpg' | 'horror' | 'dungeon' | 'racing' | 'army' | 'city' | 'platformer' | 'frostpeak' | 'dune' | 'skytemple' | 'kitchen' | 'shopkeep' | 'lucky' | 'royale' | 'siege' | 'bomber' | 'survivors' | 'farm' | 'hollowwatch' | 'crumble' | 'deadlight' | 'titan' | 'studio';
 export type Difficulty = 'peaceful' | 'easy' | 'normal' | 'hard' | 'nightmare';
 export type ObjectiveKind = 'collect' | 'kill' | 'reach' | 'craft' | 'place' | 'talk' | 'survive' | 'wave' | 'serve' | 'sell' | 'restock' | 'earn' | 'open' | 'cook' | 'defend' | 'harvest' | 'tend';
 
@@ -2241,6 +2241,127 @@ onEvent('respawn', () => say('The night starts over. Board the windows and hold 
       { label: 'Windows', value: '4' },
       { label: 'Boss', value: 'Gravewarden' },
       { label: 'Perks', value: '3' },
+    ],
+  },
+  {
+    key: 'titan',
+    name: 'Titan Trials',
+    subtitle: 'Three titans. One forge.',
+    description: 'Three phased titans wait behind three summoning seals in a walled forge-colosseum. Learn the telegraphed slams, rockfalls, meteors and frost novas, spend coins at the anvil, hearth and obelisk between fights, then break the last seal and claim the forge.',
+    story: 'The forge was built to make weapons for a war that ended before the first blade cooled. Three titans were bound into its floor as a final test: the Iron Colossus, Cinderwing and Rimefang. Warden Kael keeps the gate, Oren keeps the anvil hot, and Seer Ilyra reads the seals. Every challenger gets the same bargain. Break all three titans and the forge is yours. Fail, and the forge keeps what is left of you.',
+    icon: '⚔',
+    accent: '#ff9a3c',
+    difficulty: 'hard',
+    tags: ['Boss Rush', 'Combat', 'Arena', 'Three Phases'],
+    preset: 'overworld',
+    heightMode: 'ground',
+    timeOfDay: 16.6,
+    weather: 'clear',
+    music: 'arena',
+    platform: { radius: 30, surface: 'stone', border: 'obsidian', clearHeight: 30 },
+    prefabs: [{ prefab: 'titan_forge', x: 0, z: 0 }],
+    spawn: [0, 15],
+    spawnYaw: 0,
+    fx: { post: 'desert' },
+    spawns: [
+      {
+        entity: 'human:knight_royal', offset: [-6, 0, 11], name: 'Warden Kael', id: 'kael', questId: 'first_seal', behavior: 'stationary',
+        dialogue: 'Three seals, three titans. The Colossus breaks the floor, Cinderwing burns it, and Rimefang freezes what is left. Begin when you are ready; the gate will not open twice. Between fights, spend what you earn at the anvil, the hearth and the obelisk. They are the only mercy in this arena.',
+      },
+      {
+        entity: 'human:dwarf_smith', offset: [7, 0, 15], name: 'Oren the Anvil', id: 'oren', questId: 'forge_heart', behavior: 'stationary',
+        dialogue: 'Diamond steel is ninety coins, once. After that the anvil spits arrows for twelve. The hearth will put you back together for twenty-five, and the obelisk sells a heart that makes you harder to kill. I do not haggle. The titans do not either.',
+      },
+      {
+        entity: 'human:priest_light', offset: [-7, 0, 15], name: 'Seer Ilyra', id: 'ilyra', questId: 'last_seal', behavior: 'stationary',
+        dialogue: 'The seals are not doors. They are wounds. Each titan you break makes the next one angrier, and the last one will drag the winter up through the stone. Watch the floor, not the sky. When the ring glows, move. When the floor turns white, keep moving.',
+      },
+    ],
+    objectives: [
+      { id: 'kael', title: 'Speak with Warden Kael', kind: 'talk', target: 'kael', count: 1 },
+      { id: 'titan1', title: 'Defeat the Iron Colossus', kind: 'defend', target: 'titan1', count: 1 },
+      { id: 'titan2', title: 'Defeat Cinderwing', kind: 'defend', target: 'titan2', count: 1 },
+      { id: 'titan3', title: 'Defeat Rimefang', kind: 'defend', target: 'titan3', count: 1 },
+      { id: 'stations', title: 'Use the forge stations twice', kind: 'defend', target: 'anvil', count: 2 },
+      { id: 'match', title: 'Complete the Titan Trials', kind: 'defend', target: 'match', count: 1 },
+    ],
+    quests: [
+      {
+        id: 'first_seal',
+        title: 'The First Seal',
+        giver: 'Kael',
+        summary: 'Kael wants the Iron Colossus broken and one forge station used. He says the first titan teaches challengers whether they should have come at all.',
+        objectives: [
+          { id: 'q-titan1', title: 'Defeat the Iron Colossus', kind: 'defend', target: 'titan1', count: 1 },
+          { id: 'q-station', title: 'Use a forge station', kind: 'defend', target: 'anvil', count: 1 },
+        ],
+        reward: { xp: 180, items: [{ item: 'golden_apple', count: 2 }, { item: 'arrow', count: 32 }], coins: 60 },
+      },
+      {
+        id: 'forge_heart',
+        title: 'Forge Heart',
+        giver: 'Oren',
+        summary: 'Oren will part with his best steel once Cinderwing is down and two stations have been paid for. He calls it an investment, not a reward.',
+        objectives: [
+          { id: 'q-titan2', title: 'Defeat Cinderwing', kind: 'defend', target: 'titan2', count: 1 },
+          { id: 'q-stations', title: 'Use forge stations twice', kind: 'defend', target: 'anvil', count: 2 },
+        ],
+        reward: { xp: 260, items: [{ item: 'golden_apple', count: 2 }, { item: 'arrow', count: 48 }], coins: 90 },
+      },
+      {
+        id: 'last_seal',
+        title: 'The Last Seal',
+        giver: 'Ilyra',
+        summary: 'Ilyra has read the last seal a hundred times. Break Rimefang, finish the trial, and she will give you what the forge owed the war.',
+        objectives: [
+          { id: 'q-titan3', title: 'Defeat Rimefang', kind: 'defend', target: 'titan3', count: 1 },
+          { id: 'q-match', title: 'Complete the Titan Trials', kind: 'defend', target: 'match', count: 1 },
+        ],
+        reward: { xp: 700, items: [{ item: 'golden_apple', count: 4 }, { item: 'arrow', count: 64 }], coins: 180 },
+      },
+    ],
+    waves: [],
+    checkpoints: [
+      { offset: [0, 1, 15], radius: 6, label: 'Forge Gate' },
+    ],
+    startingItems: [
+      { item: 'iron_sword', count: 1 },
+      { item: 'bow', count: 1 },
+      { item: 'arrow', count: 64 },
+      { item: 'golden_apple', count: 4 },
+      { item: 'bread', count: 3 },
+      { item: 'torch', count: 6 },
+      { item: 'coin', count: 80 },
+    ],
+    hotbar: ['iron_sword', 'bow', 'arrow', 'golden_apple', 'bread', 'torch'],
+    sim: {
+      kind: 'titan',
+      center: { x: 0, z: 0 },
+    },
+    rules: {
+      ...BASE_RULES,
+      keepInventory: true,
+      mobSpawning: false,
+      hunger: false,
+      naturalRegen: false,
+      dayCycle: false,
+      fallDamage: false,
+      blockBreaking: false,
+      blockPlacing: false,
+      dropItems: false,
+      pvp: false,
+    },
+    scripts: templateScript(`onStart(() => {
+  camera('first');
+  say('Three titans hold the forge. Kael opens the trial. Oren, the hearth and the obelisk sell upgrades between fights. Press R to begin.', 'warn');
+});
+onEvent('respawn', () => say('The forge remembers. Challenge the current titan again.', 'warn'));
+`),
+    stats: [
+      { label: 'Titans', value: '3' },
+      { label: 'Phases', value: '9' },
+      { label: 'Stations', value: '3' },
+      { label: 'Seals', value: '3' },
     ],
   },
 ];

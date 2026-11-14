@@ -38,12 +38,40 @@ Keep this file updated when a template ships or the roadmap changes.
 | 25 | Hollowwatch | `hollowwatch` | `hollowwatch` | 12-wave tower defense: 3 tower types, 16 pads, rune gate, Hollow King |
 | 26 | Crumble | `crumble` | `crumble` | 3-round sky spleef: cracking tiles, 5 bots, shove, best-of-three |
 | 27 | Deadlight | `deadlight` | `deadlight` | 8-round chapel zombie siege: barricades, wall buys, perks, the Gravewarden |
+| 28 | Titan Trials | `titan` | `titan` | Three phased titans, arena hazards, forge upgrades between fights |
 
-Current total: **27 templates**.
+Current total: **28 templates**.
 
 ---
 
 ## Recently shipped
+
+### ✅ Titan Trials — `titan`
+
+**Pitch:** Three titans wait behind three summoning seals in a walled forge-colosseum.
+Learn the telegraphed slams, rockfalls, meteors and frost novas, spend coins at the anvil,
+hearth and obelisk between fights, then break the last seal and claim the forge.
+
+| | |
+|---|---|
+| Inspired by | Shadow of the Colossus / Cuphead boss rush |
+| Core loop | Talk to Kael → begin the trial → dodge telegraphed hazards → break the titan at 66% / 33% → spend coins at three stations → next seal → win → rematch |
+| New system | `TitanSystem` (boss phases, element specials, hazard telegraphs, adds, station economy, boss-rush flow) |
+| Reuses | Boss entities, wave banners, particles, HUD actions, objectives, quests, saves, forge blocks |
+| Content | `titan_forge` prefab (circular colosseum, five floor rings, eight pillars, south forge gate, three stations, three seals, 17-block titan statue + mountain niche), `titan_anvil` / `titan_hearth` / `titan_obelisk` blocks, Warden Kael + Oren the Anvil + Seer Ilyra, 3 titans |
+| Length | 3 titans × 3 phases; 6 objectives + 3 quests |
+| Effort | high |
+
+**Verified**
+- [x] `titan_forge` prefab — radius-21 colosseum with obsidian/gold/magma/netherrack/ice rings, 8 pillars, south gate, three forge stations, three elemental seals, brazier lights and a 17-block statue in a carved mountain niche
+- [x] Three station blocks with right-click economy: anvil (Diamond Sword 90c once, then 32 arrows/12c), hearth (full heal + 2 golden apples/25c), obelisk (Titan Heart +6 max HP/70c, Swiftstep +8%/55c, then apples/15c)
+- [x] **Iron Colossus** (365 HP, stone golem), **Cinderwing** (416 HP, ember dragon), **Rimefang** (498 HP, frost dragon) with enlarged readable scale
+- [x] Three phases each at 66% / 33%: banner, expanding shockwave, two adds, plus rockfalls / meteors / ice patches and a frost nova
+- [x] Telegraphed thin-ring hazards in saturated per-element colors, boss bolts, chill slow, god-mode-safe QA paths
+- [x] Boss-rush flow `intro → fight → break → repeat → won`, player-triggered begin/next, rematch preserves gear and permanent upgrades
+- [x] 6 objectives, 3 quests (Kael, Oren, Ilyra), `titan_` save filtering, forge lights cleaned up on dispose
+- [x] Headless QA suite + 28-template smoke test on the enhanced lighting engine
+- [x] Runtime rebuild, commit, push
 
 ### ✅ Deadlight — `deadlight`
 
@@ -192,7 +220,7 @@ Ranked by value-to-effort. Effort is relative to the existing engine.
 | 4 | **Bannerfall** | TF2 / Overwatch | Bot teams, CTF + king of the hill, class kits | `MatchSystem` | Entity combat, HUD, objectives | high | 💤 |
 | 5 | **Deadlight** | CoD Zombies | Round-based zombies, barricades, buy weapons, boss round | `DeadlightSystem` | Wave spawner, economy, particles | medium | ✅ |
 | 6 | **Crumble** | Spleef / Fall Guys | 3 quick rounds, collapsing floor, bots | `CrumbleSystem` | Royale elimination, arena prefabs | low | ✅ |
-| 7 | **Titan Trials** | Shadow of the Colossus / Cuphead | 3 phased bosses with arena hazards | `BossRushSystem` | Boss entities, arena FX, HUD | medium | 🔜 |
+| 7 | **Titan Trials** | Shadow of the Colossus / Cuphead | 3 phased bosses with arena hazards | `TitanSystem` | Boss entities, arena FX, HUD | medium | ✅ |
 | 8 | **Skyhold** | Minecraft Bed Wars | Generators, bridges, destroy the enemy core | `BedwarsSystem` | Skyblock + siege | high | 💤 |
 | 9 | **Cogworks** | Factorio / Create | Drills, conveyors, smelters, quotas | Block-entity / logistics layer | Big engine addition | very high | 💤 |
 | 10 | **Gloop Ranch** | Slime Rancher / Pikmin | Catch, feed, breed and sell creatures | `RanchSystem` | Creatures, NPC quests, economy | high | 💤 |
@@ -206,7 +234,7 @@ Ranked by value-to-effort. Effort is relative to the existing engine.
 3. **Hollowwatch** — shipped; validates player-placed towers, pad validation, upgrades and a shared gate pool.
 4. **Crumble** — shipped; validates 3D spleef tiles, shove physics, bot elimination and best-of-three flow.
 5. **Deadlight** — shipped; validates round-based siege pacing, destructible barricades, wall buys and a boss round.
-6. **Titan Trials** — boss-rush showcase for entity phases. (next)
+6. **Titan Trials** — shipped; validates multi-phase bosses, telegraphed hazards, adds and a between-fight upgrade economy.
 7. **Bannerfall** — team AI and objective modes; biggest combat investment.
 8. **Skyhold** — needs generators + bridging + core destruction.
 9. **Gloop Ranch** — creature husbandry and economy.
@@ -219,6 +247,7 @@ Ranked by value-to-effort. Effort is relative to the existing engine.
 | Timed spawn director | `RoyaleSystem`, `SiegeSystem` | Extract a `SpawnDirector` helper by the third user |
 | Upgrade choice | `SurvivorsSystem` | Reuse for roguelike modifiers in other modes |
 | Tower placement + targeting | `HollowwatchSystem`, `SiegeSystem` | Generalised block towers; reuse for future defense modes |
+| Multi-phase boss + telegraphs | `TitanSystem` | Reuse phased health gates, hazard rings and add waves for future bosses |
 | Round/elimination flow | `RoyaleSystem`, `BomberSystem`, `CrumbleSystem` | Shared `MatchFlow` for Bannerfall |
 | Economy + shop UI | `StoreSystem` | Deadlight, Willow Creek, Gloop Ranch |
 | Day cycle + sleep/save rollover | `FarmSystem`, `Sky` | Reuse for any day-based survival or town mode |
@@ -229,6 +258,7 @@ Ranked by value-to-effort. Effort is relative to the existing engine.
 
 | Date | Change |
 |---|---|
+| 2026-11-14 | Titan Trials (`titan`) shipped — radius-21 forge-colosseum, three phased titans (Iron Colossus 365 HP, Cinderwing 416 HP, Rimefang 498 HP), 66%/33% phase breaks, rockfall/meteor/frost hazards, three-station upgrade economy, 6 objectives, 3 quests, rematch flow. Enhanced lighting engine merged (real sky/block light, smooth vertex lighting, mesher perf) with lighting/world tests. |
 | 2026-11-11 | Deadlight (`deadlight`) shipped — 8-round chapel zombie siege with 4 boarded windows (36 boards), breach repairs, rifle/perk wall buys, the Gravewarden boss round, 3 quests and a night-launch fix for all night templates. |
 | 2026-11-09 | Crumble (`crumble`) shipped — 3-round best-of-three sky spleef with 947 cracking tiles, five rival bots, shove (**R**), stacked safety rings, skydeck and 2 quests. |
 | 2026-11-08 | Hollowwatch (`hollowwatch`) shipped — 12-wave tower defense with player-placed lantern/frost/mortar towers, Mk I–III upgrades, 16 rune pads, a 200 HP gate and the Hollow King. |

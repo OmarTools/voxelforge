@@ -2,6 +2,7 @@ import { block } from '../engine/world/Blocks';
 import type { VoxelWorld } from '../engine/world/VoxelWorld';
 import { CRUMBLE_TIERS, crumbleTileAt, crumbleTileKey } from './CrumbleLayout';
 import { DEADLIGHT_BREACHES } from './DeadlightLayout';
+import { TITAN_SEALS, TITAN_STATIONS } from './TitanLayout';
 
 /**
  * Deterministic block structures used by the game templates and the studio.
@@ -3039,6 +3040,164 @@ export const PREFABS: Prefab[] = [
 
       // Hanging crystal under the lowest ring.
       s.set(0, -4, 0, 'crystal_block');
+    },
+  },
+  {
+    key: 'titan_forge', name: 'Titan Forge Colosseum',
+    description: 'A walled forge-arena of obsidian, magma and ice, ringed by pillars with three summoning seals and a south forge gate.',
+    size: [48, 20, 60], tags: ['arena', 'boss', 'titan', 'forge', 'combat'], glyph: '⚔',
+    build(s) {
+      const R = 21;
+      const disk = (cx: number, cz: number, radius: number, fn: (x: number, z: number) => string | null) => {
+        const r = Math.ceil(radius);
+        for (let z = -r; z <= r; z++) {
+          for (let x = -r; x <= r; x++) {
+            if (Math.hypot(x, z) > radius) continue;
+            const key = fn(x, z);
+            if (key) s.set(cx + x, 0, cz + z, key);
+          }
+        }
+      };
+
+      // The forge floor: obsidian core, gold inlays, magma, netherrack and ice rings.
+      disk(0, 0, R, (_x, _z) => {
+        const d = Math.hypot(_x, _z);
+        if (d <= 5) return 'obsidian';
+        if (d <= 6) return 'gold_block';
+        if (d <= 11) return 'magma';
+        if (d <= 12) return 'gold_block';
+        if (d <= 17) return 'netherrack';
+        if (d <= 18) return 'gold_block';
+        return 'ice';
+      });
+
+      // Gold rays and an eye sigil across the obsidian core.
+      for (let i = -4; i <= 4; i++) {
+        if (Math.abs(i) > 1) s.set(i, 0, 0, 'gold_block');
+        if (Math.abs(i) > 1) s.set(0, 0, i, 'gold_block');
+      }
+      for (const [sx, sz] of [[-3, -3], [3, -3], [-3, 3], [3, 3]]) s.set(sx, 0, sz, 'gold_block');
+      s.set(-1, 0, -1, 'rune_block');
+      s.set(1, 0, -1, 'rune_block');
+      s.set(-1, 0, 1, 'rune_block');
+      s.set(1, 0, 1, 'rune_block');
+
+      // Outer wall with a crenellated crown and a south gate.
+      for (let z = -R - 2; z <= R + 2; z++) {
+        for (let x = -R - 2; x <= R + 2; x++) {
+          const d = Math.hypot(x, z);
+          if (d < 20.4 || d > 22.2) continue;
+          const gate = z > 18 && Math.abs(x) <= 4;
+          if (gate) continue;
+          for (let y = 1; y <= 5; y++) {
+            if (y <= 2) s.set(x, y, z, 'obsidian');
+            else if (y === 3) s.set(x, y, z, 'gold_block');
+            else s.set(x, y, z, 'stone_bricks');
+          }
+          const angle = Math.atan2(z, x);
+          if ((Math.round((angle / Math.PI) * 9) & 1) === 0 && d < 21.6) s.set(x, 6, z, 'obsidian');
+        }
+      }
+
+      // South gate: columns, lintel and a gold crest.
+      for (const x of [-6, -5, 5, 6]) {
+        for (let z = 19; z <= 22; z++) {
+          for (let y = 1; y <= 5; y++) s.set(x, y, z, y === 3 ? 'gold_block' : 'obsidian');
+        }
+        s.set(x, 6, 20, 'glowstone');
+      }
+      for (let x = -6; x <= 6; x++) {
+        for (let z = 20; z <= 21; z++) {
+          s.set(x, 6, z, 'stone_bricks');
+          if (Math.abs(x) <= 2) s.set(x, 7, z, 'gold_block');
+        }
+      }
+      s.set(0, 8, 20, 'titan_obelisk');
+      s.set(-1, 8, 20, 'glowstone');
+      s.set(1, 8, 20, 'glowstone');
+      // Threshold steps through the gate.
+      for (let x = -4; x <= 4; x++) s.set(x, 0, 22, 'gold_block');
+
+      // Eight obsidian pillars with glowstone fire bowls.
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
+        const px = Math.round(Math.cos(a) * 18);
+        const pz = Math.round(Math.sin(a) * 18);
+        for (const [ox, oz] of [[0, 0], [1, 0], [0, 1], [1, 1]]) s.set(px + ox, 0, pz + oz, 'obsidian');
+        s.fill(px, 1, pz, px + 1, 4, pz + 1, 'obsidian');
+        s.fill(px, 5, pz, px + 1, 5, pz + 1, 'glowstone');
+        s.set(px, 6, pz, 'gold_block');
+        s.set(px + 1, 6, pz, 'gold_block');
+        s.set(px, 6, pz + 1, 'gold_block');
+        s.set(px + 1, 6, pz + 1, 'gold_block');
+      }
+
+      // The three summoning seals.
+      for (const seal of TITAN_SEALS) {
+        disk(seal.x, seal.z, 4.4, (_x, _z) => {
+          const d = Math.hypot(_x, _z);
+          if (d > 3.4 && d <= 4.4) return seal.ring;
+          if (d <= 1.25) return seal.core;
+          return null;
+        });
+        // Crossed elemental marks radiating from the seal core.
+        for (let i = 2; i <= 3; i++) {
+          s.set(seal.x + i, 0, seal.z, seal.ring);
+          s.set(seal.x - i, 0, seal.z, seal.ring);
+          s.set(seal.x, 0, seal.z + i, seal.ring);
+          s.set(seal.x, 0, seal.z - i, seal.ring);
+        }
+        for (const [dx, dz] of [[-2, -2], [2, -2], [-2, 2], [2, 2]]) {
+          s.set(seal.x + dx, 0, seal.z + dz, seal.ring);
+        }
+        // A single glowing rune at each compass point outside the ring.
+        s.set(seal.x + 5, 0, seal.z, 'glowstone');
+        s.set(seal.x - 5, 0, seal.z, 'glowstone');
+        s.set(seal.x, 0, seal.z + 5, 'glowstone');
+        s.set(seal.x, 0, seal.z - 5, 'glowstone');
+      }
+
+      // Forge stations on a raised gold dais.
+      for (const station of [TITAN_STATIONS.anvil, TITAN_STATIONS.hearth, TITAN_STATIONS.obelisk]) {
+        for (let dz = -1; dz <= 1; dz++) {
+          for (let dx = -1; dx <= 1; dx++) s.set(station.x + dx, 0, station.z + dz, 'gold_block');
+        }
+        s.set(station.x, 1, station.z, station.key);
+        if (station.key === 'titan_hearth') {
+          s.set(station.x - 1, 1, station.z - 1, 'obsidian');
+          s.set(station.x + 1, 1, station.z - 1, 'obsidian');
+          s.torch(station.x - 1, 2, station.z - 1);
+          s.torch(station.x + 1, 2, station.z - 1);
+        }
+      }
+
+      // Brazier posts flanking the gate and the arena's east/west flanks.
+      for (const [bx, bz] of [[-8, 18], [8, 18], [-14, 0], [14, 0], [-13, -13], [13, -13]]) {
+        s.set(bx, 1, bz, 'obsidian');
+        s.set(bx, 2, bz, 'glowstone');
+        s.torch(bx, 3, bz);
+      }
+
+      // The titan statue watching from beyond the north wall.
+      // Carve a niche out of the mountainside so the monument reads cleanly.
+      s.clear(-8, 1, -30, 8, 19, -22);
+      s.fill(-5, 0, -29, 5, 1, -20, 'stone_bricks');
+      s.fill(-4, 1, -28, 4, 1, -21, 'cobblestone');
+      for (const lx of [-2, 1]) s.fill(lx, 2, -26, lx + 1, 6, -23, 'stone_bricks');
+      s.fill(-3, 7, -27, 3, 12, -22, 'stone_bricks');
+      s.fill(-4, 12, -25, 4, 12, -24, 'cobblestone');
+      s.fill(-4, 8, -25, -4, 11, -23, 'cobblestone');
+      s.fill(4, 8, -25, 4, 11, -23, 'cobblestone');
+      s.fill(-1, 13, -26, 1, 15, -23, 'stone_bricks');
+      s.set(-1, 14, -23, 'glowstone');
+      s.set(1, 14, -23, 'glowstone');
+      s.set(0, 16, -24, 'gold_block');
+      s.set(-1, 16, -24, 'gold_block');
+      s.set(1, 16, -24, 'gold_block');
+      // A stone blade planted at the statue's feet.
+      s.fill(6, 1, -25, 6, 13, -24, 'obsidian');
+      s.fill(5, 1, -24, 7, 1, -24, 'gold_block');
+      s.set(6, 14, -24, 'glowstone');
     },
   },
 ];

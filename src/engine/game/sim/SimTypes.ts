@@ -11,8 +11,9 @@ import { FarmSystem } from './FarmSystem';
 import { HollowwatchSystem } from './HollowwatchSystem';
 import { CrumbleSystem } from './CrumbleSystem';
 import { DeadlightSystem } from './DeadlightSystem';
+import { TitanSystem } from './TitanSystem';
 
-export type SimKind = 'cooking' | 'store' | 'lucky' | 'royale' | 'siege' | 'bomber' | 'survivors' | 'farm' | 'hollowwatch' | 'crumble' | 'deadlight';
+export type SimKind = 'cooking' | 'store' | 'lucky' | 'royale' | 'siege' | 'bomber' | 'survivors' | 'farm' | 'hollowwatch' | 'crumble' | 'deadlight' | 'titan';
 
 export interface SimSpot {
   x: number;
@@ -98,5 +99,6 @@ export function createSim(spec: SimSpec, game: Game): SimSystem {
   if (spec.kind === 'hollowwatch') return new HollowwatchSystem(spec, game);
   if (spec.kind === 'crumble') return new CrumbleSystem(spec, game);
   if (spec.kind === 'deadlight') return new DeadlightSystem(spec, game);
+  if (spec.kind === 'titan') return new TitanSystem(spec, game);
   return new LuckySystem(spec, game);
 }

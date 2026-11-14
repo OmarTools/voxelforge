@@ -1500,6 +1500,79 @@ export function drawTile(name: string): HTMLCanvasElement {
       px(ctx, 13, 4, '#b3a084', 1, 1);
       break;
 
+    case 'titan_anvil':
+      paintBase(ctx, rand, '#3c444d', 6);
+      px(ctx, 0, 0, '#20252b', TILE, 1);
+      px(ctx, 0, 15, '#20252b', TILE, 1);
+      px(ctx, 0, 0, '#20252b', 1, TILE);
+      px(ctx, 15, 0, '#20252b', 1, TILE);
+      // Stone plinth.
+      px(ctx, 2, 12, '#596471', 12, 3);
+      px(ctx, 3, 12, '#75818f', 10, 1);
+      // Anvil body with horn.
+      px(ctx, 4, 5, '#8d99a6', 7, 6);
+      px(ctx, 4, 5, '#b5c0ca', 7, 1);
+      px(ctx, 11, 6, '#7c8794', 3, 2);
+      px(ctx, 14, 6, '#a5b0bb', 1, 1);
+      px(ctx, 6, 4, '#6d7883', 3, 1);
+      // Glowing forge seam.
+      px(ctx, 5, 8, '#ffb457', 5, 1);
+      px(ctx, 7, 8, '#fff0bb', 1, 1);
+      // Gold banding.
+      px(ctx, 3, 11, '#e0b25a', 10, 1);
+      px(ctx, 2, 2, '#b98b3a', 2, 1);
+      px(ctx, 12, 2, '#b98b3a', 2, 1);
+      speckle(ctx, rand, ['#2c333a', '#59636e'], 6, 1);
+      break;
+    case 'titan_hearth':
+      paintBase(ctx, rand, '#615449', 6);
+      px(ctx, 0, 0, '#332b25', TILE, 1);
+      px(ctx, 0, 15, '#332b25', TILE, 1);
+      px(ctx, 0, 0, '#332b25', 1, TILE);
+      px(ctx, 15, 0, '#332b25', 1, TILE);
+      // Stone arch.
+      px(ctx, 1, 1, '#786855', 14, 14);
+      px(ctx, 2, 2, '#4a3d32', 12, 11);
+      px(ctx, 4, 4, '#241d18', 8, 9);
+      // Fire.
+      px(ctx, 5, 9, '#ff7a2e', 6, 4);
+      px(ctx, 6, 7, '#ffab3d', 4, 6);
+      px(ctx, 7, 6, '#ffe08a', 2, 7);
+      px(ctx, 5, 11, '#c9451d', 2, 2);
+      px(ctx, 10, 11, '#c9451d', 2, 2);
+      // Embers and gold trim.
+      px(ctx, 5, 5, '#ffcf6a', 1, 1);
+      px(ctx, 10, 6, '#ffcf6a', 1, 1);
+      px(ctx, 2, 13, '#d9a04a', 12, 1);
+      px(ctx, 2, 1, '#8d7148', 3, 1);
+      px(ctx, 11, 1, '#8d7148', 3, 1);
+      speckle(ctx, rand, ['#4f4237', '#86735c'], 6, 1);
+      break;
+    case 'titan_obelisk':
+      paintBase(ctx, rand, '#332b52', 6);
+      px(ctx, 0, 0, '#1b1630', TILE, 1);
+      px(ctx, 0, 15, '#1b1630', TILE, 1);
+      px(ctx, 0, 0, '#1b1630', 1, TILE);
+      px(ctx, 15, 0, '#1b1630', 1, TILE);
+      // Stepped stone body.
+      px(ctx, 4, 2, '#493d6d', 8, 13);
+      px(ctx, 3, 2, '#3a3059', 10, 2);
+      px(ctx, 4, 14, '#5b4d84', 8, 1);
+      px(ctx, 5, 1, '#2a2343', 6, 1);
+      // Glowing rune column.
+      px(ctx, 7, 3, '#b48cff', 2, 11);
+      px(ctx, 6, 6, '#8ff4e6', 4, 1);
+      px(ctx, 6, 9, '#8ff4e6', 4, 1);
+      px(ctx, 7, 5, '#e2d4ff', 1, 1);
+      px(ctx, 8, 8, '#e2d4ff', 1, 1);
+      px(ctx, 7, 12, '#e2d4ff', 1, 1);
+      // Floating shard glints.
+      px(ctx, 3, 8, '#7fe5ff', 1, 2);
+      px(ctx, 12, 5, '#7fe5ff', 1, 2);
+      px(ctx, 12, 11, '#b48cff', 1, 1);
+      speckle(ctx, rand, ['#282143', '#4f4378'], 6, 1);
+      break;
+
     case 'missing':
     default: {
       for (let y = 0; y < TILE; y += 4) {
