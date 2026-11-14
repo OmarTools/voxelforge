@@ -377,6 +377,22 @@ cube('crumble_cracked', 'Cracked Tile', 'special', 'crumble_cracked', {
   description: 'A floor tile on its last legs. Move.',
 });
 
+/* ------------------------------------------------------------------ */
+/*  TITAN TRIALS FORGE                                                */
+/* ------------------------------------------------------------------ */
+cube('titan_anvil', 'Titan Anvil', 'special', 'titan_anvil', {
+  color: '#6f7a84', hardness: 9999, breakable: false, sound: 'metal', drop: 'none', unlisted: true, light: 3,
+  description: 'A colossal anvil humming with old heat. Right-click to buy titan-slaying steel.',
+});
+cube('titan_hearth', 'Trial Hearth', 'special', 'titan_hearth', {
+  color: '#c96a2e', hardness: 9999, breakable: false, sound: 'stone', drop: 'none', unlisted: true, light: 12,
+  description: 'The arena hearth. Right-click to rest, heal, and stock up on golden apples.',
+});
+cube('titan_obelisk', 'Titan Obelisk', 'special', 'titan_obelisk', {
+  color: '#5a4f8a', hardness: 9999, breakable: false, sound: 'stone', drop: 'none', unlisted: true, light: 9,
+  description: 'A rune-carved obelisk that trades coins for permanent strength.',
+});
+
 export const BLOCKS: BlockDef[] = defs.map((d, i) => ({ ...d, id: i } as BlockDef));
 export const AIR = BLOCKS[0];
 export const BLOCK_BY_KEY = new Map(BLOCKS.map((b) => [b.key, b]));
@@ -392,20 +408,46 @@ export function blockById(id: number): BlockDef {
   return BLOCK_BY_ID.get(id) ?? AIR;
 }
 
+/**
+ * Flat lookup tables indexed by block id. The block registry is static (ids are
+ * dense 0..n-1), so the hot paths (meshing, lighting, physics, raycasts) read
+ * these typed arrays instead of doing a Map lookup per voxel.
+ */
+const TABLE_SIZE = BLOCKS.length;
+export const OPAQUE_TABLE = new Uint8Array(TABLE_SIZE);
+export const SOLID_TABLE = new Uint8Array(TABLE_SIZE);
+/** 0 = cube, 1 = cross (plants), 2 = liquid. */
+export const RENDER_TABLE = new Uint8Array(TABLE_SIZE);
+export const RENDER_CUBE = 0;
+export const RENDER_CROSS = 1;
+export const RENDER_LIQUID = 2;
+/** Light emitted by each block, clamped to 0..15. */
+export const EMIT_TABLE = new Uint8Array(TABLE_SIZE);
+for (const b of BLOCKS) {
+  OPAQUE_TABLE[b.id] = b.opaque ? 1 : 0;
+  SOLID_TABLE[b.id] = b.solid ? 1 : 0;
+  RENDER_TABLE[b.id] = b.render === 'cross' ? RENDER_CROSS : b.render === 'liquid' ? RENDER_LIQUID : RENDER_CUBE;
+  EMIT_TABLE[b.id] = Math.max(0, Math.min(15, Math.floor(b.light || 0)));
+}
+
 export function isSolidId(id: number): boolean {
-  return BLOCK_BY_ID.get(id)?.solid ?? false;
+  return id >= 0 && id < TABLE_SIZE && SOLID_TABLE[id] === 1;
 }
 export function isOpaqueId(id: number): boolean {
-  return BLOCK_BY_ID.get(id)?.opaque ?? false;
+  return id >= 0 && id < TABLE_SIZE && OPAQUE_TABLE[id] === 1;
 }
 export function isLiquidId(id: number): boolean {
-  return (BLOCK_BY_ID.get(id)?.render ?? 'cube') === 'liquid';
+  return id >= 0 && id < TABLE_SIZE && RENDER_TABLE[id] === RENDER_LIQUID;
 }
 export function isCrossId(id: number): boolean {
-  return (BLOCK_BY_ID.get(id)?.render ?? 'cube') === 'cross';
+  return id >= 0 && id < TABLE_SIZE && RENDER_TABLE[id] === RENDER_CROSS;
 }
 export function isTransparentId(id: number): boolean {
-  return !(BLOCK_BY_ID.get(id)?.opaque ?? false);
+  return !isOpaqueId(id);
+}
+/** Light (0..15) emitted by a block id. */
+export function emissionOf(id: number): number {
+  return id >= 0 && id < TABLE_SIZE ? EMIT_TABLE[id] : 0;
 }
 
 export const BLOCK_CATEGORIES: Array<{ id: string; label: string; icon: string }> = [

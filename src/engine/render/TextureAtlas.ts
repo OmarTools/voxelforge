@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { BLOCKS, BLOCK_BY_KEY, collectTileNames, type BlockDef } from '../world/Blocks';
 import { drawTile, TILE_SIZE } from './BlockTextureArt';
+import { applyWorldLighting } from './WorldLight';
 
 export interface UVRect { u0: number; v0: number; u1: number; v1: number }
 
@@ -68,18 +69,18 @@ export class TextureAtlas {
     this.texture.needsUpdate = true;
 
     this.materials = {
-      opaque: new THREE.MeshLambertMaterial({ map: this.texture, vertexColors: true }),
-      cutout: new THREE.MeshLambertMaterial({
+      opaque: applyWorldLighting(new THREE.MeshLambertMaterial({ map: this.texture, vertexColors: true })),
+      cutout: applyWorldLighting(new THREE.MeshLambertMaterial({
         map: this.texture, vertexColors: true, transparent: true, alphaTest: 0.02,
         depthWrite: false, side: THREE.DoubleSide,
-      }),
-      liquid: new THREE.MeshLambertMaterial({
+      })),
+      liquid: applyWorldLighting(new THREE.MeshLambertMaterial({
         map: this.texture, vertexColors: true, transparent: true, opacity: 0.76,
         depthWrite: false, side: THREE.DoubleSide,
-      }),
-      plant: new THREE.MeshLambertMaterial({
+      })),
+      plant: applyWorldLighting(new THREE.MeshLambertMaterial({
         map: this.texture, vertexColors: true, alphaTest: 0.42, side: THREE.DoubleSide,
-      }),
+      })),
     };
   }
 

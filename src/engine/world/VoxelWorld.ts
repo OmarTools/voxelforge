@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { BLOCK_BY_ID, block, isOpaqueId, isSolidId } from './Blocks';
-import { Chunk, CHUNK_SIZE, WORLD_HEIGHT, chunkIndex, chunkKey } from './Chunk';
+import { Chunk, CHUNK_SIZE, WORLD_HEIGHT, chunkIndex, chunkKey, chunkKeyNum } from './Chunk';
 import { TerrainGenerator, type WorldPresetKey } from './TerrainGenerator';
 import { buildChunkMesh } from './ChunkMesher';
+import { LightEngine, type LightWorld } from './Lighting';
 import type { TextureAtlas } from '../render/TextureAtlas';
 
 export interface BlockHit {
@@ -19,16 +20,25 @@ export interface BlockHit {
 
 export type EditRecord = [number, number, number, number];
 
-export class VoxelWorld {
+export class VoxelWorld implements LightWorld {
   readonly group = new THREE.Group();
+  /** String-keyed view kept for tooling/UI (`chunks.size`); hot paths use `byCoord`. */
   readonly chunks = new Map<string, Chunk>();
   readonly editsByChunk = new Map<string, Map<number, number>>();
   readonly generator: TerrainGenerator;
   readonly atlas: TextureAtlas;
+  readonly lighting: LightEngine;
   renderDistance = 5;
 
-  private dirty = new Set<string>();
+  private readonly byCoord = new Map<number, Chunk>();
+  private lastCx = Number.NaN;
+  private lastCz = Number.NaN;
+  private lastChunk: Chunk | undefined;
+
+  private dirty = new Set<Chunk>();
   private genQueue: Array<{ cx: number; cz: number }> = [];
+  /** Chunks waiting in `genQueue`; lets the mesher hold off until neighbours exist. */
+  private genPending = new Set<number>();
   private lastCenter = { cx: Number.NaN, cz: Number.NaN };
   private meshBudget = 2;
   private genBudget = 2;
@@ -38,6 +48,7 @@ export class VoxelWorld {
   constructor(atlas: TextureAtlas, seed: number, preset: WorldPresetKey) {
     this.atlas = atlas;
     this.generator = new TerrainGenerator(seed, preset);
+    this.lighting = new LightEngine(this);
     this.group.name = 'world';
     this.group.matrixAutoUpdate = false;
   }
@@ -47,37 +58,57 @@ export class VoxelWorld {
     this.lastCenter = { cx: Number.NaN, cz: Number.NaN };
   }
 
+  /** The generated chunk at these chunk coordinates, if loaded. */
   getChunk(cx: number, cz: number): Chunk | undefined {
-    return this.chunks.get(chunkKey(cx, cz));
+    if (cx === this.lastCx && cz === this.lastCz) return this.lastChunk;
+    const chunk = this.byCoord.get(chunkKeyNum(cx, cz));
+    if (chunk) {
+      this.lastCx = cx;
+      this.lastCz = cz;
+      this.lastChunk = chunk;
+    }
+    return chunk;
   }
 
   getBlock(x: number, y: number, z: number): number {
-    if (y < 0 || y >= WORLD_HEIGHT) return 0;
+    if (!(y >= 0 && y < WORLD_HEIGHT)) return 0;
     const xi = Math.floor(x);
     const yi = Math.floor(y);
     const zi = Math.floor(z);
-    const chunk = this.chunks.get(`${xi >> 4},${zi >> 4}`);
+    const chunk = this.getChunk(xi >> 4, zi >> 4);
     if (!chunk || !chunk.generated) return 0;
-    return chunk.blocks[(xi & 15) + (zi & 15) * CHUNK_SIZE + yi * CHUNK_SIZE * CHUNK_SIZE];
+    return chunk.blocks[(xi & 15) + ((zi & 15) << 4) + (yi << 8)];
   }
 
   getBlockRaw(x: number, y: number, z: number): number {
     return this.getBlock(x, y, z);
   }
 
+  /** Sky light 0..15 at a cell (12 where the chunk isn't loaded). */
   getSkyLight(x: number, y: number, z: number): number {
     if (y < 0) return 0;
     if (y >= WORLD_HEIGHT) return 15;
     const xi = Math.floor(x);
     const yi = Math.floor(y);
     const zi = Math.floor(z);
-    const chunk = this.chunks.get(`${xi >> 4},${zi >> 4}`);
+    const chunk = this.getChunk(xi >> 4, zi >> 4);
     if (!chunk) return 12;
-    return chunk.light[(xi & 15) + (zi & 15) * CHUNK_SIZE + yi * CHUNK_SIZE * CHUNK_SIZE];
+    return chunk.light[(xi & 15) + ((zi & 15) << 4) + (yi << 8)] >> 4;
+  }
+
+  /** Block (torch, lantern, lava…) light 0..15 at a cell. */
+  getBlockLight(x: number, y: number, z: number): number {
+    if (y < 0 || y >= WORLD_HEIGHT) return 0;
+    const xi = Math.floor(x);
+    const yi = Math.floor(y);
+    const zi = Math.floor(z);
+    const chunk = this.getChunk(xi >> 4, zi >> 4);
+    if (!chunk) return 0;
+    return chunk.light[(xi & 15) + ((zi & 15) << 4) + (yi << 8)] & 15;
   }
 
   isLoaded(cx: number, cz: number): boolean {
-    return this.chunks.has(chunkKey(cx, cz));
+    return this.byCoord.has(chunkKeyNum(cx, cz));
   }
 
   setBlock(x: number, y: number, z: number, id: number, record = true): boolean {
@@ -90,7 +121,7 @@ export class VoxelWorld {
     const lx = xi & 15;
     const lz = zi & 15;
     const key = chunkKey(cx, cz);
-    const chunk = this.chunks.get(key);
+    const chunk = this.getChunk(cx, cz);
     if (!chunk || !chunk.generated) {
       if (record) {
         let map = this.editsByChunk.get(key);
@@ -104,7 +135,8 @@ export class VoxelWorld {
       return false;
     }
     const idx = chunkIndex(lx, yi, lz);
-    if (chunk.blocks[idx] === id) return false;
+    const oldId = chunk.blocks[idx];
+    if (oldId === id) return false;
     chunk.blocks[idx] = id;
     if (record) {
       let map = this.editsByChunk.get(key);
@@ -114,12 +146,8 @@ export class VoxelWorld {
       }
       map.set(idx, id);
     }
-    chunk.recomputeColumnLight(lx, lz);
-    this.setDirty(cx, cz);
-    if (lx === 0) this.setDirty(cx - 1, cz);
-    if (lx === 15) this.setDirty(cx + 1, cz);
-    if (lz === 0) this.setDirty(cx, cz - 1);
-    if (lz === 15) this.setDirty(cx, cz + 1);
+    this.lighting.onBlockChanged(xi, yi, zi, oldId, id);
+    this.markBlockDirty(cx, cz, lx, lz);
     return true;
   }
 
@@ -127,17 +155,31 @@ export class VoxelWorld {
     this.setBlock(x, y, z, id, false);
   }
 
+  /** A block changed at a chunk-local column: remesh that chunk and any border neighbour. */
+  private markBlockDirty(cx: number, cz: number, lx: number, lz: number) {
+    this.setDirty(cx, cz);
+    if (lx === 0) this.setDirty(cx - 1, cz);
+    if (lx === 15) this.setDirty(cx + 1, cz);
+    if (lz === 0) this.setDirty(cx, cz - 1);
+    if (lz === 15) this.setDirty(cx, cz + 1);
+  }
+
   private setDirty(cx: number, cz: number) {
-    const key = chunkKey(cx, cz);
-    const chunk = this.chunks.get(key);
+    const chunk = this.getChunk(cx, cz);
     if (!chunk) return;
     chunk.dirty = true;
-    this.dirty.add(key);
+    this.dirty.add(chunk);
+  }
+
+  /** `LightWorld`: light spilled into a chunk, so its mesh must be rebuilt. */
+  markLightDirty(cx: number, cz: number): void {
+    this.setDirty(cx, cz);
   }
 
   private queueGeneration(cx: number, cz: number) {
-    if (this.chunks.has(chunkKey(cx, cz))) return;
-    if (this.genQueue.some((q) => q.cx === cx && q.cz === cz)) return;
+    const num = chunkKeyNum(cx, cz);
+    if (this.byCoord.has(num) || this.genPending.has(num)) return;
+    this.genPending.add(num);
     this.genQueue.push({ cx, cz });
   }
 
@@ -154,16 +196,18 @@ export class VoxelWorld {
       for (const [idx, id] of editMap) chunk.blocks[idx] = id;
     }
     this.chunks.set(key, chunk);
-    chunk.computeLight();
+    this.byCoord.set(chunkKeyNum(cx, cz), chunk);
+    this.genPending.delete(chunkKeyNum(cx, cz));
+    this.lighting.initChunk(chunk);
     chunk.dirty = true;
-    this.dirty.add(key);
+    this.dirty.add(chunk);
 
     // Existing neighbours need a border remesh now that this chunk exists.
     for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
-      const n = this.chunks.get(chunkKey(cx + dx, cz + dz));
+      const n = this.getChunk(cx + dx, cz + dz);
       if (n) {
         n.dirty = true;
-        this.dirty.add(n.key);
+        this.dirty.add(n);
       }
     }
     this.onChunkGenerated?.(chunk);
@@ -171,7 +215,7 @@ export class VoxelWorld {
   }
 
   meshChunkNow(cx: number, cz: number): void {
-    const chunk = this.chunks.get(chunkKey(cx, cz));
+    const chunk = this.getChunk(cx, cz);
     if (!chunk) return;
     for (const m of chunk.meshes) {
       this.group.remove(m);
@@ -180,7 +224,7 @@ export class VoxelWorld {
     chunk.meshes = buildChunkMesh(this, chunk, this.atlas);
     for (const m of chunk.meshes) this.group.add(m);
     chunk.dirty = false;
-    this.dirty.delete(chunk.key);
+    this.dirty.delete(chunk);
   }
 
   disposeChunk(cx: number, cz: number) {
@@ -191,8 +235,46 @@ export class VoxelWorld {
       this.group.remove(m);
       m.geometry.dispose();
     }
+    chunk.meshes = [];
     this.chunks.delete(key);
-    this.dirty.delete(key);
+    this.byCoord.delete(chunkKeyNum(cx, cz));
+    this.dirty.delete(chunk);
+    if (this.lastChunk === chunk) {
+      this.lastChunk = undefined;
+      this.lastCx = Number.NaN;
+      this.lastCz = Number.NaN;
+    }
+  }
+
+  /**
+   * A chunk is ready to mesh once every neighbour is either loaded or isn't
+   * about to be. Meshing earlier just wastes work: each late neighbour would
+   * invalidate the border faces and force another rebuild.
+   */
+  private neighboursSettled(chunk: Chunk): boolean {
+    const { cx, cz } = chunk;
+    for (let i = 0; i < 4; i++) {
+      const num = chunkKeyNum(cx + (i === 0 ? 1 : i === 1 ? -1 : 0), cz + (i === 2 ? 1 : i === 3 ? -1 : 0));
+      if (!this.byCoord.has(num) && this.genPending.has(num)) return false;
+    }
+    return true;
+  }
+
+  /** Closest dirty chunk (to the player) that is in range and ready to mesh. */
+  private nextChunkToMesh(pcx: number, pcz: number, rd: number): Chunk | null {
+    let best: Chunk | null = null;
+    let bestD = Infinity;
+    for (const chunk of this.dirty) {
+      const dx = chunk.cx - pcx;
+      const dz = chunk.cz - pcz;
+      if (Math.abs(dx) > rd + 1 || Math.abs(dz) > rd + 1) continue;
+      const d = dx * dx + dz * dz;
+      if (d >= bestD) continue;
+      if (!this.neighboursSettled(chunk)) continue;
+      best = chunk;
+      bestD = d;
+    }
+    return best;
   }
 
   /** Queue every chunk in a square and lightly stream them. */
@@ -209,37 +291,31 @@ export class VoxelWorld {
       for (let dz = -rd; dz <= rd; dz++) {
         for (let dx = -rd; dx <= rd; dx++) {
           if (dx * dx + dz * dz > rd * rd + rd) continue;
-          if (this.chunks.has(chunkKey(cx + dx, cz + dz))) continue;
+          if (this.byCoord.has(chunkKeyNum(cx + dx, cz + dz))) continue;
           list.push({ cx: cx + dx, cz: cz + dz, d: dx * dx + dz * dz });
         }
       }
       list.sort((a, b) => a.d - b.d);
       this.genQueue = list;
+      this.genPending = new Set(list.map((q) => chunkKeyNum(q.cx, q.cz)));
       this.unloadFar(cx, cz, rd + 2);
     }
 
     let ops = 0;
     while (this.genQueue.length && ops < this.genBudget && performance.now() < deadline) {
       const next = this.genQueue.shift()!;
-      if (!this.chunks.has(chunkKey(next.cx, next.cz))) this.generateChunkNow(next.cx, next.cz);
+      this.genPending.delete(chunkKeyNum(next.cx, next.cz));
+      if (!this.byCoord.has(chunkKeyNum(next.cx, next.cz))) this.generateChunkNow(next.cx, next.cz);
       ops++;
     }
 
     // Mesh the closest dirty chunks first.
     let meshes = 0;
-    if (this.dirty.size) {
-      const candidates = [...this.dirty]
-        .map((key) => {
-          const [kx, kz] = key.split(',').map(Number);
-          return { key, kx, kz, d: (kx - cx) ** 2 + (kz - cz) ** 2 };
-        })
-        .sort((a, b) => a.d - b.d);
-      for (const c of candidates) {
-        if (meshes >= this.meshBudget || performance.now() > deadline + 4) break;
-        if (Math.abs(c.kx - cx) > rd + 1 || Math.abs(c.kz - cz) > rd + 1) continue;
-        this.meshChunkNow(c.kx, c.kz);
-        meshes++;
-      }
+    while (this.dirty.size && meshes < this.meshBudget && performance.now() <= deadline + 4) {
+      const chunk = this.nextChunkToMesh(cx, cz, rd);
+      if (!chunk) break;
+      this.meshChunkNow(chunk.cx, chunk.cz);
+      meshes++;
     }
     void dt;
   }
@@ -259,11 +335,16 @@ export class VoxelWorld {
     const c1x = Math.floor(Math.max(minX, maxX) / CHUNK_SIZE);
     const c0z = Math.floor(Math.min(minZ, maxZ) / CHUNK_SIZE);
     const c1z = Math.floor(Math.max(minZ, maxZ) / CHUNK_SIZE);
+    // Generate the whole area first so every chunk meshes against its real
+    // neighbours instead of being rebuilt as each one appears.
     for (let cz = c0z; cz <= c1z; cz++) {
       for (let cx = c0x; cx <= c1x; cx++) {
-        if (!this.chunks.has(chunkKey(cx, cz))) this.generateChunkNow(cx, cz);
-        if (mesh) this.meshChunkNow(cx, cz);
+        if (!this.byCoord.has(chunkKeyNum(cx, cz))) this.generateChunkNow(cx, cz);
       }
+    }
+    if (!mesh) return;
+    for (let cz = c0z; cz <= c1z; cz++) {
+      for (let cx = c0x; cx <= c1x; cx++) this.meshChunkNow(cx, cz);
     }
   }
 
@@ -292,7 +373,7 @@ export class VoxelWorld {
   getBiomeId(x: number, z: number): number {
     const xi = Math.floor(x);
     const zi = Math.floor(z);
-    const chunk = this.chunks.get(`${xi >> 4},${zi >> 4}`);
+    const chunk = this.getChunk(xi >> 4, zi >> 4);
     if (!chunk) return 2;
     return chunk.biomes[(xi & 15) + (zi & 15) * CHUNK_SIZE];
   }
@@ -405,12 +486,15 @@ export class VoxelWorld {
         this.editsByChunk.set(key, map);
       }
       map.set(chunkIndex(lx, y, lz), id);
-      const chunk = this.chunks.get(key);
+      const chunk = this.getChunk(cx, cz);
       if (chunk) {
-        chunk.blocks[chunkIndex(lx, y, lz)] = id;
-        chunk.recomputeColumnLight(lx, lz);
-        chunk.dirty = true;
-        this.dirty.add(key);
+        const idx = chunkIndex(lx, y, lz);
+        const oldId = chunk.blocks[idx];
+        if (oldId !== id) {
+          chunk.blocks[idx] = id;
+          this.lighting.onBlockChanged(xi, y, zi, oldId, id);
+          this.markBlockDirty(cx, cz, lx, lz);
+        }
       }
     }
   }
@@ -429,7 +513,12 @@ export class VoxelWorld {
       }
     }
     this.chunks.clear();
+    this.byCoord.clear();
     this.dirty.clear();
     this.genQueue = [];
+    this.genPending.clear();
+    this.lastChunk = undefined;
+    this.lastCx = Number.NaN;
+    this.lastCz = Number.NaN;
   }
 }

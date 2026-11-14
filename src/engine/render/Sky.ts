@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { clamp } from '../core/Utils';
+import { WORLD_LIGHT } from './WorldLight';
 
 export type WeatherKind = 'clear' | 'rain' | 'snow' | 'ash';
 
@@ -419,6 +420,7 @@ export class Sky {
     this.sunLight.target.updateMatrixWorld();
     const lightStrength = smooth01((sunDir.y + 0.15) / 0.55);
     this.sunLight.intensity = 0.12 + lightStrength * 1.25;
+    WORLD_LIGHT.uDay.value = lightStrength;
     this.sunLight.color.copy(this.sunColor);
 
     this.hemi.intensity = 0.26 + lightStrength * 0.55;

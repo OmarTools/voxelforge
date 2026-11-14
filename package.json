@@ -8,13 +8,15 @@
     "predev": "npm run build:runtime",
     "build": "tsc --noEmit && npm run build:runtime && vite build",
     "build:runtime": "vite build --config vite.runtime.config.ts",
-    "preview": "vite preview --port 5177"
+    "preview": "vite preview --port 5177",
+    "test": "tsx tests/lighting.test.ts && tsx tests/world.test.ts"
   },
   "dependencies": {
     "three": "^0.169.0"
   },
   "devDependencies": {
     "@types/three": "^0.169.0",
+    "tsx": "^4.23.15",
     "typescript": "^5.6.0",
     "vite": "^5.4.0"
   }

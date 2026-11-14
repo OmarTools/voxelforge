@@ -453,7 +453,7 @@ export class HUD {
         <div>CHUNK ${Math.floor(pos.x / 16)}, ${Math.floor(pos.z / 16)} ${chunk ? 'loaded' : 'pending'}</div>
         <div>BIOME ${game.biomeName}</div>
         <div>ENTITIES ${game.entities.entities.filter((e) => e.alive).length} · EDITS ${game.world.editCount}</div>
-        <div>LIGHT ${game.world.getSkyLight(pos.x, pos.y + 1, pos.z)} · YAW ${yaw.toFixed(0)}°</div>
+        <div>LIGHT sky ${game.world.getSkyLight(pos.x, pos.y + 1, pos.z)} · block ${game.world.getBlockLight(pos.x, pos.y + 1, pos.z)} · YAW ${yaw.toFixed(0)}°</div>
         <div>TIME ${formatClock(hours * 3600 + minutes * 60)} · ${game.sky.weather}</div>
         <div style="opacity:.65">${game.renderer.info.render.calls} draw calls · ${(game.renderer.info.render.triangles / 1000).toFixed(0)}k tris</div>
       `;

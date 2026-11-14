@@ -299,6 +299,8 @@ export class Game {
   private victoryTimer = 0;
   private raceFinishTimer = 0;
   private autosaveTimer = 0;
+  /** Set once an autosave has failed so the player is warned exactly once, not every 90 s. */
+  private autosaveFailureWarned = false;
   private mobTimer = 24;
   private checkpointFx = 0;
   private miningTarget: BlockHit | null = null;
@@ -2173,7 +2175,7 @@ export class Game {
       edits: this.world ? this.world.getEdits() : [],
       entities: this.entities
         ? this.entities.entities
-            .filter((e) => e.alive && !e.id.startsWith('cook_customer_') && !e.id.startsWith('shop_customer_') && !e.id.startsWith('cinder_bot_') && !e.id.startsWith('survivor_') && !e.id.startsWith('royale_rival_') && !e.id.startsWith('siege_raider_') && !e.id.startsWith('hollow_enemy_') && !e.id.startsWith('crumble_bot_') && !e.id.startsWith('deadlight_zombie_'))
+            .filter((e) => e.alive && !e.id.startsWith('cook_customer_') && !e.id.startsWith('shop_customer_') && !e.id.startsWith('cinder_bot_') && !e.id.startsWith('survivor_') && !e.id.startsWith('royale_rival_') && !e.id.startsWith('siege_raider_') && !e.id.startsWith('hollow_enemy_') && !e.id.startsWith('crumble_bot_') && !e.id.startsWith('deadlight_zombie_') && !e.id.startsWith('titan_'))
             .map((e) => this.serializeEntity(e))
         : [],
       player: {
@@ -2278,10 +2280,17 @@ export class Game {
     try {
       const data = this.buildProjectData();
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+      this.autosaveFailureWarned = false;
       if (showToast) this.toast('World saved to this browser.', 'good');
     } catch (error) {
       console.error(error);
-      if (showToast) this.toast('Save failed — browser storage may be full.', 'bad');
+      if (showToast) {
+        this.toast('Save failed — browser storage may be full.', 'bad');
+      } else if (!this.autosaveFailureWarned) {
+        // Autosaves are silent on success, so a failure must not be silent too.
+        this.autosaveFailureWarned = true;
+        this.toast('Autosave failed — browser storage is full. Export your world to keep your progress.', 'warn');
+      }
     }
   }
 

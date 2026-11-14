@@ -173,3 +173,27 @@ and enter the same token in the AI control tab.
   `http://127.0.0.1:8766` in the AI panel.
 - **Stale queue after a crash** — restart the MCP server. The queue is in memory
   only, so nothing persists.
+
+
+## Security model
+
+The bridge is a local HTTP service that can drive your editor, so it only talks to
+trusted callers:
+
+- **Browser origins** are limited to loopback pages (`localhost`, `127.0.0.1`, `[::1]`,
+  any port), which covers `npm run dev` and `npm run preview`. Requests from any other
+  website are rejected with `403` — including "simple" cross-site POSTs that never
+  trigger a CORS preflight.
+- **Host header** must be a loopback name (or the configured bind address), which
+  blocks DNS-rebinding attacks.
+- **Non-browser clients** (MCP clients, `curl`) send no `Origin` and are unaffected.
+- `VOXELFORGE_MCP_TOKEN` (optional) adds a shared secret, compared in constant time.
+  Set one if you bind to anything other than loopback.
+
+If you serve VoxelForge from another origin (for example a hosted copy) and want it to
+reach your local bridge, opt in explicitly:
+
+| Variable | Purpose |
+| --- | --- |
+| `VOXELFORGE_MCP_ORIGINS` | Comma-separated extra allowed origins, e.g. `https://my.site`. `*` allows any origin (not recommended). |
+| `VOXELFORGE_MCP_ALLOWED_HOSTS` | Comma-separated extra Host names, for reverse proxies or tunnels. |

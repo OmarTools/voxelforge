@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { blockById, isOpaqueId } from './Blocks';
+import { blockById } from './Blocks';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 96;
@@ -15,9 +15,15 @@ export class Chunk {
   readonly cz: number;
   readonly key: string;
   readonly blocks = new Uint16Array(CHUNK_VOLUME);
+  /**
+   * Packed light per voxel: sky light in the high nibble, block light in the
+   * low nibble (both 0..15). Maintained by `LightEngine`.
+   */
   readonly light = new Uint8Array(CHUNK_VOLUME);
   readonly biomes = new Uint8Array(CHUNK_AREA);
   readonly heights = new Uint8Array(CHUNK_AREA);
+  /** Highest opaque block in each column (-1 when the column is open to the sky). */
+  readonly skyTop = new Int16Array(CHUNK_AREA).fill(-1);
 
   generated = false;
   dirty = true;
@@ -40,38 +46,20 @@ export class Chunk {
     this.blocks[chunkIndex(x, y, z)] = id;
   }
 
-  getLight(x: number, y: number, z: number): number {
+  /** Sky light (0..15) of a voxel in this chunk; out-of-range reads as fully lit. */
+  getSkyLight(x: number, y: number, z: number): number {
     if (x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE || y < 0 || y >= WORLD_HEIGHT) return 15;
-    return this.light[chunkIndex(x, y, z)];
+    return this.light[chunkIndex(x, y, z)] >> 4;
+  }
+
+  /** Block light (0..15) of a voxel in this chunk; out-of-range reads as dark. */
+  getBlockLight(x: number, y: number, z: number): number {
+    if (x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE || y < 0 || y >= WORLD_HEIGHT) return 0;
+    return this.light[chunkIndex(x, y, z)] & 15;
   }
 
   getBiome(x: number, z: number): number {
     return this.biomes[z * CHUNK_SIZE + x] ?? 0;
-  }
-
-  /** Column-based sunlight: light falls from the sky until the first opaque block. */
-  computeLight() {
-    this.light.fill(0);
-    for (let z = 0; z < CHUNK_SIZE; z++) {
-      for (let x = 0; x < CHUNK_SIZE; x++) {
-        let lit = true;
-        for (let y = WORLD_HEIGHT - 1; y >= 0; y--) {
-          const idx = chunkIndex(x, y, z);
-          if (lit) this.light[idx] = 15;
-          const id = this.blocks[idx];
-          if (id !== 0 && isOpaqueId(id)) lit = false;
-        }
-      }
-    }
-  }
-
-  recomputeColumnLight(x: number, z: number) {
-    let lit = true;
-    for (let y = WORLD_HEIGHT - 1; y >= 0; y--) {
-      const idx = chunkIndex(x, y, z);
-      this.light[idx] = lit ? 15 : 0;
-      if (this.blocks[idx] !== 0 && isOpaqueId(this.blocks[idx])) lit = false;
-    }
   }
 
   setBiome(x: number, z: number, biome: number) {
@@ -81,6 +69,11 @@ export class Chunk {
 
 export function chunkKey(cx: number, cz: number): string {
   return `${cx},${cz}`;
+}
+
+/** Collision-free integer key for chunk coordinates within ±32768 (no string allocation). */
+export function chunkKeyNum(cx: number, cz: number): number {
+  return ((cx & 0xffff) << 16) | (cz & 0xffff);
 }
 
 export function worldToChunk(x: number, z: number): { cx: number; cz: number; lx: number; lz: number } {

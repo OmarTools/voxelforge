@@ -287,11 +287,13 @@ export class TerrainGenerator {
           for (let y = 3; y <= maxY; y++) {
             const current = chunk.getBlock(x, y, z);
             if (current === IDS.water || current === IDS.bedrock) continue;
+            // Short-circuit: the second worm noise only matters inside the narrow
+            // first-noise band, and the cheese noise only when the worm missed.
+            // Same result as evaluating all three, at roughly 2/3 the noise cost.
             const n1 = this.caveA.noise3(wx * 0.042, y * 0.055, wz * 0.042);
-            const n2 = this.caveB.noise3(wx * 0.028 + 50, y * 0.049, wz * 0.028 - 31);
-            const worm = Math.abs(n1) < 0.052 && Math.abs(n2) < 0.085;
-            const cheese = this.caveB.noise3(wx * 0.017 + 100, y * 0.031, wz * 0.017 + 24) > 0.64;
-            if (worm || cheese) {
+            const worm = Math.abs(n1) < 0.052
+              && Math.abs(this.caveB.noise3(wx * 0.028 + 50, y * 0.049, wz * 0.028 - 31)) < 0.085;
+            if (worm || this.caveB.noise3(wx * 0.017 + 100, y * 0.031, wz * 0.017 + 24) > 0.64) {
               chunk.setBlock(x, y, z, y < 7 ? IDS.lava : 0);
             }
           }
@@ -427,7 +429,11 @@ export class TerrainGenerator {
 
     if (type === 'acacia') {
       for (let i = 0; i < H; i++) set(x, y + i, z, log);
-      const dir = rand(4) > 0.5 ? 1 : -1;
+      let dir = rand(4) > 0.5 ? 1 : -1;
+      // The canopy sits 3 blocks out and spans +-3, so it reaches 6 blocks from the
+      // trunk. Lean toward the chunk interior so it isn't sliced at the chunk edge.
+      if (x < 6) dir = 1;
+      else if (x > 9) dir = -1;
       for (let i = 0; i < 3; i++) set(x + dir * i, y + H - 1 + i, z, log);
       const cx = x + dir * 3;
       for (let dx = -3; dx <= 3; dx++) {

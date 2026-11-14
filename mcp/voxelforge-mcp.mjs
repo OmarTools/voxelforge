@@ -18,13 +18,22 @@
 
 import http from 'node:http';
 import readline from 'node:readline';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, timingSafeEqual } from 'node:crypto';
 
 const VERSION = '1.1.0';
 const PORT = Number(process.env.VOXELFORGE_MCP_PORT || 8765);
 const HOST = process.env.VOXELFORGE_MCP_HOST || '127.0.0.1';
 const TOKEN = process.env.VOXELFORGE_MCP_TOKEN || '';
 const COMMAND_TIMEOUT = Number(process.env.VOXELFORGE_MCP_TIMEOUT || 30000);
+const MAX_QUEUE = 200;
+const EXTRA_ORIGINS = (process.env.VOXELFORGE_MCP_ORIGINS || '')
+  .split(',')
+  .map((v) => v.trim())
+  .filter(Boolean);
+const EXTRA_HOSTS = (process.env.VOXELFORGE_MCP_ALLOWED_HOSTS || '')
+  .split(',')
+  .map((v) => v.trim().toLowerCase())
+  .filter(Boolean);
 const HTTP_ONLY = process.argv.includes('--http-only') || process.env.VOXELFORGE_MCP_HTTP_ONLY === '1';
 
 const queue = [];
@@ -50,6 +59,9 @@ function newId() {
  * removed again on timeout so a stale tool call cannot fire much later.
  */
 function dispatch(type, payload = {}) {
+  if (queue.length >= MAX_QUEUE) {
+    return Promise.reject(new Error(`Too many queued commands (${MAX_QUEUE}). Is the browser bridge running?`));
+  }
   const id = newId();
   const command = { id, type, payload, createdAt: Date.now() };
   queue.push(command);
@@ -99,19 +111,72 @@ function readBody(req, limit = 2_000_000) {
   });
 }
 
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
+
+/** Hostname part of a Host header value (handles `[::1]:8765`). */
+function hostnameOf(hostHeader) {
+  const value = String(hostHeader || '').trim().toLowerCase();
+  if (value.startsWith('[')) return value.slice(0, value.indexOf(']') + 1);
+  return value.split(':')[0];
+}
+
+/**
+ * DNS-rebinding guard: a page on evil.example that re-points its DNS at
+ * 127.0.0.1 still sends "Host: evil.example", so refuse unknown host names.
+ */
+function hostAllowed(req) {
+  const host = hostnameOf(req.headers.host);
+  if (!host) return true; // HTTP/1.0 clients (curl, scripts) may omit it
+  return LOOPBACK_HOSTS.has(host) || host === hostnameOf(HOST) || EXTRA_HOSTS.includes(host);
+}
+
+/**
+ * Browser pages may only talk to this server from loopback origins (the Vite dev
+ * server / preview) or origins listed in VOXELFORGE_MCP_ORIGINS ("*" = any).
+ * Requests without an Origin header (curl, MCP clients) are not browser
+ * cross-site requests and pass.
+ */
+function originAllowed(origin) {
+  if (!origin) return true;
+  if (EXTRA_ORIGINS.includes('*') || EXTRA_ORIGINS.includes(origin)) return true;
+  try {
+    const u = new URL(origin);
+    return (u.protocol === 'http:' || u.protocol === 'https:') && LOOPBACK_HOSTS.has(u.hostname.toLowerCase());
+  } catch {
+    return false;
+  }
+}
+
 function cors(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  if (origin) {
+    // Echo the allowed origin rather than "*" so the response isn't readable by other sites.
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    req.headers['access-control-request-headers'] || 'content-type, x-voxelforge-token',
-  );
+  res.setHeader('Access-Control-Allow-Headers', 'content-type, x-voxelforge-token');
+  // Chrome's Private Network Access: https pages reaching localhost ask for this.
+  if (req.headers['access-control-request-private-network']) {
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
+  }
   res.setHeader('Access-Control-Max-Age', '600');
 }
 
 function authorised(req) {
   if (!TOKEN) return true;
-  return req.headers['x-voxelforge-token'] === TOKEN;
+  const given = Buffer.from(String(req.headers['x-voxelforge-token'] || ''));
+  const wanted = Buffer.from(TOKEN);
+  return given.length === wanted.length && timingSafeEqual(given, wanted);
+}
+
+async function readJson(req, res) {
+  try {
+    return JSON.parse((await readBody(req)) || '{}');
+  } catch (error) {
+    sendJson(res, 400, { ok: false, message: `Invalid JSON body: ${error instanceof Error ? error.message : String(error)}` });
+    return null;
+  }
 }
 
 function sendJson(res, status, value) {
@@ -125,6 +190,15 @@ function sendJson(res, status, value) {
 }
 
 const server = http.createServer(async (req, res) => {
+  if (!hostAllowed(req)) {
+    sendJson(res, 403, { ok: false, message: 'Host not allowed. Set VOXELFORGE_MCP_ALLOWED_HOSTS to permit it.' });
+    return;
+  }
+  if (!originAllowed(req.headers.origin)) {
+    // Refuse outright: a cross-site "simple" POST reaches us without any preflight.
+    sendJson(res, 403, { ok: false, message: 'Origin not allowed. Set VOXELFORGE_MCP_ORIGINS to permit it.' });
+    return;
+  }
   cors(req, res);
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
@@ -169,8 +243,9 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === 'POST' && url.pathname === '/result') {
-      const body = JSON.parse((await readBody(req)) || '{}');
-      if (!body || typeof body.id !== 'string') {
+      const body = await readJson(req, res);
+      if (body === null) return;
+      if (typeof body !== 'object' || typeof body.id !== 'string') {
         sendJson(res, 400, { ok: false, message: 'A result needs a command id.' });
         return;
       }
@@ -186,8 +261,9 @@ const server = http.createServer(async (req, res) => {
 
     // Handy for scripts, curl and non-MCP automation. Waits for the browser.
     if (req.method === 'POST' && url.pathname === '/command') {
-      const body = JSON.parse((await readBody(req)) || '{}');
-      const type = typeof body.type === 'string' ? body.type : '';
+      const body = await readJson(req, res);
+      if (body === null) return;
+      const type = body && typeof body.type === 'string' ? body.type : '';
       if (!type) {
         sendJson(res, 400, { ok: false, message: 'Provide a command "type".' });
         return;
@@ -211,6 +287,9 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, HOST, () => {
   log(`HTTP bridge listening on http://${HOST}:${PORT}${TOKEN ? ' (token required)' : ''}`);
+  if (!LOOPBACK_HOSTS.has(HOST) && !TOKEN) {
+    log('WARNING: bound to a non-loopback address without VOXELFORGE_MCP_TOKEN. Anyone on your network can control the editor.');
+  }
   log('Waiting for the browser bridge. Start it in VoxelForge → Publish → AI control.');
 });
 
