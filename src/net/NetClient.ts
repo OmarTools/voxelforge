@@ -12,6 +12,8 @@ import {
   normalizeRoomCode,
   type NetChatMessage,
   type NetClientMessage,
+  type NetMode,
+  type NetOpenWorldInfo,
   type NetPlayerState,
   type NetRoomInfo,
   type NetRoomSettings,
@@ -52,6 +54,10 @@ export class NetClient {
   room: NetRoomInfo | null = null;
   latency = 0;
   online = false;
+  /** Capabilities reported by the server's hello. Empty until connected. */
+  modes: NetMode[] = [];
+  /** Summary of the server's shared world, or null when it has none yet. */
+  openWorld: NetOpenWorldInfo | null = null;
 
   private socket: WebSocket | null = null;
   private helloDone = false;
@@ -62,6 +68,7 @@ export class NetClient {
   private pingSentAt = 0;
   private pendingHello?: { resolve: () => void; reject: (error: Error) => void; timer: number };
   private pendingJoin?: { resolve: (welcome: NetWelcome) => void; reject: (error: Error) => void; timer: number };
+  private pendingInfo?: { resolve: () => void; timer: number };
 
   constructor(url: string) {
     this.url = resolveServerUrl(url);
@@ -101,8 +108,15 @@ export class NetClient {
       const wasIntentional = this.leaving;
       this.online = false;
       this.helloDone = false;
+      this.modes = [];
+      this.openWorld = null;
       this.stopPing();
       this.failPending(`Connection closed (${event.code}).`);
+      if (this.pendingInfo) {
+        clearTimeout(this.pendingInfo.timer);
+        this.pendingInfo.resolve();
+        this.pendingInfo = undefined;
+      }
       this.pendingHello?.reject(new Error('Connection closed before the server said hello.'));
       if (this.pendingHello) {
         clearTimeout(this.pendingHello.timer);
@@ -121,6 +135,36 @@ export class NetClient {
     const normalized = normalizeRoomCode(code);
     if (!normalized) throw new Error('Enter the room code from your invite.');
     return this.awaitJoin({ t: 'join_room', name: normalizeName(name), code: normalized });
+  }
+
+  /**
+   * Join the server's shared world. Send `world` only when the server has none
+   * yet (genesis); afterwards the server's saved descriptor wins.
+   */
+  async joinOpen(name: string, world?: NetWorld): Promise<NetWelcome> {
+    await this.connect(name);
+    return this.awaitJoin({
+      t: 'join_open',
+      name: normalizeName(name),
+      ...(world ? { world } : {}),
+    });
+  }
+
+  /** Re-read the server's hello so a reopened lobby sees current capabilities. */
+  async refreshInfo(): Promise<void> {
+    if (!this.connected) {
+      await this.connect(this.name);
+      return;
+    }
+    await new Promise<void>((resolve) => {
+      if (this.pendingInfo) clearTimeout(this.pendingInfo.timer);
+      const timer = window.setTimeout(() => {
+        this.pendingInfo = undefined;
+        resolve();
+      }, 2500);
+      this.pendingInfo = { resolve, timer };
+      this.send({ t: 'hello', protocol: NET_PROTOCOL_VERSION, name: this.name, version: NET_CLIENT_VERSION });
+    });
   }
 
   async createRoom(world: NetWorld, name: string, settings: Partial<NetRoomSettings> = {}): Promise<NetWelcome> {
@@ -172,10 +216,17 @@ export class NetClient {
     this.stopPing();
     this.online = false;
     this.room = null;
+    this.modes = [];
+    this.openWorld = null;
     this.socket?.close(1000, 'left');
     this.socket = null;
     this.helloDone = false;
     this.failPending('Disconnected.');
+    if (this.pendingInfo) {
+      clearTimeout(this.pendingInfo.timer);
+      this.pendingInfo.resolve();
+      this.pendingInfo = undefined;
+    }
   }
 
   private send(message: NetClientMessage): void {
@@ -221,11 +272,18 @@ export class NetClient {
     switch (message.t) {
       case 'hello':
         this.playerId = message.playerId;
+        this.modes = Array.isArray(message.modes) ? message.modes : [];
+        this.openWorld = message.openWorld ?? null;
         this.helloDone = true;
         if (this.pendingHello) {
           clearTimeout(this.pendingHello.timer);
           this.pendingHello.resolve();
           this.pendingHello = undefined;
+        }
+        if (this.pendingInfo) {
+          clearTimeout(this.pendingInfo.timer);
+          this.pendingInfo.resolve();
+          this.pendingInfo = undefined;
         }
         return;
       case 'room_joined':

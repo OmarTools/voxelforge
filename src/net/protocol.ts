@@ -18,6 +18,26 @@ export const NET_MAX_EDITS = 200_000;
 
 export type NetVec3 = [number, number, number];
 
+/** What a server offers. `rooms` is invite-by-code, `open` is one shared world. */
+export type NetMode = 'rooms' | 'open';
+
+export interface NetOpenWorldInfo {
+  templateKey: string;
+  templateName: string;
+  players: number;
+  edits: number;
+}
+
+export interface NetServerHello {
+  t: 'hello';
+  protocol: number;
+  version: string;
+  playerId: string;
+  serverTime: number;
+  modes: NetMode[];
+  openWorld: NetOpenWorldInfo | null;
+}
+
 export interface NetWorld {
   templateKey: string;
   templateName: string;
@@ -77,6 +97,7 @@ export type NetClientMessage =
   | { t: 'hello'; protocol: number; name: string; version: string }
   | { t: 'create_room'; name: string; world: NetWorld; settings: Partial<NetRoomSettings> }
   | { t: 'join_room'; name: string; code: string }
+  | { t: 'join_open'; name: string; world?: NetWorld; settings?: Partial<NetRoomSettings> }
   | { t: 'input'; seq: number; x: number; y: number; z: number; yaw: number; pitch: number; moving: boolean }
   | { t: 'block'; x: number; y: number; z: number; id: number }
   | { t: 'chat'; text: string }
@@ -86,7 +107,7 @@ export type NetClientMessage =
   | { t: 'ping'; at: number };
 
 export type NetServerMessage =
-  | { t: 'hello'; protocol: number; version: string; playerId: string; serverTime: number }
+  | NetServerHello
   | ({ t: 'room_joined' } & NetWelcome)
   | { t: 'player_joined'; player: NetPlayerState }
   | { t: 'player_left'; playerId: string; name: string }

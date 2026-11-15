@@ -1604,7 +1604,17 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .net-chat-hint kbd { font-family: var(--mono); color: #eaf6e7; border: 1px solid #46692f; padding: 0 4px; }
 .net-chat-input { pointer-events: auto; width: 100%; padding: 9px 12px; background: rgba(5, 10, 14, 0.94); border: 1px solid #6d9c58; color: #eaf7e2; font-family: var(--mono); font-size: 12px; outline: none; box-shadow: 0 10px 30px rgba(0,0,0,0.45), 0 0 0 2px rgba(140,224,95,0.08); }
 .net-chat-input.hidden { display: none; }
-@media (max-width: 760px) { .net-grid { grid-template-columns: 1fr; } .net-server-chip { display: none; } .net-session { top: auto; bottom: 190px; } .net-feed { display: none; } }
+@media (max-width: 760px) { .net-grid { grid-template-columns: 1fr; } .net-server-chip { display: none; } .net-session { top: auto; bottom: 190px; } .net-feed { display: none; } .net-shared { flex-direction: column; align-items: stretch; } .net-shared-actions { width: auto; } }
 
 #ui > .net-layer { pointer-events: none; }
 #ui > .net-layer .net-session, #ui > .net-layer .net-chat-input { pointer-events: auto; }
+
+.net-shared { display: flex; gap: 18px; align-items: center; margin-top: 12px; padding: 14px 16px; border: 1px solid #3c5a3a; background: linear-gradient(165deg, rgba(24, 40, 26, 0.9), rgba(10, 18, 14, 0.9)); }
+.net-shared-info { flex: 1; min-width: 0; }
+.net-shared-info h4 { margin: 0 0 6px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #cfe3d2; }
+.net-shared-info p { margin: 0 0 8px; font-size: 11px; line-height: 1.55; color: #8fa89a; }
+.net-shared-meta { font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: #b9e2a4; }
+.net-shared-actions { width: 232px; flex: none; }
+.net-shared-actions .field { margin-bottom: 8px; }
+.net-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 26px 16px; border: 1px dashed #354b5d; text-align: center; font-size: 12px; line-height: 1.5; color: #a8bcc9; }
+.net-empty p { margin: 0; }

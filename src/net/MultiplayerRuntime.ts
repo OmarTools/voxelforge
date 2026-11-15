@@ -73,6 +73,7 @@ export class MultiplayerRuntime {
   private avatars = new Map<string, RemoteAvatar>();
   private lobbyEl?: HTMLDivElement;
   private lobbyKeyHandler?: (event: KeyboardEvent) => void;
+  private prefillCode = '';
   private layerEl?: HTMLDivElement;
   private rosterEl?: HTMLDivElement;
   private metaEl?: HTMLDivElement;
@@ -181,9 +182,6 @@ export class MultiplayerRuntime {
     if (this.lobbyEl) return;
     const params = new URLSearchParams(window.location.search);
     const code = prefillCode || params.get('room') || '';
-    const templateOptions = TEMPLATES.map(
-      (template) => `<option value="${template.key}"${template.key === 'creative' ? ' selected' : ''}>${escapeHtml(template.name)} — ${escapeHtml(template.subtitle)}</option>`,
-    ).join('');
     const overlay = document.createElement('div');
     overlay.className = 'overlay net-overlay';
     overlay.innerHTML = `
@@ -208,7 +206,117 @@ export class MultiplayerRuntime {
               <span class="mono">${escapeHtml(this.url)}</span>
             </div>
           </div>
-          <div class="net-grid">
+          <div data-net-body>
+            <div class="net-empty">Connecting to ${escapeHtml(this.url)}…</div>
+          </div>
+          <div class="net-lobby-foot">
+            <span data-net-status>Connecting…</span>
+            <span class="muted tiny">Protocol 1 · JSON transport · optional, never required</span>
+          </div>
+        </div>
+      </div>
+    `;
+    this.game.root.appendChild(overlay);
+    this.lobbyEl = overlay;
+    this.prefillCode = code;
+    overlay.addEventListener('click', (event) => {
+      const target = event.target as HTMLElement;
+      if (target === overlay || target.closest('[data-net-close]')) {
+        this.closeLobby();
+        return;
+      }
+      if (target.closest('[data-net-host]')) {
+        void this.hostRoom();
+        return;
+      }
+      if (target.closest('[data-net-join]')) {
+        void this.joinRoom();
+        return;
+      }
+      if (target.closest('[data-net-open-join]')) {
+        void this.joinOpen();
+        return;
+      }
+      if (target.closest('[data-net-open-start]')) {
+        void this.startSharedWorld();
+        return;
+      }
+      if (target.closest('[data-net-retry]')) {
+        this.setLobbyStatus('Connecting…', 'info');
+        void this.prepareLobby();
+      }
+    });
+    overlay.addEventListener('keydown', (event) => {
+      const target = event.target as HTMLElement;
+      if (event.key !== 'Enter' || !target.closest('[data-net-code]')) return;
+      event.preventDefault();
+      void this.joinRoom();
+    });
+    const onKey = (event: KeyboardEvent) => {
+      if (this.lobbyEl !== overlay) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        this.closeLobby();
+      }
+    };
+    this.lobbyKeyHandler = onKey;
+    window.addEventListener('keydown', onKey);
+    void this.prepareLobby();
+  }
+
+  /** Ask the server what it offers, then build the lobby around that. */
+  private async prepareLobby(): Promise<void> {
+    const overlay = this.lobbyEl;
+    if (!overlay) return;
+    try {
+      await this.client.connect(this.readName());
+      await this.client.refreshInfo();
+    } catch (error) {
+      if (this.lobbyEl !== overlay) return;
+      this.renderLobbyBody();
+      this.setLobbyStatus(error instanceof Error ? error.message : 'Could not reach the multiplayer server.', 'bad');
+      return;
+    }
+    if (this.lobbyEl !== overlay) return;
+    this.renderLobbyBody();
+    this.setLobbyStatus(this.lobbyReadyText(), 'info');
+    const codeInput = overlay.querySelector('[data-net-code]') as HTMLInputElement | null;
+    if (codeInput && this.prefillCode) codeInput.focus();
+    else (overlay.querySelector('[data-net-name]') as HTMLInputElement | null)?.focus();
+  }
+
+  private lobbyReadyText(): string {
+    const modes = this.client.modes;
+    if (modes.includes('open') && !modes.includes('rooms')) {
+      return 'Shared world · up to 8 players · saved on the server.';
+    }
+    if (modes.includes('open')) return 'Rooms and the shared world are both open.';
+    return 'Ready. Rooms hold up to 8 players.';
+  }
+
+  private renderLobbyBody(): void {
+    const body = this.lobbyEl?.querySelector('[data-net-body]') as HTMLElement | null;
+    if (!body) return;
+    if (!this.client.connected) {
+      body.innerHTML = `
+        <div class="net-empty">
+          <p>The multiplayer server is not responding.</p>
+          <p class="muted tiny">Start it with <b>npm run server</b>, then try again.</p>
+          <button class="btn ghost" data-net-retry>Try again</button>
+        </div>
+      `;
+      return;
+    }
+    const modes = this.client.modes;
+    const rooms = modes.includes('rooms');
+    const open = modes.includes('open');
+    const shared = this.client.openWorld;
+    const templateOptions = TEMPLATES.map(
+      (template) =>
+        `<option value="${template.key}"${template.key === 'creative' ? ' selected' : ''}>${escapeHtml(template.name)} — ${escapeHtml(template.subtitle)}</option>`,
+    ).join('');
+    const roomsHtml = rooms
+      ? `<div class="net-grid">
             <section class="net-card">
               <h4>Host a room</h4>
               <p class="muted">Your seed, structures and edits become the shared world. Leaving closes the room.</p>
@@ -223,51 +331,40 @@ export class MultiplayerRuntime {
               <p class="muted">Paste the code from an invite, for example <b>CINDER-4F2K</b>.</p>
               <div class="field">
                 <label>Room code</label>
-                <input class="input" data-net-code maxlength="24" autocomplete="off" spellcheck="false" placeholder="CINDER-4F2K" value="${escapeHtml(code)}"/>
+                <input class="input" data-net-code maxlength="24" autocomplete="off" spellcheck="false" placeholder="CINDER-4F2K" value="${escapeHtml(this.prefillCode)}"/>
               </div>
               <button class="btn blue wide" data-net-join>Join room</button>
             </section>
-          </div>
-          <div class="net-lobby-foot">
-            <span data-net-status>Ready. Rooms hold up to 8 players.</span>
-            <span class="muted tiny">Protocol 1 · JSON transport · optional, never required</span>
-          </div>
-        </div>
-      </div>
-    `;
-    this.game.root.appendChild(overlay);
-    this.lobbyEl = overlay;
-    overlay.addEventListener('click', (event) => {
-      const target = event.target as HTMLElement;
-      if (target === overlay || target.closest('[data-net-close]')) {
-        this.closeLobby();
-        return;
-      }
-      if (target.closest('[data-net-host]')) {
-        void this.hostRoom();
-        return;
-      }
-      if (target.closest('[data-net-join]')) {
-        void this.joinRoom();
-      }
-    });
-    const codeInput = overlay.querySelector('[data-net-code]') as HTMLInputElement | null;
-    codeInput?.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        void this.joinRoom();
-      }
-    });
-    const onKey = (event: KeyboardEvent) => {
-      if (this.lobbyEl !== overlay) return;
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        this.closeLobby();
-      }
-    };
-    this.lobbyKeyHandler = onKey;
-    window.addEventListener('keydown', onKey);
-    codeInput?.focus();
+          </div>`
+      : '';
+    const sharedHtml = open
+      ? `<section class="net-shared">
+            <div class="net-shared-info">
+              <h4>Shared world</h4>
+              <p class="muted">One persistent world for everyone on this server. Blocks are saved on the server, not in this browser.</p>
+              <div class="net-shared-meta">${
+                shared
+                  ? `${escapeHtml(shared.templateName)} · ${shared.edits} edits · ${shared.players} online`
+                  : 'Not created yet — the first player picks the template.'
+              }</div>
+            </div>
+            <div class="net-shared-actions">
+              ${
+                shared
+                  ? '<button class="btn blue wide" data-net-open-join>Join shared world</button>'
+                  : `<div class="field">
+                       <label>First world template</label>
+                       <select class="input" data-net-open-template>${templateOptions}</select>
+                     </div>
+                     <button class="btn primary wide" data-net-open-start>Start shared world</button>`
+              }
+            </div>
+          </section>`
+      : '';
+    body.innerHTML = `${roomsHtml}${sharedHtml}`;
+    if (!roomsHtml && !sharedHtml) {
+      body.innerHTML = '<div class="net-empty">This server has no mode enabled.</div>';
+    }
   }
 
   private closeLobby(): void {
@@ -297,16 +394,43 @@ export class MultiplayerRuntime {
 
   private setLobbyBusy(busy: boolean): void {
     this.busy = busy;
-    const host = this.lobbyEl?.querySelector('[data-net-host]');
-    const join = this.lobbyEl?.querySelector('[data-net-join]');
-    if (host instanceof HTMLButtonElement) host.disabled = busy;
-    if (join instanceof HTMLButtonElement) join.disabled = busy;
-    const name = this.lobbyEl?.querySelector('[data-net-name]') as HTMLInputElement | null;
-    if (name) name.disabled = busy;
+    for (const selector of [
+      '[data-net-host]',
+      '[data-net-join]',
+      '[data-net-open-start]',
+      '[data-net-open-join]',
+      '[data-net-retry]',
+    ]) {
+      const button = this.lobbyEl?.querySelector(selector);
+      if (button instanceof HTMLButtonElement) button.disabled = busy;
+    }
+    for (const selector of ['[data-net-name]', '[data-net-template]', '[data-net-open-template]']) {
+      const input = this.lobbyEl?.querySelector(selector) as HTMLInputElement | HTMLSelectElement | null;
+      if (input) input.disabled = busy;
+    }
+  }
+
+  /** Build the world descriptor the server persists as this room's world. */
+  private worldDescriptor(): NetWorld {
+    const player = this.game.player;
+    return {
+      templateKey: this.game.template.key,
+      templateName: this.game.template.name,
+      seed: this.game.seed,
+      baseY: this.game.baseY,
+      skyTime: this.game.sky.time,
+      rules: { ...this.game.rules },
+      spawn: [player.position.x, player.position.y + 0.05, player.position.z],
+      edits: this.game.world.getEdits(),
+    };
   }
 
   private async hostRoom(): Promise<void> {
     if (this.busy) return;
+    if (this.client.modes.length && !this.client.modes.includes('rooms')) {
+      this.setLobbyStatus('This server does not host invite rooms.', 'bad');
+      return;
+    }
     const name = this.readName();
     const select = this.lobbyEl?.querySelector('[data-net-template]') as HTMLSelectElement | null;
     const template = getTemplate((select?.value || 'creative') as Parameters<typeof getTemplate>[0]);
@@ -321,19 +445,8 @@ export class MultiplayerRuntime {
     // Set before the network round trip so the freshly generated world is
     // never written over the local single-player save.
     this.game.multiplayerActive = true;
-    const player = this.game.player;
-    const world: NetWorld = {
-      templateKey: this.game.template.key,
-      templateName: this.game.template.name,
-      seed: this.game.seed,
-      baseY: this.game.baseY,
-      skyTime: this.game.sky.time,
-      rules: { ...this.game.rules },
-      spawn: [player.position.x, player.position.y + 0.05, player.position.z],
-      edits: this.game.world.getEdits(),
-    };
     try {
-      const welcome = await this.client.createRoom(world, name);
+      const welcome = await this.client.createRoom(this.worldDescriptor(), name);
       this.attach(welcome);
     } catch (error) {
       this.game.toast(error instanceof Error ? error.message : 'Could not create the room.', 'bad');
@@ -343,6 +456,10 @@ export class MultiplayerRuntime {
 
   private async joinRoom(): Promise<void> {
     if (this.busy) return;
+    if (this.client.modes.length && !this.client.modes.includes('rooms')) {
+      this.setLobbyStatus('This server does not host invite rooms.', 'bad');
+      return;
+    }
     const name = this.readName();
     const codeInput = this.lobbyEl?.querySelector('[data-net-code]') as HTMLInputElement | null;
     const code = (codeInput?.value || '').trim();
@@ -362,7 +479,71 @@ export class MultiplayerRuntime {
       return;
     }
     this.closeLobby();
-    const template = getTemplate(welcome.world.templateKey as Parameters<typeof getTemplate>[0]) || getTemplate('creative');
+    await this.launchFromWelcome(welcome);
+  }
+
+  private async joinOpen(): Promise<void> {
+    if (this.busy) return;
+    if (!this.client.modes.includes('open')) {
+      this.setLobbyStatus('This server does not host a shared world.', 'bad');
+      return;
+    }
+    const name = this.readName();
+    this.setLobbyBusy(true);
+    this.setLobbyStatus('Joining the shared world…', 'info');
+    let welcome: NetWelcome;
+    try {
+      welcome = await this.client.joinOpen(name);
+      this.rememberOpenWorld(welcome);
+    } catch (error) {
+      this.setLobbyBusy(false);
+      this.setLobbyStatus(error instanceof Error ? error.message : 'Could not join the shared world.', 'bad');
+      return;
+    }
+    this.closeLobby();
+    await this.launchFromWelcome(welcome);
+  }
+
+  private async startSharedWorld(): Promise<void> {
+    if (this.busy) return;
+    if (!this.client.modes.includes('open')) {
+      this.setLobbyStatus('This server does not host a shared world.', 'bad');
+      return;
+    }
+    const name = this.readName();
+    const select = this.lobbyEl?.querySelector('[data-net-open-template]') as HTMLSelectElement | null;
+    const template = getTemplate((select?.value || 'creative') as Parameters<typeof getTemplate>[0]);
+    this.setLobbyBusy(true);
+    this.setLobbyStatus('Generating the shared world…', 'info');
+    this.closeLobby();
+    await this.game.launch(template);
+    if (!this.game.started) {
+      this.game.multiplayerActive = false;
+      return;
+    }
+    this.game.multiplayerActive = true;
+    try {
+      const welcome = await this.client.joinOpen(name, this.worldDescriptor());
+      this.rememberOpenWorld(welcome);
+      this.attach(welcome);
+    } catch (error) {
+      this.game.toast(error instanceof Error ? error.message : 'Could not start the shared world.', 'bad');
+      this.game.returnToMenu();
+    }
+  }
+
+  private rememberOpenWorld(welcome: NetWelcome): void {
+    this.client.openWorld = {
+      templateKey: welcome.world.templateKey,
+      templateName: welcome.world.templateName,
+      players: welcome.players.length,
+      edits: welcome.world.edits.length,
+    };
+  }
+
+  private async launchFromWelcome(welcome: NetWelcome): Promise<void> {
+    const template =
+      getTemplate(welcome.world.templateKey as Parameters<typeof getTemplate>[0]) || getTemplate('creative');
     this.selfId = welcome.you.id;
     this.room = welcome.room;
     this.game.multiplayerActive = true;
@@ -389,6 +570,7 @@ export class MultiplayerRuntime {
     this.attached = true;
     this.room = welcome.room;
     this.selfId = welcome.you.id;
+    const shared = welcome.room.code === 'SHARED';
     this.players.clear();
     for (const player of welcome.players) this.players.set(player.id, player);
     this.game.multiplayerActive = true;
@@ -402,14 +584,18 @@ export class MultiplayerRuntime {
     this.appendChat({
       from: 'server',
       name: 'Room',
-      text: `Joined ${welcome.room.code}. Press Enter to chat.`,
+      text: shared
+        ? `Joined the shared world (${welcome.room.templateName}). Edits save on the server. Press Enter to chat.`
+        : `Joined ${welcome.room.code}. Press Enter to chat.`,
       at: Date.now(),
       system: true,
     });
     this.game.toast(
-      welcome.you.host
-        ? `Room ${welcome.room.code} is live. Copy the invite from the room panel.`
-        : `Joined ${welcome.room.code}. Press Enter to chat.`,
+      shared
+        ? 'Joined the shared world. Press Enter to chat.'
+        : welcome.you.host
+          ? `Room ${welcome.room.code} is live. Copy the invite from the room panel.`
+          : `Joined ${welcome.room.code}. Press Enter to chat.`,
       'good',
     );
     this.startLoop();
@@ -417,16 +603,21 @@ export class MultiplayerRuntime {
     this.metaTimer = window.setInterval(() => this.updateMeta(), 500);
   }
 
+  private get sharedRoom(): boolean {
+    return this.room?.code === 'SHARED';
+  }
+
   private buildSessionUI(): void {
     const layer = document.createElement('div');
     layer.className = 'net-layer';
+    const shared = this.sharedRoom;
     layer.innerHTML = `
       <div class="net-session">
         <div class="net-session-head">
           <span class="dot-live"></span>
-          <b data-net-room-code>${escapeHtml(this.room?.code ?? 'ROOM')}</b>
+          <b data-net-room-code>${escapeHtml(shared ? 'SHARED' : this.room?.code ?? 'ROOM')}</b>
           <div class="spacer"></div>
-          <button class="btn ghost small" data-net-copy title="Copy invite link">Invite</button>
+          ${shared ? '' : '<button class="btn ghost small" data-net-copy title="Copy invite link">Invite</button>'}
           <button class="btn ghost small danger-text" data-net-leave title="Leave the room">Leave</button>
         </div>
         <div class="net-session-meta" data-net-meta></div>

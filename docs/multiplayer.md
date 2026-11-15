@@ -1,59 +1,76 @@
 # VoxelForge Multiplayer — Design & Implementation
 
-**Status:** Phase 1 (invite rooms) is implemented and shipped behind a server flag. Phases 2–4 are
-still design.
+**Status:** Phase 1 (invite rooms) and the first Phase 2 slice (persistent shared world) are implemented
+and shipped behind a server flag. The remaining Phase 2–4 work is still design.
 **Scope:** an *additional* way to play. Single-player stays first-class and fully offline.
 
 ---
 
-## Phase 1 at a glance (shipped 2026-11-15)
+## What ships today
 
-The invite-room slice runs on top of the existing offline game. Everything here is opt-in: with no
-server configured, the bundle behaves exactly like the single-player build.
+The online slices run on top of the existing offline game. Everything here is opt-in: with no server
+configured, the bundle behaves exactly like the single-player build.
 
 ### Running it locally
 
 ```bash
-npm run server   # room server on ws://127.0.0.1:8787, health at /health
-npm run dev      # game on http://127.0.0.1:5177
+npm run server        # invite rooms on ws://127.0.0.1:8787, health at /health
+npm run server:open   # shared world only (persists to data/worlds/open.json)
+npm run dev           # game on http://127.0.0.1:5177
 ```
 
 Open `http://127.0.0.1:5177/?server=ws://127.0.0.1:8787`, choose **Multiplayer** on the title screen,
-then create a room. **Invite** copies a link such as
+then host a room or start/join the shared world. Invite links look like
 `http://127.0.0.1:5177/?server=ws://127.0.0.1:8787&room=CINDER-4F2K`; `?room=` pre-fills the join box
 and a bare suffix (`4F2K`) also works. Building with `VITE_MULTIPLAYER_URL=wss://play.example.com`
 shows the Multiplayer entry without any query string.
 
-The server reads `PORT` (default `8787`), `HOST` (default `0.0.0.0`) and `ALLOWED_ORIGINS`
-(comma-separated browser-origin allowlist). Set `ALLOWED_ORIGINS` before exposing the socket
-publicly, and terminate TLS in front of it.
+The server reads:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `PORT` | `8787` | WebSocket + health port |
+| `HOST` | `0.0.0.0` | Bind address |
+| `MODES` | `rooms` | `rooms`, `open`, or `both` (`--open` = open only) |
+| `WORLD_FILE` | `data/worlds/open.json` | Shared-world save location |
+| `WORLD_BACKUPS` | `8` | Rolling backups kept beside the save |
+| `ALLOWED_ORIGINS` | *(any)* | Comma-separated browser-origin allowlist |
+
+Set `ALLOWED_ORIGINS` before exposing the socket publicly, and terminate TLS in front of it.
 
 ### What works today
 
-| Area | Phase 1 behaviour |
+| Area | Behaviour |
 |---|---|
 | Transport | One WebSocket per session, JSON text frames, protocol `1`, 4 s ping |
-| Rooms | `WORD-XXXX` codes, create/join/late join, 8 players, 24 h TTL, host-owned |
-| World | Host uploads `seed`, `baseY`, `skyTime`, `rules`, `spawn` and the edit list; guests regenerate the same deterministic terrain and replay the edits |
+| Modes | Invite rooms, one persistent shared world, or both per server |
+| Invite rooms | `WORD-XXXX` codes, create/join/late join, 8 players, 24 h TTL, host-owned |
+| Shared world | One world per process, joins without a code, survives restarts, up to 8 players |
+| World | Host/first player uploads `seed`, `baseY`, `skyTime`, `rules`, `spawn` and the edit list; everyone regenerates the same deterministic terrain and replays the edits |
 | Movement | 66 ms client input (≈15 Hz), 12 Hz server snapshots, remote avatars smoothed toward the latest snapshot |
 | Blocks | Place/break apply locally first, are relayed, then reach peers through `Game.applyRemoteBlock` (never re-recorded in the local edit log) |
 | Chat | Enter opens chat, Enter sends, Esc cancels; 180 chars, 5 messages / 10 s |
 | Roster | Live player list with host badge, player count and round-trip latency |
+| Persistence | Shared world: atomic JSON write + rolling backups, autosave every 30 s, on last leave, and on shutdown |
 | Saves | `saveGame()` is a no-op while `game.multiplayerActive`; the local slot is never written from a server world |
-| Leaving | Pause menu → *Leave multiplayer room*; the host leaving closes the room for everyone |
+| Leaving | Pause menu → *Leave multiplayer room*; the host leaving closes an invite room, a shared world stays open |
 
-### Deliberate Phase 1 limits
+### Deliberate limits
 
 - **Relay authority, not simulation.** The server validates and rebroadcasts; it does not run physics
   yet. A horizontal speed guard (18 m/s) rejects teleport-style input, and block edits are checked for
   reach (≤ 7.5 blocks) and id range.
-- **No host migration.** The room belongs to its creator; when the host leaves, the room closes.
-- **No reconnect loop.** A dropped socket returns to the main menu; rejoining regenerates the world
-  from the host descriptor.
+- **No host migration.** Invite rooms belong to their creator; when the host leaves, the room closes.
+- **Shared-world genesis comes from the first player.** The server cannot compute a template's base
+  height on its own yet, so whichever client starts an empty shared world uploads its descriptor. From
+  then on the server's saved copy is authoritative.
+- **Shared-world settings are operator-managed.** There is no host, so the room settings/kick messages
+  are rejected in open mode; no allowlist, password or op commands yet.
+- **Sky time is frozen at genesis.** Day/night does not advance the saved descriptor.
+- **No reconnect loop.** A dropped socket returns to the main menu; rejoining reloads the world.
 - **JSON, not binary.** Frames stay human-inspectable until the message set settles.
 - **Per-client systems.** Entities, damage, objectives and sims still run locally and are not
   synchronised, so there is no PvP yet.
-- **No persistence.** Rooms live in server memory; nothing is written to disk.
 
 ---
 
@@ -91,7 +108,7 @@ A private world created on demand, reachable only by code or link.
 | Capacity | 2–8 | shipped (max 8) |
 | Lifetime | host-owned; ends when the host leaves, 24 h TTL | shipped |
 | Discovery | none — no public list, no matchmaking | shipped |
-| Persistence | snapshot on create, autosave while active, kept 30 min after the last player leaves | **not yet — rooms are in-memory only** |
+| Persistence | snapshot on create, autosave while active, kept 30 min after the last player leaves | **rooms are in-memory; shared world persists** |
 | Settings | host picks template, difficulty, PvP, keepInventory, friendly fire | wire format + server relay only; no host UI yet |
 | Use cases | friends playing Cinderburst, a one-off survival session, testing a template together | any of the 28 templates can be hosted today |
 
@@ -113,6 +130,11 @@ concept and no per-group instancing.
 | Persistence | SQLite world file + rolling backups every 15 min, 48 h retention |
 | Permissions | guest → member → op; optional allowlist and/or server password |
 | Use cases | a community survival world, a persistent Cinderburst ladder, a shared creative plot world |
+
+**Implemented subset (2026-11-15):** one shard per process (`MODES=open|both`), joins without a code,
+genesis from the first player's descriptor, atomic JSON save with 8 rolling backups, autosave every
+30 s / on last leave / on shutdown. Not yet: SQLite + 48 h retention, permissions, allowlist/password,
+join queue, public server list.
 
 **The distinction in one line:** *a room creates a world for a group; open world is a world that
 people join.*
@@ -161,9 +183,9 @@ src/
   engine/                ← browser-only: renderer, input, HUD, audio, menus
   net/                   ← NEW: protocol, client transport, prediction
 server/                  ← NEW: node entry point
-  index.ts               ← ws server, room/shard manager, auth
-  world-store.ts         ← SQLite persistence, backups
-  protocol.ts            ← shared with src/net
+  index.mjs              ← ws server, room/shard manager, validation
+  world-store.mjs        ← atomic JSON persistence + rolling backups
+  (protocol stays shared via src/net/protocol.ts)
 ```
 
 `THREE.Vector3` is the main offender. Replace it in `core/` with a tiny `Vec3` struct and convert
@@ -188,9 +210,10 @@ touching session logic. Every frame is `{ "t": "<type>", … }`:
 
 ```
 C→S  hello        { protocol, name, version }
-S→C  hello        { protocol, version, playerId, serverTime }
+S→C  hello        { protocol, version, playerId, serverTime, modes, openWorld }
 C→S  create_room  { name, world: { templateKey, seed, baseY, skyTime, rules, spawn, edits[] }, settings }
 C→S  join_room    { name, code }
+C→S  join_open    { name, world? }   // world only for genesis
 S→C  room_joined  { room, you: { id, spawn, yaw }, world, players[] }
 S→C  player_joined / player_left / host_changed / room_closed
 C→S  input        { seq, x, y, z, yaw, pitch, moving }
@@ -225,8 +248,22 @@ Binary target rules:
 
 ### 2.5 Persistence
 
-Phase 1 keeps rooms in memory only: a room dies with the host, and nothing is written to disk. The
-file layout below is the Phase 2 target.
+Invite rooms are in memory only: they die with the host. The shared world is written to disk:
+
+```
+data/
+  worlds/
+    open.json                 ← { version, savedAt, createdAt, world, settings, edits[] }
+    backups/
+      open-<timestamp>-<rand>.json
+```
+
+Writes go to `open.json.tmp` and are renamed over the save, with the previous version copied into
+`backups/` first. The store keeps 8 backups (`WORLD_BACKUPS`). Flushes happen every 30 s while dirty,
+when the last player leaves, and on `SIGINT`/`SIGTERM`; a corrupt save is reported and the server
+starts a fresh world rather than crashing.
+
+The larger layout below remains the target for multi-world hosting:
 
 ```
 data/
@@ -287,8 +324,10 @@ own entities. The checklist stays the gate for server-authoritative movement, da
 - [x] Room settings and host controls — wire format + server relay; host UI pending
 - [x] One template end-to-end — every template can host; Creative and Survival were QA'd
 
-### Phase 2 — Open World
-- [ ] Singleton shard mode, persistent world file, autosave + backups
+### Phase 2 — Open World (first slice shipped 2026-11-15)
+- [x] Singleton shard mode — `MODES=open|both`, one shared world per process
+- [x] Persistent world file, autosave + backups — `server/world-store.mjs`, `data/worlds/open.json`
+- [ ] SQLite world file + 48 h retention
 - [ ] Allowlist / password / op commands (`/op`, `/kick`, `/save`, `/time`)
 - [ ] Join queue and capacity handling
 - [ ] Public server-list JSON endpoint (optional)
@@ -329,7 +368,7 @@ roughly 2 MB/s outbound at peak, which any small VPS handles.
 |---|---|
 | Phase 0 (core split) | 1–2 weeks |
 | Phase 1 (rooms MVP) — shipped 2026-11-15 as a relay slice | 2–3 weeks |
-| Phase 2 (open world + admin) | 2 weeks |
+| Phase 2 (open world + admin) — shared-world slice shipped 2026-11-15 | 2 weeks |
 | Phase 3 (online game modes) | 3–4 weeks |
 | Phase 4 (ops polish) | 1 week |
 | **Total to product-grade** | **~2–3 months of focused work** |
@@ -383,3 +422,7 @@ server tick) is still the target, and the remaining Phase 1 checklist items are 
 | 2026-11-15 | Room codes are `WORD-XXXX`, case-insensitive; joins accept the bare suffix. Rooms are host-owned and die with the host — no migration in v1. |
 | 2026-11-15 | Multiplayer is gated on `?server=` or `VITE_MULTIPLAYER_URL`; no server means no socket, no extra UI, no change to the offline bundle. |
 | 2026-11-15 | Local saves are frozen while attached: `Game.saveGame()` returns early on `multiplayerActive`, so a server world can never overwrite `voxelforge.save.latest`. |
+| 2026-11-15 | Shared world: one shard per process, selected with `MODES=open` or `MODES=both`; rooms stay invite-only and in memory. |
+| 2026-11-15 | Shared-world genesis comes from the first player's descriptor because the server cannot derive a template's `baseY` yet; the saved copy is authoritative afterwards. |
+| 2026-11-15 | Shared world persists as atomic JSON with 8 rolling backups; SQLite and 48 h retention wait for the multi-world layout. |
+| 2026-11-15 | Open mode has no host: settings and kick messages are rejected, moderation/allowlist/op work is Phase 2 remainder. |

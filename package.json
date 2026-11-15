@@ -10,7 +10,8 @@
     "build:runtime": "vite build --config vite.runtime.config.ts",
     "preview": "vite preview --port 5177",
     "server": "node server/index.mjs",
-    "test": "tsx tests/lighting.test.ts && tsx tests/world.test.ts"
+    "server:open": "node server/index.mjs --open",
+    "test": "tsx tests/lighting.test.ts && tsx tests/world.test.ts && node --test tests/world-store.test.mjs tests/open-world-server.test.mjs"
   },
   "dependencies": {
     "three": "^0.169.0",
