@@ -82,6 +82,9 @@ export interface MainMenuCallbacks {
   onContinue: () => void;
   onSettings: () => void;
   onGuide: () => void;
+  /** Only supplied when a multiplayer server URL is configured. */
+  onMultiplayer?: () => void;
+  multiplayerNote?: string;
 }
 
 export interface PauseCallbacks {
@@ -94,6 +97,8 @@ export interface PauseCallbacks {
   onPublish: () => void;
   onRestart: () => void;
   onMenu: () => void;
+  /** Only supplied while connected to a multiplayer room. */
+  onLeaveRoom?: () => void;
 }
 
 export interface EndCallbacks {
@@ -201,6 +206,7 @@ export class Menus {
               Play Creative Sandbox
             </button>
             ${save ? `<button class="btn gold" data-menu="continue">Continue · ${escapeHtml(save.templateName)}</button>` : ''}
+            ${callbacks.onMultiplayer ? `<button class="btn blue" data-menu="multiplayer"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm10 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2.5 19c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5H2.5zm10.2 0c.2-1.2.7-2.3 1.5-3.1A6.4 6.4 0 0 1 19 14.5c2.5 0 4.5 2 4.5 4.5h-10.8z"/></svg>Multiplayer${callbacks.multiplayerNote ? ` · ${escapeHtml(callbacks.multiplayerNote)}` : ''}</button>` : ''}
             <button class="btn ghost" data-menu="guide">How to play</button>
           </div>
           <div class="hero-secondary">
@@ -255,6 +261,7 @@ export class Menus {
         if (action === 'settings') callbacks.onSettings();
         else if (action === 'guide') callbacks.onGuide();
         else if (action === 'continue') callbacks.onContinue();
+        else if (action === 'multiplayer') callbacks.onMultiplayer?.();
         else if (action === 'quickplay') callbacks.onStart(TEMPLATES[0]);
         event.preventDefault();
         return;
@@ -372,6 +379,7 @@ export class Menus {
     playTime: number;
     stats: { kills: number; blocksMined: number; blocksPlaced: number; objectives: number; totalObjectives: number };
     inStudio: boolean;
+    multiplayer?: boolean;
   }, callbacks: PauseCallbacks): void {
     this.hidePause();
     const overlay = document.createElement('div');
@@ -402,13 +410,14 @@ export class Menus {
             </div>
             <div>
               <div class="inv-side-title">World</div>
-              <button class="btn ghost wide" data-pause="save" style="margin-bottom:7px">Save world</button>
+              ${data.multiplayer ? '' : `<button class="btn ghost wide" data-pause="save" style="margin-bottom:7px">Save world</button>`}
               <button class="btn ghost wide" data-pause="studio" style="margin-bottom:7px">${data.inStudio ? 'Back to play' : 'Open studio'}</button>
               <button class="btn ghost wide" data-pause="scripts" style="margin-bottom:7px">Script studio</button>
               <button class="btn ghost wide" data-pause="publish" style="margin-bottom:7px">Publish / AI control</button>
               <button class="btn ghost wide" data-pause="settings" style="margin-bottom:7px">Settings</button>
-              <button class="btn ghost wide" data-pause="restart" style="margin-bottom:7px">Restart world</button>
-              <button class="btn danger wide" data-pause="menu">Save &amp; main menu</button>
+              ${data.multiplayer ? '' : `<button class="btn ghost wide" data-pause="restart" style="margin-bottom:7px">Restart world</button>`}
+              ${callbacks.onLeaveRoom ? '<button class="btn danger wide" data-pause="leave-room" style="margin-bottom:7px">Leave multiplayer room</button>' : ''}
+              <button class="btn danger wide" data-pause="menu">${data.multiplayer ? 'Main menu' : 'Save &amp; main menu'}</button>
             </div>
           </div>
           <div class="divider"></div>
@@ -444,6 +453,7 @@ export class Menus {
       else if (action === 'scripts') callbacks.onScripts();
       else if (action === 'publish') callbacks.onPublish();
       else if (action === 'restart') callbacks.onRestart();
+      else if (action === 'leave-room') callbacks.onLeaveRoom?.();
       else if (action === 'menu') callbacks.onMenu();
     });
   }

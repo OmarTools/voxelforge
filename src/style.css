@@ -1566,3 +1566,45 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   .hud.touch-mode .heart { width: 11px; }
   .hud.touch-mode .heart::before { font-size: 13px; line-height: 13px; }
 }
+
+/* ------------------------------------------------------------- multiplayer */
+.net-overlay { z-index: 70; }
+.net-lobby .modal-body { padding: 16px 20px; }
+.net-player-row { display: flex; gap: 14px; align-items: flex-end; margin-bottom: 14px; }
+.net-server-chip { display: flex; align-items: center; gap: 7px; max-width: 46%; padding: 8px 10px; border: 1px solid #2e4355; background: #0a1219; font-size: 10px; color: #8fa6b6; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.net-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.net-card { border: 1px solid #2e4355; background: linear-gradient(165deg, #131d27, #0b131b); padding: 14px 14px 16px; }
+.net-card h4 { margin: 0 0 6px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #cfe3d2; }
+.net-card p { margin: 0 0 12px; font-size: 11px; line-height: 1.55; color: #8298a8; min-height: 34px; }
+.net-card .field { margin-bottom: 11px; }
+.net-lobby-foot { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line-soft); font-family: var(--mono); font-size: 10px; color: #8fa6b6; }
+.net-lobby-foot .bad { color: #ffacac; }
+.net-lobby-foot .good { color: #b9f196; }
+.net-layer { position: absolute; inset: 0; z-index: 25; pointer-events: none; font-family: var(--mono); }
+.net-session { position: absolute; top: 238px; right: 18px; width: 232px; padding: 10px 11px; background: rgba(8, 14, 19, 0.82); border: 1px solid #2e4355; box-shadow: 0 14px 34px rgba(0,0,0,0.38); pointer-events: auto; backdrop-filter: blur(4px); }
+.net-session-head { display: flex; align-items: center; gap: 7px; }
+.net-session-head b { font-size: 11px; letter-spacing: 0.09em; color: #eaf6e7; }
+.net-session-head .btn { min-height: 22px; padding: 2px 7px; font-size: 9px; }
+.net-session-head .danger-text { color: #ffb0a8; }
+.net-session-meta { margin: 5px 0 8px; font-size: 9px; letter-spacing: 0.06em; color: #7e9487; }
+.net-roster { display: flex; flex-direction: column; gap: 4px; max-height: 150px; overflow-y: auto; }
+.net-player { display: flex; align-items: center; gap: 7px; font-size: 10px; color: #cfdde5; padding: 3px 4px; background: rgba(255,255,255,0.025); }
+.net-player.self { background: rgba(140, 224, 95, 0.08); }
+.net-player-dot { width: 6px; height: 6px; border-radius: 50%; flex: none; box-shadow: 0 0 6px currentColor; }
+.net-player-name { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.tiny-pill { font-size: 8px; padding: 1px 5px; min-height: 0; }
+.net-feed { position: absolute; left: 18px; bottom: 128px; width: min(430px, 44vw); display: flex; flex-direction: column; gap: 3px; }
+.net-chat-line { display: flex; gap: 7px; padding: 4px 8px; background: rgba(5, 10, 14, 0.66); border-left: 2px solid #7bb7dd; font-size: 11px; line-height: 1.35; color: #d8e6ee; text-shadow: 0 1px 2px #000; }
+.net-chat-line b { color: #9ddcff; flex: none; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.net-chat-line span { word-break: break-word; }
+.net-chat-line.system { border-left-color: #f7c65a; color: #efe0b4; }
+.net-chat-line.system b { color: #f7c65a; }
+.net-chat-bar { position: absolute; left: 50%; bottom: 108px; transform: translateX(-50%); width: min(460px, 60vw); text-align: center; }
+.net-chat-hint { display: inline-block; padding: 3px 8px; background: rgba(5, 10, 14, 0.55); color: #9fb4c2; font-size: 9px; letter-spacing: 0.06em; }
+.net-chat-hint kbd { font-family: var(--mono); color: #eaf6e7; border: 1px solid #46692f; padding: 0 4px; }
+.net-chat-input { pointer-events: auto; width: 100%; padding: 9px 12px; background: rgba(5, 10, 14, 0.94); border: 1px solid #6d9c58; color: #eaf7e2; font-family: var(--mono); font-size: 12px; outline: none; box-shadow: 0 10px 30px rgba(0,0,0,0.45), 0 0 0 2px rgba(140,224,95,0.08); }
+.net-chat-input.hidden { display: none; }
+@media (max-width: 760px) { .net-grid { grid-template-columns: 1fr; } .net-server-chip { display: none; } .net-session { top: auto; bottom: 190px; } .net-feed { display: none; } }
+
+#ui > .net-layer { pointer-events: none; }
+#ui > .net-layer .net-session, #ui > .net-layer .net-chat-input { pointer-events: auto; }

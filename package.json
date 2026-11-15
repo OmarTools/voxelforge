@@ -9,10 +9,12 @@
     "build": "tsc --noEmit && npm run build:runtime && vite build",
     "build:runtime": "vite build --config vite.runtime.config.ts",
     "preview": "vite preview --port 5177",
+    "server": "node server/index.mjs",
     "test": "tsx tests/lighting.test.ts && tsx tests/world.test.ts"
   },
   "dependencies": {
-    "three": "^0.169.0"
+    "three": "^0.169.0",
+    "ws": "^8.23.0"
   },
   "devDependencies": {
     "@types/three": "^0.169.0",

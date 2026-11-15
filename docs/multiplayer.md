@@ -1,7 +1,59 @@
-# VoxelForge Multiplayer — Design Proposal
+# VoxelForge Multiplayer — Design & Implementation
 
-**Status:** proposal only — nothing in this document is implemented.
+**Status:** Phase 1 (invite rooms) is implemented and shipped behind a server flag. Phases 2–4 are
+still design.
 **Scope:** an *additional* way to play. Single-player stays first-class and fully offline.
+
+---
+
+## Phase 1 at a glance (shipped 2026-11-15)
+
+The invite-room slice runs on top of the existing offline game. Everything here is opt-in: with no
+server configured, the bundle behaves exactly like the single-player build.
+
+### Running it locally
+
+```bash
+npm run server   # room server on ws://127.0.0.1:8787, health at /health
+npm run dev      # game on http://127.0.0.1:5177
+```
+
+Open `http://127.0.0.1:5177/?server=ws://127.0.0.1:8787`, choose **Multiplayer** on the title screen,
+then create a room. **Invite** copies a link such as
+`http://127.0.0.1:5177/?server=ws://127.0.0.1:8787&room=CINDER-4F2K`; `?room=` pre-fills the join box
+and a bare suffix (`4F2K`) also works. Building with `VITE_MULTIPLAYER_URL=wss://play.example.com`
+shows the Multiplayer entry without any query string.
+
+The server reads `PORT` (default `8787`), `HOST` (default `0.0.0.0`) and `ALLOWED_ORIGINS`
+(comma-separated browser-origin allowlist). Set `ALLOWED_ORIGINS` before exposing the socket
+publicly, and terminate TLS in front of it.
+
+### What works today
+
+| Area | Phase 1 behaviour |
+|---|---|
+| Transport | One WebSocket per session, JSON text frames, protocol `1`, 4 s ping |
+| Rooms | `WORD-XXXX` codes, create/join/late join, 8 players, 24 h TTL, host-owned |
+| World | Host uploads `seed`, `baseY`, `skyTime`, `rules`, `spawn` and the edit list; guests regenerate the same deterministic terrain and replay the edits |
+| Movement | 66 ms client input (≈15 Hz), 12 Hz server snapshots, remote avatars smoothed toward the latest snapshot |
+| Blocks | Place/break apply locally first, are relayed, then reach peers through `Game.applyRemoteBlock` (never re-recorded in the local edit log) |
+| Chat | Enter opens chat, Enter sends, Esc cancels; 180 chars, 5 messages / 10 s |
+| Roster | Live player list with host badge, player count and round-trip latency |
+| Saves | `saveGame()` is a no-op while `game.multiplayerActive`; the local slot is never written from a server world |
+| Leaving | Pause menu → *Leave multiplayer room*; the host leaving closes the room for everyone |
+
+### Deliberate Phase 1 limits
+
+- **Relay authority, not simulation.** The server validates and rebroadcasts; it does not run physics
+  yet. A horizontal speed guard (18 m/s) rejects teleport-style input, and block edits are checked for
+  reach (≤ 7.5 blocks) and id range.
+- **No host migration.** The room belongs to its creator; when the host leaves, the room closes.
+- **No reconnect loop.** A dropped socket returns to the main menu; rejoining regenerates the world
+  from the host descriptor.
+- **JSON, not binary.** Frames stay human-inspectable until the message set settles.
+- **Per-client systems.** Entities, damage, objectives and sims still run locally and are not
+  synchronised, so there is no PvP yet.
+- **No persistence.** Rooms live in server memory; nothing is written to disk.
 
 ---
 
@@ -32,16 +84,16 @@ world directly — **not** a room per group.
 
 A private world created on demand, reachable only by code or link.
 
-| | |
-|---|---|
-| Entry | "Create room" in the main menu, or "Invite friends" in the pause menu |
-| Address | `https://play.example.com/room/CINDER-4F2K` (code is the whole credential) |
-| Capacity | 2–8 (Cinderburst: 4) |
-| Lifetime | host-owned; ends when the host leaves, or 24 h TTL for "keep alive" rooms |
-| Discovery | none — no public list, no matchmaking |
-| Persistence | snapshot on create, autosave while active, kept 30 min after the last player leaves |
-| Settings | host picks template, difficulty, PvP, keepInventory, friendly fire |
-| Use cases | friends playing Cinderburst, a one-off survival session, testing a template together |
+| Aspect | Behaviour | Status |
+|---|---|---|
+| Entry | Multiplayer on the title screen; leave from the pause menu | **shipped** |
+| Address | `https://play.example.com/?server=wss://play.example.com&room=CINDER-4F2K` (code is the whole credential) | shipped |
+| Capacity | 2–8 | shipped (max 8) |
+| Lifetime | host-owned; ends when the host leaves, 24 h TTL | shipped |
+| Discovery | none — no public list, no matchmaking | shipped |
+| Persistence | snapshot on create, autosave while active, kept 30 min after the last player leaves | **not yet — rooms are in-memory only** |
+| Settings | host picks template, difficulty, PvP, keepInventory, friendly fire | wire format + server relay only; no host UI yet |
+| Use cases | friends playing Cinderburst, a one-off survival session, testing a template together | any of the 28 templates can be hosted today |
 
 Room codes are short, human-readable, and rate-limited (5 failed joins per IP per minute) so they
 can't be brute-forced.
@@ -131,7 +183,25 @@ template by template.
 
 ### 2.4 Protocol sketch
 
-Binary WebSocket frames, little-endian, quantized:
+Phase 1 ships a JSON envelope that mirrors the binary plan, so the transport can be swapped without
+touching session logic. Every frame is `{ "t": "<type>", … }`:
+
+```
+C→S  hello        { protocol, name, version }
+S→C  hello        { protocol, version, playerId, serverTime }
+C→S  create_room  { name, world: { templateKey, seed, baseY, skyTime, rules, spawn, edits[] }, settings }
+C→S  join_room    { name, code }
+S→C  room_joined  { room, you: { id, spawn, yaw }, world, players[] }
+S→C  player_joined / player_left / host_changed / room_closed
+C→S  input        { seq, x, y, z, yaw, pitch, moving }
+S→C  snapshot     { tick, players: [{ id, x, y, z, yaw, pitch, moving, host }] }
+C→S  block        { x, y, z, id }
+S→C  block        { x, y, z, id, from }
+C→S  chat         { text }          S→C  chat   { from, name, text, at }
+C→S  settings|kick|leave|ping       S→C  settings|error|pong
+```
+
+The binary target (still the goal for Phase 2+) is:
 
 ```
 C→S  Hello        { protocol, name, version }
@@ -147,13 +217,16 @@ C→S  Chat         { text }
 S→C  Event        { kind, payload }   // crate opened, rival out, round won
 ```
 
-Rules:
+Binary target rules:
 - Inputs carry a sequence number; snapshots ack the last one processed.
 - Positions are sent as fixed-point (1/32 block) — 3 × `int32` per player.
 - Entity deltas, not full lists: spawn/despawn/state-change only.
 - Edits are broadcast as diffs; late joiners get `WorldEdits` once.
 
 ### 2.5 Persistence
+
+Phase 1 keeps rooms in memory only: a room dies with the host, and nothing is written to disk. The
+file layout below is the Phase 2 target.
 
 ```
 data/
@@ -171,16 +244,22 @@ rename (atomic), keeping the previous version as a backup.
 
 ### 2.6 Security
 
-- Never trust a client block placement: validate reach (≤ 6 blocks), line of sight, and that the
-  target cell is empty.
+- Never trust a client block placement: validate reach, id range and the edit budget. Phase 1
+  enforces reach ≤ 7.5 blocks, a known block id, and a per-room edit cap; line-of-sight and
+  target-cell checks come with server-side simulation.
 - Rate-limit inputs (drop clients sending > 60/s), chat (5 msgs / 10 s), and room-code attempts.
-- Server owns damage and drops; the client only renders the result.
+  Phase 1 ships the chat limit and 5 failed joins per IP per minute.
+- Server owns damage and drops; the client only renders the result. Not yet — each client still owns
+  its own entities.
 - Cap snapshot size per player per tick (drop far entities before dropping nearby ones).
 - Optional TLS via a reverse proxy (Caddy/nginx) — never ship a plaintext public endpoint.
 
 ---
 
 ## 3. Refactor checklist
+
+Phase 1 shipped *without* this split: it relays client-simulated positions and trusts each client's
+own entities. The checklist stays the gate for server-authoritative movement, damage and sims.
 
 - [ ] Introduce `Vec3` and remove `THREE` from `core/`
 - [ ] Move `VoxelWorld` generation + edits behind a renderer-free interface
@@ -200,13 +279,13 @@ rename (atomic), keeping the previous version as a backup.
 - [ ] `server/smoke.ts` that generates a world and ticks it 600 times in Node
 - [ ] Verify a headless round of Cinderburst resolves with bots (already possible via sim QA)
 
-### Phase 1 — Invite Rooms MVP
-- [ ] WebSocket server + room create/join by code
-- [ ] Movement sync with prediction + reconciliation
-- [ ] Block place/break sync
-- [ ] Chat + player list + join/leave toasts
-- [ ] Room settings and host controls
-- [ ] One template end-to-end (Survival first, then Cinderburst)
+### Phase 1 — Invite Rooms MVP (shipped 2026-11-15)
+- [x] WebSocket server + room create/join by code
+- [x] Movement sync — client-simulated and server-relayed; prediction/reconciliation pending
+- [x] Block place/break sync
+- [x] Chat + player list + join/leave toasts
+- [x] Room settings and host controls — wire format + server relay; host UI pending
+- [x] One template end-to-end — every template can host; Creative and Survival were QA'd
 
 ### Phase 2 — Open World
 - [ ] Singleton shard mode, persistent world file, autosave + backups
@@ -249,7 +328,7 @@ roughly 2 MB/s outbound at peak, which any small VPS handles.
 | Milestone | Estimate |
 |---|---|
 | Phase 0 (core split) | 1–2 weeks |
-| Phase 1 (rooms MVP) | 2–3 weeks |
+| Phase 1 (rooms MVP) — shipped 2026-11-15 as a relay slice | 2–3 weeks |
 | Phase 2 (open world + admin) | 2 weeks |
 | Phase 3 (online game modes) | 3–4 weeks |
 | Phase 4 (ops polish) | 1 week |
@@ -257,6 +336,10 @@ roughly 2 MB/s outbound at peak, which any small VPS handles.
 
 Ship Phase 1 behind a flag first; it validates the protocol before the world-persistence and
 permission work lands.
+
+The shipped Phase 1 is a *relay* MVP: it proves rooms, joins, movement visibility, chat and block
+sync without waiting on the headless core split. The server-authoritative version (Phase 0 + a real
+server tick) is still the target, and the remaining Phase 1 checklist items are tracked in §3.
 
 ---
 
@@ -279,7 +362,7 @@ permission work lands.
 
 | Risk | Mitigation |
 |---|---|
-| Core refactor destabilises single-player | Land it in small PRs with the 22-template smoke test as the gate |
+| Core refactor destabilises single-player | Land it in small PRs with the 28-template smoke test as the gate |
 | Snapshot bandwidth blows up with entities | Delta encoding + distance culling; measure early with a bot-filled world |
 | Cheating in PvP | Server-owned sim state; client inputs only |
 | Save corruption on crash | Atomic writes + rolling backups + a `--verify` CLI |
@@ -296,3 +379,7 @@ permission work lands.
 | 2026-11-06 | Two modes required: invite rooms **and** one shared open world. No per-group instancing in open mode. |
 | 2026-11-06 | Server is additive; offline builds and local saves are unchanged. |
 | 2026-11-06 | Server-authoritative with client prediction; lockstep rejected. |
+| 2026-11-15 | Phase 1 shipped as an invite-room **relay** slice: JSON frames, server rebroadcasts validated client positions. Server simulation waits for the headless core split. |
+| 2026-11-15 | Room codes are `WORD-XXXX`, case-insensitive; joins accept the bare suffix. Rooms are host-owned and die with the host — no migration in v1. |
+| 2026-11-15 | Multiplayer is gated on `?server=` or `VITE_MULTIPLAYER_URL`; no server means no socket, no extra UI, no change to the offline bundle. |
+| 2026-11-15 | Local saves are frozen while attached: `Game.saveGame()` returns early on `multiplayerActive`, so a server world can never overwrite `voxelforge.save.latest`. |

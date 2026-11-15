@@ -180,6 +180,21 @@ export interface GameSaveData {
   projectName?: string;
 }
 
+/**
+ * Optional server-provided world seed. When present, the session regenerates
+ * the exact deterministic terrain and applies the room's recorded edits
+ * instead of rolling a fresh local world.
+ */
+export interface WorldInit {
+  seed: number;
+  baseY?: number;
+  skyTime?: number;
+  rules?: Partial<WorldRules>;
+  edits?: EditRecord[];
+  spawn?: [number, number, number];
+  yaw?: number;
+}
+
 interface BlockChange {
   x: number;
   y: number;
@@ -283,6 +298,14 @@ export class Game {
   readonly studioPropsGroup = new THREE.Group();
 
   onExitToMenu?: () => void;
+  /** True while attached to a multiplayer room. Local saves are skipped. */
+  multiplayerActive = false;
+  /** Set while the multiplayer chat field owns the keyboard, so losing pointer lock does not pause. */
+  suppressPointerPause = false;
+  /** Called after this client changes a block so the room can relay it. */
+  onBlockEdited?: (x: number, y: number, z: number, id: number) => void;
+  /** Supplied by MultiplayerRuntime so the pause menu can leave the room directly. */
+  onLeaveRoomRequested?: () => void;
 
   private clock = new THREE.Clock();
   private playMode: GameMode = 'creative';
@@ -353,7 +376,7 @@ export class Game {
     this.applySettings(this.settings);
     window.addEventListener('resize', () => this.onResize());
     this.input.setLockListener((locked) => {
-      if (!locked && this.started && !this.uiOpen && !this.paused && !this.ended && !this.studioOpen) {
+      if (!locked && this.started && !this.uiOpen && !this.paused && !this.ended && !this.studioOpen && !this.suppressPointerPause) {
         this.requestPause();
       }
     });
@@ -611,7 +634,7 @@ export class Game {
 
   // ------------------------------------------------------------------- launch
 
-  async launch(template: GameTemplate, save?: GameSaveData): Promise<void> {
+  async launch(template: GameTemplate, save?: GameSaveData, worldInit?: WorldInit): Promise<void> {
     this.audio.unlock();
     this.menus.hideMain();
     this.menus.hideEnd();
@@ -619,7 +642,7 @@ export class Game {
     this.menus.showLoading(template.name, template.subtitle);
     this.preparingSession = true;
     try {
-      await this.start(template, save, (fraction, label, detail) => this.menus.setLoading(fraction, label, detail));
+      await this.start(template, save, (fraction, label, detail) => this.menus.setLoading(fraction, label, detail), worldInit);
     } catch (error) {
       console.error(error);
       this.preparingSession = false;
@@ -669,13 +692,13 @@ export class Game {
   // -------------------------------------------------------------- world setup
 
   /** Build a complete playable session from a template and optional save. */
-  async start(template: GameTemplate, save?: GameSaveData, progress?: (fraction: number, label: string, detail?: string) => void): Promise<void> {
+  async start(template: GameTemplate, save?: GameSaveData, progress?: (fraction: number, label: string, detail?: string) => void, worldInit?: WorldInit): Promise<void> {
     this.endSession();
     this.template = template;
     this.playMode = template.key === 'studio' ? 'creative' : template.key;
     this.mode = this.playMode;
-    this.rules = { ...template.rules, ...(save?.rules ?? {}) };
-    this.seed = save?.seed ?? Math.floor(Math.random() * 1_000_000_000);
+    this.rules = { ...template.rules, ...(save?.rules ?? {}), ...(worldInit?.rules ?? {}) };
+    this.seed = worldInit?.seed ?? save?.seed ?? Math.floor(Math.random() * 1_000_000_000);
     this.projectName = save?.projectName ?? template.name;
     this.dayCount = save?.dayCount ?? 1;
     this.stats = save?.stats ? { ...save.stats } : { kills: 0, blocksMined: 0, blocksPlaced: 0, deaths: 0, damageDealt: 0, distance: 0, playTime: 0 };
@@ -705,14 +728,16 @@ export class Game {
     this.hud = new HUD(this.root, this);
     this.hud.el.classList.add('hidden');
 
-    const spawnX = template.spawn[0];
-    const spawnZ = template.spawn[1];
+    const spawnX = worldInit?.spawn?.[0] ?? template.spawn[0];
+    const spawnZ = worldInit?.spawn?.[2] ?? template.spawn[1];
     this.world = new VoxelWorld(this.atlas, this.seed, template.preset);
     this.world.setRenderDistance(this.settings.renderDistance);
     this.scene.add(this.world.group);
 
     // Determine the session's base surface height.
-    if (save?.baseY) {
+    if (worldInit?.baseY !== undefined) {
+      this.baseY = worldInit.baseY;
+    } else if (save?.baseY) {
       this.baseY = save.baseY;
     } else if (template.heightMode === 'sky') {
       this.baseY = template.skyBase ?? 49;
@@ -748,7 +773,9 @@ export class Game {
     await frame();
 
     if (save?.edits?.length) this.world.loadEdits(save.edits);
-    report(0.46, 'Restoring your changes', `${save?.edits?.length ?? 0} recorded edits`);
+    if (worldInit?.edits?.length) this.world.loadEdits(worldInit.edits);
+    const restoredEdits = (save?.edits?.length ?? 0) + (worldInit?.edits?.length ?? 0);
+    report(0.46, 'Restoring your changes', `${restoredEdits} recorded edits`);
 
     // Pre-mesh the area around spawn so the first frame looks complete.
     await this.preloadChunks(spawnX, spawnZ, Math.min(3, this.settings.renderDistance), report);
@@ -773,9 +800,16 @@ export class Game {
       if (!this.banking) this.bankCoins();
     };
 
-    const spawnY = Math.max(this.baseY + 1, this.world.getNearestGround(spawnX, spawnZ, this.baseY + 8)) + (template.spawnYOffset ?? 0);
-    this.respawnPoint.set(spawnX + 0.5, spawnY + 0.02, spawnZ + 0.5);
-    this.player.spawnAt(this.respawnPoint.clone(), template.spawnYaw ?? 0);
+    const spawnY = worldInit?.spawn
+      ? worldInit.spawn[1]
+      : Math.max(this.baseY + 1, this.world.getNearestGround(spawnX, spawnZ, this.baseY + 8)) + (template.spawnYOffset ?? 0);
+    this.respawnPoint.set(
+      worldInit?.spawn ? worldInit.spawn[0] : spawnX + 0.5,
+      spawnY + 0.02,
+      worldInit?.spawn ? worldInit.spawn[2] : spawnZ + 0.5,
+    );
+    this.player.spawnAt(this.respawnPoint.clone(), worldInit?.yaw ?? template.spawnYaw ?? 0);
+    const startPoint = this.respawnPoint.clone();
 
     if (save?.player) {
       const p = save.player;
@@ -828,6 +862,7 @@ export class Game {
       reached: save ? index <= save.checkpointIndex : false,
     }));
     this.respawnPoint.set(spawnX + 0.5, spawnY + 0.02, spawnZ + 0.5);
+    if (worldInit?.spawn) this.respawnPoint.copy(startPoint);
     if (save) {
       for (let i = 0; i <= save.checkpointIndex && i < this.checkpoints.length; i++) {
         const cp = this.checkpoints[i];
@@ -869,7 +904,7 @@ export class Game {
     if (save?.waves.active) this.wave.active = true;
 
     // Sky, weather and rules.
-    this.sky.setTime(save?.skyTime ?? template.timeOfDay);
+    this.sky.setTime(worldInit?.skyTime ?? save?.skyTime ?? template.timeOfDay);
     this.sky.setWeather(template.weather ?? 'clear');
     this.sky.setMood(template.key === 'horror' ? 'horror' : 'normal');
     this.sky.setRenderDistance(this.settings.renderDistance);
@@ -1528,7 +1563,8 @@ export class Game {
     if (!this.rules.blockBreaking) return;
     const def = blockById(hit.id);
     if (!def || !def.breakable || def.key === 'air') return;
-    this.world.setBlock(hit.x, hit.y, hit.z, 0, true);
+    const removed = this.world.setBlock(hit.x, hit.y, hit.z, 0, true);
+    if (removed) this.onBlockEdited?.(hit.x, hit.y, hit.z, 0);
     this.stats.blocksMined += 1;
     const simHandled = this.sim?.onBlockBroken(def.key, hit.x, hit.y, hit.z) ?? false;
     this.particles.dust(new THREE.Vector3(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5), def.mapColor, 12);
@@ -1653,6 +1689,7 @@ export class Game {
     // Torches and plants need something solid underneath.
     if (def.render === 'cross' && !isSolidId(this.world.getBlock(x, y - 1, z))) return;
     if (this.world.setBlock(x, y, z, def.id, true)) {
+      this.onBlockEdited?.(x, y, z, def.id);
       this.player.swing(0.5);
       this.player.inventory.remove(blockKey, 1);
       this.player.refreshHeldItem();
@@ -1931,6 +1968,7 @@ export class Game {
           totalObjectives: this.objectives.length,
         },
         inStudio: this.studioOpen,
+        multiplayer: this.multiplayerActive,
       },
       {
         onResume: () => this.resume(),
@@ -1968,6 +2006,13 @@ export class Game {
           this.paused = false;
           this.returnToMenu();
         },
+        onLeaveRoom: this.onLeaveRoomRequested
+          ? () => {
+              this.menus.hidePause();
+              this.paused = false;
+              this.onLeaveRoomRequested?.();
+            }
+          : undefined,
       },
     );
   }
@@ -2175,7 +2220,7 @@ export class Game {
       edits: this.world ? this.world.getEdits() : [],
       entities: this.entities
         ? this.entities.entities
-            .filter((e) => e.alive && !e.id.startsWith('cook_customer_') && !e.id.startsWith('shop_customer_') && !e.id.startsWith('cinder_bot_') && !e.id.startsWith('survivor_') && !e.id.startsWith('royale_rival_') && !e.id.startsWith('siege_raider_') && !e.id.startsWith('hollow_enemy_') && !e.id.startsWith('crumble_bot_') && !e.id.startsWith('deadlight_zombie_') && !e.id.startsWith('titan_'))
+            .filter((e) => e.alive && !e.id.startsWith('cook_customer_') && !e.id.startsWith('shop_customer_') && !e.id.startsWith('cinder_bot_') && !e.id.startsWith('survivor_') && !e.id.startsWith('royale_rival_') && !e.id.startsWith('siege_raider_') && !e.id.startsWith('hollow_enemy_') && !e.id.startsWith('crumble_bot_') && !e.id.startsWith('deadlight_zombie_') && !e.id.startsWith('titan_') && !e.id.startsWith('net_player_'))
             .map((e) => this.serializeEntity(e))
         : [],
       player: {
@@ -2276,6 +2321,8 @@ export class Game {
   }
 
   saveGame(showToast = true): void {
+    // Server worlds are owned by the room, never by this browser's local save.
+    if (this.multiplayerActive) return;
     if (!this.started || !this.world || !this.player) return;
     try {
       const data = this.buildProjectData();
@@ -2292,6 +2339,12 @@ export class Game {
         this.toast('Autosave failed — browser storage is full. Export your world to keep your progress.', 'warn');
       }
     }
+  }
+
+  /** Apply a block edit relayed from another player. Never recorded or echoed. */
+  applyRemoteBlock(x: number, y: number, z: number, id: number): boolean {
+    if (!this.world) return false;
+    return this.world.setBlock(x, y, z, id, false);
   }
 
   private serializeEntity(entity: GameEntity): EntitySaveData {
@@ -2316,6 +2369,7 @@ export class Game {
     this.ended = false;
     this.uiOpen = false;
     this.studioOpen = false;
+    this.suppressPointerPause = false;
     this.mode = this.playMode;
     this.closeLargeMap();
     this.closeShop();
@@ -2821,6 +2875,7 @@ export class Game {
     if (before === id) return;
     this.world.ensureArea(x, z, x, z, false);
     if (!this.world.setBlock(x, y, z, id, true)) return;
+    this.onBlockEdited?.(x, y, z, id);
     if (!this.pendingStroke) this.pendingStroke = { label: 'Paint block', changes: [] };
     this.pendingStroke.changes.push({ x, y, z, before, after: id });
   }
@@ -2839,11 +2894,13 @@ export class Game {
       undo: () => {
         for (let i = changes.length - 1; i >= 0; i--) {
           const c = changes[i];
-          this.world.setBlock(c.x, c.y, c.z, c.before, true);
+          if (this.world.setBlock(c.x, c.y, c.z, c.before, true)) this.onBlockEdited?.(c.x, c.y, c.z, c.before);
         }
       },
       redo: () => {
-        for (const c of changes) this.world.setBlock(c.x, c.y, c.z, c.after, true);
+        for (const c of changes) {
+          if (this.world.setBlock(c.x, c.y, c.z, c.after, true)) this.onBlockEdited?.(c.x, c.y, c.z, c.after);
+        }
       },
     });
   }

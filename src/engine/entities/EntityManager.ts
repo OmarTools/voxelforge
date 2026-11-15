@@ -128,6 +128,9 @@ export class GameEntity {
   onGround = false;
   state: 'idle' | 'walk' | 'run' | 'attack' | 'hurt' | 'dead' = 'idle';
   target: PlayerHandle | null = null;
+  /** Remote multiplayer avatars are positioned by NetClient, not local AI. */
+  isRemote = false;
+  remoteMoving = false;
   /** Scripted destination used by simulation modes such as sieges. */
   moveOverride: { x: number; z: number; speed: number } | null = null;
   aggro = false;
@@ -384,6 +387,14 @@ export class GameEntity {
     this.hurtTimer = Math.max(0, this.hurtTimer - dt);
     this.stuckTime = Math.max(0, this.stuckTime - dt);
     this.target = player;
+
+    if (this.isRemote) {
+      this.setState(this.remoteMoving ? 'walk' : 'idle');
+      this.root.position.copy(this.position);
+      this.root.rotation.y = this.yaw;
+      this.instance.update(dt);
+      return;
+    }
 
     if (!this.alive) {
       this.deathTimer += dt;
@@ -820,7 +831,7 @@ export class EntityManager {
         continue;
       }
       // Cull entities that fall out of the world or stray absurdly far.
-      if (entity.position.y < -8 || entity.position.distanceTo(player.position) > 130) {
+      if (!entity.isRemote && (entity.position.y < -8 || entity.position.distanceTo(player.position) > 130)) {
         this.remove(entity);
         continue;
       }

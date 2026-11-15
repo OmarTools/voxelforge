@@ -3,6 +3,7 @@ import { Game, type GameSaveData } from './engine/game/Game';
 import { getTemplate } from './content/Templates';
 import { CommandAPI } from './engine/ai/CommandAPI';
 import { McpBridge, loadMcpSettings, setSharedBridge } from './engine/ai/McpBridge';
+import { MultiplayerRuntime, configuredServerUrl } from './net/MultiplayerRuntime';
 
 export interface EmbeddedProject {
   format?: string;
@@ -18,6 +19,7 @@ export interface VoxelForgeRuntime {
   menus: Menus;
   commands: CommandAPI;
   bridge: McpBridge;
+  multiplayer?: MultiplayerRuntime;
 }
 
 declare global {
@@ -43,6 +45,10 @@ export function boot(): VoxelForgeRuntime {
   const bridge = new McpBridge(commands);
   setSharedBridge(bridge);
 
+  // Multiplayer is strictly opt-in: no server URL means no extra UI or socket.
+  const serverUrl = configuredServerUrl();
+  const multiplayer = serverUrl ? new MultiplayerRuntime(game, serverUrl) : undefined;
+
   function openMainMenu(): void {
     menus.showMain({
       onStart: (template) => {
@@ -57,14 +63,21 @@ export function boot(): VoxelForgeRuntime {
       onGuide: () => {
         menus.openGuide();
       },
+      ...(multiplayer
+        ? {
+            onMultiplayer: () => multiplayer.openLobby(),
+            multiplayerNote: 'invite rooms',
+          }
+        : {}),
     });
   }
 
   game.onExitToMenu = () => {
+    multiplayer?.handleGameExit();
     openMainMenu();
   };
 
-  const runtime: VoxelForgeRuntime = { game, menus, commands, bridge };
+  const runtime: VoxelForgeRuntime = { game, menus, commands, bridge, ...(multiplayer ? { multiplayer } : {}) };
   window.voxelforge = runtime;
 
   const embedded = window.__VOXELFORGE_PROJECT__;
@@ -76,6 +89,8 @@ export function boot(): VoxelForgeRuntime {
     void game.launch(template, embedded.save ?? undefined);
   } else {
     openMainMenu();
+    const invitedRoom = new URLSearchParams(window.location.search).get('room');
+    if (multiplayer && invitedRoom) multiplayer.openLobby(invitedRoom);
   }
 
   if (loadMcpSettings().enabled) bridge.start();
