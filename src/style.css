@@ -1614,7 +1614,9 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .net-shared-info h4 { margin: 0 0 6px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #cfe3d2; }
 .net-shared-info p { margin: 0 0 8px; font-size: 11px; line-height: 1.55; color: #8fa89a; }
 .net-shared-meta { font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: #b9e2a4; }
+.net-shared-flags { margin-top: 6px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.09em; text-transform: uppercase; color: #e0b96a; }
 .net-shared-actions { width: 232px; flex: none; }
 .net-shared-actions .field { margin-bottom: 8px; }
+.net-shared-actions .btn + .btn { margin-top: 6px; }
 .net-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 26px 16px; border: 1px dashed #354b5d; text-align: center; font-size: 12px; line-height: 1.5; color: #a8bcc9; }
 .net-empty p { margin: 0; }

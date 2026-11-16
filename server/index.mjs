@@ -15,14 +15,15 @@
  */
 import http from 'node:http';
 import path from 'node:path';
-import { randomUUID } from 'node:crypto';
+import readline from 'node:readline';
+import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import { WebSocketServer } from 'ws';
 import { loadWorldRecord, saveWorldRecord } from './world-store.mjs';
 
 const PORT = Number(process.env.PORT || 8787);
 const HOST = process.env.HOST || '0.0.0.0';
 const PROTOCOL = 1;
-const SERVER_VERSION = '0.2.0';
+const SERVER_VERSION = '0.3.0';
 const MAX_PLAYERS = 8;
 const MAX_EDITS = 200_000;
 const ROOM_IDLE_MS = 30 * 60 * 1000;
@@ -52,6 +53,18 @@ function parseModes(raw) {
 const MODES = parseModes(process.env.MODES);
 const OPEN_WORLD_FILE = path.resolve(process.env.WORLD_FILE || 'data/worlds/open.json');
 const WORLD_BACKUPS = Math.max(0, Number(process.env.WORLD_BACKUPS ?? 8) || 0);
+/** Optional shared-world gate. Both are operator secrets, never sent to clients. */
+const OPEN_PASSWORD = String(process.env.OPEN_PASSWORD ?? '');
+const OPEN_ALLOWLIST = new Set(
+  String(process.env.OPEN_ALLOWLIST ?? '')
+    .split(',')
+    .map((name) => name.trim().toLowerCase())
+    .filter(Boolean),
+);
+/** When set, a client may claim operator rights with this token. */
+const ADMIN_TOKEN = String(process.env.ADMIN_TOKEN ?? '');
+/** Operator names resolved at join time would be spoofable, so ops are per session. */
+const OPEN_ACCESS = { locked: OPEN_PASSWORD.length > 0, private: OPEN_ALLOWLIST.size > 0 };
 
 const startedAt = Date.now();
 const rooms = new Map();
@@ -59,6 +72,8 @@ const joinFails = new Map();
 /** The one shared world, when `open` mode is enabled. Never in `rooms`. */
 let openRoom = null;
 let saveChain = Promise.resolve();
+let consoleInput = null;
+let shuttingDown = false;
 
 const ROOM_WORDS = [
   'CINDER', 'FORGE', 'EMBER', 'TITAN', 'RUNE', 'FROST', 'MAGMA', 'VAULT',
@@ -179,11 +194,94 @@ function broadcast(room, message, except = null) {
   }
 }
 
+function systemChat(text) {
+  return { t: 'chat', from: 'server', name: 'Server', text, at: Date.now(), system: true };
+}
+
+/** System chat only to one client (command feedback, not room chatter). */
+function note(client, text) {
+  send(client, systemChat(text));
+}
+
+function isOp(client) {
+  return client.op === true;
+}
+
+function digest(value) {
+  return createHash('sha256').update(String(value ?? '')).digest();
+}
+
+function secretMatches(input, expected) {
+  if (!expected) return false;
+  return timingSafeEqual(digest(input), digest(expected));
+}
+
+/** Shared gate for genesis and preflight checks. Failed attempts share the join limiter. */
+function gateOpenAccess(ip, name, password) {
+  if (OPEN_ALLOWLIST.size && !OPEN_ALLOWLIST.has(name.toLowerCase())) {
+    noteJoinFailure(ip);
+    return { code: 'not_allowlisted', message: 'This shared world is private.' };
+  }
+  if (OPEN_PASSWORD && !secretMatches(password, OPEN_PASSWORD)) {
+    noteJoinFailure(ip);
+    return { code: 'bad_password', message: 'That shared-world password is wrong.' };
+  }
+  return null;
+}
+
+function formatClock(hour) {
+  const total = Math.round((((hour % 24) + 24) % 24) * 60) % (24 * 60);
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
+/** Find one connected player by display name across every room. */
+function findPlayer(rawName) {
+  const wanted = normalizeName(rawName).toLowerCase();
+  if (!wanted) return null;
+  for (const room of allRooms()) {
+    for (const player of room.players.values()) {
+      if (player.name.toLowerCase() === wanted) return { room, player };
+    }
+  }
+  return null;
+}
+
+/** Prefer the caller's room so duplicate names elsewhere cannot shadow a kick. */
+function findPlayerInRoom(room, rawName) {
+  const wanted = normalizeName(rawName).toLowerCase();
+  if (!wanted) return null;
+  for (const player of room.players.values()) {
+    if (player.name.toLowerCase() === wanted) return player;
+  }
+  return null;
+}
+
+function setOp(player, room, op, by) {
+  player.op = op;
+  send(player, { t: 'op', op, by });
+  if (room) {
+    broadcast(room, systemChat(op ? `${player.name} is now an operator (${by}).` : `${player.name} is no longer an operator.`));
+  }
+}
+
+/** Remove a player from a room and close their socket without touching the room. */
+function evict(room, target, reason, byName) {
+  target.room = null;
+  room.players.delete(target.id);
+  room.lastActive = Date.now();
+  send(target, { t: 'room_closed', reason });
+  target.ws.close(4001, 'kicked');
+  broadcast(room, { t: 'player_left', playerId: target.id, name: target.name });
+  broadcast(room, systemChat(`${target.name} was removed by ${byName}.`));
+  if (room.players.size === 0 && room.open) void saveSharedWorld(room, 'empty');
+}
+
 function roomPlayers(room) {
   return [...room.players.values()].map((player) => ({
     id: player.id,
     name: player.name,
     host: room.hostId === player.id,
+    op: isOp(player),
     x: player.last.x,
     y: player.last.y,
     z: player.last.z,
@@ -330,7 +428,7 @@ function joinRoom(room, client, name) {
   send(client, {
     t: 'room_joined',
     room: roomInfo(room),
-    you: { id: client.id, name: client.name, host: room.hostId === client.id, spawn, yaw: 0 },
+    you: { id: client.id, name: client.name, host: room.hostId === client.id, op: isOp(client), spawn, yaw: 0 },
     world: roomWorld(room),
     players: roomPlayers(room),
   });
@@ -391,6 +489,156 @@ function announceJoin(room, client) {
   }, client);
 }
 
+// ---------------------------------------------------------------- commands
+
+function setSharedTime(room, value) {
+  room.world.skyTime = value;
+  room.revision = (room.revision || 0) + 1;
+  room.dirty = true;
+  room.lastActive = Date.now();
+  broadcast(room, { t: 'time', value });
+}
+
+/** Chat commands — available to operators, politely refused for everyone else. */
+function handleCommand(client, room, text) {
+  const body = text.replace(/^\//, '').trim();
+  const [rawName, ...rest] = body.split(/\s+/);
+  const command = (rawName || '').toLowerCase();
+  const args = rest.join(' ').trim();
+  if (!command) return;
+  if (command === 'help') {
+    note(
+      client,
+      isOp(client)
+        ? 'Commands: /kick <name> [reason] · /time <0-24> · /save · /say <text> · /op <name> · /deop <name>'
+        : 'Only operators can run commands. Ask the server owner for operator rights.',
+    );
+    return;
+  }
+  if (!isOp(client)) {
+    note(client, `Unknown command /${command}. Only operators can run commands here.`);
+    return;
+  }
+
+  if (command === 'kick') {
+    const [targetName, ...reason] = args.split(/\s+/);
+    const target = targetName ? findPlayerInRoom(room, targetName) : null;
+    if (!target) return note(client, 'No player with that name is in this room.');
+    if (target === client) return note(client, 'You cannot kick yourself.');
+    evict(room, target, reason.join(' ') || 'You were removed by an operator.', client.name);
+    return;
+  }
+
+  if (command === 'time') {
+    if (!room.open) return note(client, 'Time control applies to the shared world only.');
+    const value = Number(args);
+    if (!Number.isFinite(value)) return note(client, 'Usage: /time <0-24>');
+    setSharedTime(room, Math.max(0, Math.min(23.99, value)));
+    broadcast(room, systemChat(`${client.name} set the time to ${formatClock(room.world.skyTime)}.`));
+    console.log(`[net] ${client.name} set the shared-world time to ${formatClock(room.world.skyTime)}`);
+    return;
+  }
+
+  if (command === 'save') {
+    if (!room.open) return note(client, 'Only the shared world is saved to disk.');
+    void saveSharedWorld(room, 'command', true).then(() => note(client, `Saved the shared world (${room.edits.size} edits).`));
+    return;
+  }
+
+  if (command === 'say') {
+    if (!args) return note(client, 'Usage: /say <text>');
+    broadcast(room, systemChat(`${client.name}: ${args}`));
+    return;
+  }
+
+  if (command === 'op' || command === 'deop') {
+    // Room-scoped like /kick: a duplicate name in another room must not be granted
+    // operator rights by someone who cannot see them. The console remains global.
+    const found = args ? findPlayerInRoom(room, args) : null;
+    if (!found) return note(client, 'No player with that name is in this room.');
+    const op = command === 'op';
+    if (found.op === op) return note(client, `${found.name} is ${op ? 'already' : 'not'} an operator.`);
+    setOp(found, room, op, client.name);
+    console.log(`[net] ${client.name} ${op ? 'granted' : 'revoked'} operator rights for ${found.name}`);
+    return;
+  }
+
+  note(client, `Unknown command /${command}. Try /help.`);
+}
+
+// ----------------------------------------------------------- operator console
+
+function consoleStatus() {
+  const shared = openRoom
+    ? `shared world: ${openRoom.world.templateName} · ${openRoom.players.size}/${openRoom.settings.maxPlayers} players · ${openRoom.edits.size} edits${openRoom.dirty ? ' · unsaved' : ''}`
+    : 'shared world: not created';
+  console.log(`[net]   ${shared}`);
+  for (const room of allRooms()) {
+    if (!room.players.size) continue;
+    const names = [...room.players.values()].map(
+      (player) => `${player.name}${player.op ? ' (op)' : ''}${player.id === room.hostId ? ' (host)' : ''}`,
+    );
+    console.log(`[net]   ${room.code}: ${names.join(', ')}`);
+  }
+}
+
+function handleConsoleLine(line) {
+  const body = String(line ?? '').replace(/^\//, '').trim();
+  if (!body) return;
+  const [rawName, ...rest] = body.split(/\s+/);
+  const command = rawName.toLowerCase();
+  const args = rest.join(' ').trim();
+  if (command === 'help') {
+    console.log('[net] console: help · status · say <text> · kick <name> [reason] · op <name> · deop <name> · save · time <0-24> · quit');
+    return;
+  }
+  if (command === 'status' || command === 'players') {
+    consoleStatus();
+    return;
+  }
+  if (command === 'say') {
+    if (!args) return console.log('[net] usage: say <text>');
+    for (const room of allRooms()) broadcast(room, systemChat(args));
+    console.log(`[net] said: ${args}`);
+    return;
+  }
+  if (command === 'kick') {
+    const [targetName, ...reason] = args.split(/\s+/);
+    const found = targetName ? findPlayer(targetName) : null;
+    if (!found) return console.log(`[net] no player named ${targetName || '(missing)'}`);
+    evict(found.room, found.player, reason.join(' ') || 'You were removed by the server operator.', 'the server operator');
+    console.log(`[net] kicked ${found.player.name} from ${found.room.code}`);
+    return;
+  }
+  if (command === 'op' || command === 'deop') {
+    const found = args ? findPlayer(args) : null;
+    if (!found) return console.log(`[net] no player named ${args || '(missing)'}`);
+    const op = command === 'op';
+    setOp(found.player, found.room, op, 'server console');
+    console.log(`[net] ${op ? 'granted' : 'revoked'} operator rights for ${found.player.name}`);
+    return;
+  }
+  if (command === 'save') {
+    if (!openRoom) return console.log('[net] no shared world to save');
+    void saveSharedWorld(openRoom, 'console', true).then(() => console.log('[net] shared world saved'));
+    return;
+  }
+  if (command === 'time') {
+    if (!openRoom) return console.log('[net] time control needs an open shared world');
+    const value = Number(args);
+    if (!Number.isFinite(value)) return console.log('[net] usage: time <0-24>');
+    setSharedTime(openRoom, Math.max(0, Math.min(23.99, value)));
+    broadcast(openRoom, systemChat(`The operator set the time to ${formatClock(openRoom.world.skyTime)}.`));
+    console.log(`[net] shared-world time set to ${formatClock(openRoom.world.skyTime)}`);
+    return;
+  }
+  if (command === 'quit' || command === 'exit') {
+    void shutdown('console');
+    return;
+  }
+  console.log(`[net] unknown console command "${command}" — type help`);
+}
+
 function allowJoinAttempt(ip) {
   const now = Date.now();
   const times = (joinFails.get(ip) || []).filter((at) => now - at < 60_000);
@@ -428,12 +676,16 @@ function handleMessage(client, raw) {
       playerId: client.id,
       serverTime: Date.now(),
       modes: [...MODES],
+      openAccess: OPEN_ACCESS,
+      admin: ADMIN_TOKEN.length > 0,
       openWorld: openRoom
         ? {
             templateKey: openRoom.world.templateKey,
             templateName: openRoom.world.templateName,
             players: openRoom.players.size,
             edits: openRoom.edits.size,
+            locked: OPEN_ACCESS.locked,
+            private: OPEN_ACCESS.private,
           }
         : null,
     });
@@ -491,9 +743,24 @@ function handleMessage(client, raw) {
     return;
   }
 
+  if (message.t === 'check_open') {
+    if (!MODES.has('open')) return fail(client, 'mode_disabled', 'This server does not host a shared world.');
+    if (!allowJoinAttempt(client.ip)) return fail(client, 'rate_limited', 'Too many failed joins. Wait a minute.');
+    const name = normalizeName(message.name || client.name);
+    const denied = gateOpenAccess(client.ip, name, message.password);
+    if (denied) return fail(client, denied.code, denied.message);
+    send(client, { t: 'open_ok', locked: OPEN_ACCESS.locked, private: OPEN_ACCESS.private });
+    return;
+  }
+
   if (message.t === 'join_open') {
     if (client.room) return fail(client, 'already_in_room', 'You are already in a room.');
     if (!MODES.has('open')) return fail(client, 'mode_disabled', 'This server does not host a shared world.');
+    const ip = client.ip;
+    if (!allowJoinAttempt(ip)) return fail(client, 'rate_limited', 'Too many failed joins. Wait a minute.');
+    const name = normalizeName(message.name || client.name);
+    const denied = gateOpenAccess(ip, name, message.password);
+    if (denied) return fail(client, denied.code, denied.message);
     if (!openRoom) {
       const world = sanitizeWorld(message.world);
       if (!world) return fail(client, 'world_missing', 'This server has no shared world yet. Start one from the lobby.');
@@ -504,9 +771,23 @@ function handleMessage(client, raw) {
     if (openRoom.players.size >= openRoom.settings.maxPlayers) {
       return fail(client, 'room_full', 'The shared world is full.');
     }
-    joinRoom(openRoom, client, message.name || client.name);
+    joinRoom(openRoom, client, name);
     announceJoin(openRoom, client);
     console.log(`[net] ${client.name} joined the shared world (${openRoom.players.size}/${openRoom.settings.maxPlayers})`);
+    return;
+  }
+
+  if (message.t === 'op') {
+    if (!ADMIN_TOKEN) return fail(client, 'admin_disabled', 'This server does not accept operator tokens.');
+    if (!allowJoinAttempt(client.ip)) return fail(client, 'rate_limited', 'Too many failed tokens. Wait a minute.');
+    if (!secretMatches(message.token, ADMIN_TOKEN)) {
+      noteJoinFailure(client.ip);
+      return fail(client, 'bad_token', 'Operator token rejected.');
+    }
+    client.op = true;
+    send(client, { t: 'op', op: true, by: 'token' });
+    if (client.room) broadcast(client.room, systemChat(`${client.name} signed in as an operator.`));
+    console.log(`[net] ${client.name} claimed operator rights with the server token`);
     return;
   }
 
@@ -573,6 +854,10 @@ function handleMessage(client, raw) {
     if (!text) return;
     client.chatTimes.push(now);
     room.lastActive = now;
+    if (text.startsWith('/')) {
+      handleCommand(client, room, text);
+      return;
+    }
     broadcast(room, { t: 'chat', from: client.id, name: client.name, text, at: now });
     return;
   }
@@ -591,15 +876,20 @@ function handleMessage(client, raw) {
   if (message.t === 'kick') {
     const room = client.room;
     if (!room) return;
-    if (room.open) return fail(client, 'open_readonly', 'Shared-world moderation uses the operator console, not room kick.');
-    if (room.hostId !== client.id) return fail(client, 'not_host', 'Only the host can kick players.');
+    if (room.open && !isOp(client)) {
+      return fail(client, 'open_readonly', 'Only an operator can remove players from the shared world.');
+    }
+    if (!room.open && room.hostId !== client.id) {
+      return fail(client, 'not_host', 'Only the host can kick players.');
+    }
     const target = room.players.get(String(message.playerId ?? ''));
     if (!target || target === client) return;
-    send(target, { t: 'room_closed', reason: 'You were removed by the host.' });
-    target.room = null;
-    room.players.delete(target.id);
-    broadcast(room, { t: 'player_left', playerId: target.id, name: target.name });
-    target.ws.close(4001, 'kicked');
+    evict(
+      room,
+      target,
+      room.open ? 'You were removed by an operator.' : 'You were removed by the host.',
+      room.open ? client.name : 'the host',
+    );
     return;
   }
 
@@ -623,6 +913,8 @@ const server = http.createServer((req, res) => {
       modes,
       rooms: rooms.size,
       players,
+      admin: ADMIN_TOKEN.length > 0,
+      openAccess: OPEN_ACCESS,
       openWorld: openRoom
         ? {
             templateKey: openRoom.world.templateKey,
@@ -630,6 +922,8 @@ const server = http.createServer((req, res) => {
             players: openRoom.players.size,
             edits: openRoom.edits.size,
             savedAt: openRoom.savedAt,
+            locked: OPEN_ACCESS.locked,
+            private: OPEN_ACCESS.private,
           }
         : null,
       uptime: Math.round((Date.now() - startedAt) / 1000),
@@ -657,6 +951,7 @@ wss.on('connection', (ws, req) => {
     ip: req.socket.remoteAddress || 'unknown',
     name: 'Wanderer',
     hello: false,
+    op: false,
     room: null,
     last: { x: 0, y: 64, z: 0, yaw: 0, pitch: 0, moving: false, seq: 0 },
     lastInputAt: Date.now(),
@@ -724,11 +1019,33 @@ server.listen(PORT, HOST, () => {
   const modes = [...MODES].join('+');
   console.log(`[net] VoxelForge multiplayer server v${SERVER_VERSION} on ws://${HOST}:${PORT} (${modes})`);
   console.log(`[net] health: http://127.0.0.1:${PORT}/health · protocol ${PROTOCOL}`);
-  if (MODES.has('open')) console.log(`[net] shared world file: ${OPEN_WORLD_FILE}`);
+  if (MODES.has('open')) {
+    const access = [OPEN_ACCESS.locked ? 'password' : '', OPEN_ACCESS.private ? 'allowlist' : ''].filter(Boolean);
+    console.log(`[net] shared world file: ${OPEN_WORLD_FILE}${access.length ? ` · access: ${access.join(' + ')}` : ''}`);
+  }
+  if (ADMIN_TOKEN) console.log('[net] operator token: enabled');
+  console.log('[net] console: type help for operator commands');
 });
 
+consoleInput = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: process.stdin.isTTY === true });
+consoleInput.on('line', (line) => {
+  try {
+    handleConsoleLine(line);
+  } catch (error) {
+    console.error('[net] console command failed', error);
+  }
+});
+consoleInput.on('error', () => {});
+
 async function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
   console.log(`[net] ${signal} received, closing`);
+  try {
+    consoleInput?.close();
+  } catch {
+    /* already closed */
+  }
   if (openRoom) {
     await saveSharedWorld(openRoom, 'shutdown', true);
     for (const player of openRoom.players.values()) {

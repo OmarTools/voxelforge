@@ -13,6 +13,7 @@ import {
   type NetChatMessage,
   type NetClientMessage,
   type NetMode,
+  type NetOpenAccess,
   type NetOpenWorldInfo,
   type NetPlayerState,
   type NetRoomInfo,
@@ -32,6 +33,8 @@ export interface NetHandlers {
   onChat?: (message: NetChatMessage) => void;
   onSettings?: (settings: NetRoomSettings, by: string) => void;
   onHostChanged?: (hostId: string, name: string) => void;
+  onTime?: (value: number) => void;
+  onOp?: (op: boolean, by: string) => void;
   onRoomClosed?: (reason: string) => void;
   onError?: (code: string, message: string) => void;
   onClosed?: (reason: string, intentional: boolean) => void;
@@ -58,6 +61,10 @@ export class NetClient {
   modes: NetMode[] = [];
   /** Summary of the server's shared world, or null when it has none yet. */
   openWorld: NetOpenWorldInfo | null = null;
+  /** Whether the shared world needs a password and/or an allowlisted name. */
+  openAccess: NetOpenAccess = { locked: false, private: false };
+  /** True when the server accepts an operator token. */
+  adminAllowed = false;
 
   private socket: WebSocket | null = null;
   private helloDone = false;
@@ -68,6 +75,7 @@ export class NetClient {
   private pingSentAt = 0;
   private pendingHello?: { resolve: () => void; reject: (error: Error) => void; timer: number };
   private pendingJoin?: { resolve: (welcome: NetWelcome) => void; reject: (error: Error) => void; timer: number };
+  private pendingCheck?: { resolve: () => void; reject: (error: Error) => void; timer: number };
   private pendingInfo?: { resolve: () => void; timer: number };
 
   constructor(url: string) {
@@ -110,6 +118,8 @@ export class NetClient {
       this.helloDone = false;
       this.modes = [];
       this.openWorld = null;
+      this.openAccess = { locked: false, private: false };
+      this.adminAllowed = false;
       this.stopPing();
       this.failPending(`Connection closed (${event.code}).`);
       if (this.pendingInfo) {
@@ -141,12 +151,37 @@ export class NetClient {
    * Join the server's shared world. Send `world` only when the server has none
    * yet (genesis); afterwards the server's saved descriptor wins.
    */
-  async joinOpen(name: string, world?: NetWorld): Promise<NetWelcome> {
+  async joinOpen(name: string, password = '', world?: NetWorld): Promise<NetWelcome> {
     await this.connect(name);
     return this.awaitJoin({
       t: 'join_open',
       name: normalizeName(name),
+      ...(password ? { password } : {}),
       ...(world ? { world } : {}),
+    });
+  }
+
+  /** Claim operator rights for this session with the server's admin token. */
+  claimOp(token: string): void {
+    if (!token) return;
+    this.send({ t: 'op', token });
+  }
+
+  /**
+   * Ask the server whether this name/password may enter the shared world
+   * without creating or joining it. Lets the lobby reject a bad password
+   * before the client spends time generating terrain.
+   */
+  async checkOpen(name: string, password = ''): Promise<void> {
+    await this.connect(name);
+    if (this.pendingCheck) this.failCheck('A newer access check replaced this one.');
+    return new Promise<void>((resolve, reject) => {
+      const timer = window.setTimeout(() => {
+        this.pendingCheck = undefined;
+        reject(new Error('The server did not answer the access check.'));
+      }, 8000);
+      this.pendingCheck = { resolve, reject, timer };
+      this.send({ t: 'check_open', name: normalizeName(name), ...(password ? { password } : {}) });
     });
   }
 
@@ -218,6 +253,8 @@ export class NetClient {
     this.room = null;
     this.modes = [];
     this.openWorld = null;
+    this.openAccess = { locked: false, private: false };
+    this.adminAllowed = false;
     this.socket?.close(1000, 'left');
     this.socket = null;
     this.helloDone = false;
@@ -255,8 +292,18 @@ export class NetClient {
 
   private failPending(reason: string): void {
     const pending = this.pendingJoin;
+    if (pending) {
+      this.pendingJoin = undefined;
+      clearTimeout(pending.timer);
+      pending.reject(new Error(reason));
+    }
+    this.failCheck(reason);
+  }
+
+  private failCheck(reason: string): void {
+    const pending = this.pendingCheck;
     if (!pending) return;
-    this.pendingJoin = undefined;
+    this.pendingCheck = undefined;
     clearTimeout(pending.timer);
     pending.reject(new Error(reason));
   }
@@ -274,6 +321,11 @@ export class NetClient {
         this.playerId = message.playerId;
         this.modes = Array.isArray(message.modes) ? message.modes : [];
         this.openWorld = message.openWorld ?? null;
+        this.openAccess = {
+          locked: message.openAccess?.locked === true,
+          private: message.openAccess?.private === true,
+        };
+        this.adminAllowed = message.admin === true;
         this.helloDone = true;
         if (this.pendingHello) {
           clearTimeout(this.pendingHello.timer);
@@ -316,6 +368,19 @@ export class NetClient {
       case 'host_changed':
         this.handlers.onHostChanged?.(message.hostId, message.name);
         return;
+      case 'time':
+        this.handlers.onTime?.(message.value);
+        return;
+      case 'op':
+        this.handlers.onOp?.(message.op === true, message.by || '');
+        return;
+      case 'open_ok':
+        if (this.pendingCheck) {
+          clearTimeout(this.pendingCheck.timer);
+          this.pendingCheck.resolve();
+          this.pendingCheck = undefined;
+        }
+        return;
       case 'room_closed':
         this.handlers.onRoomClosed?.(message.reason);
         return;
@@ -327,7 +392,7 @@ export class NetClient {
       }
       case 'error':
         this.handlers.onError?.(message.code, message.message);
-        if (this.pendingJoin) this.failPending(message.message);
+        this.failPending(message.message);
         return;
       default:
         return;

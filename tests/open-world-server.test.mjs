@@ -208,3 +208,124 @@ test('rooms-only servers reject open joins and advertise no shared world', { tim
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('shared world enforces password and allowlist, and operators can moderate', { timeout: 45000 }, async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'voxelforge-gated-'));
+  const worldFile = path.join(dir, 'open.json');
+  const port = 20000 + Math.floor(Math.random() * 800);
+  const server = spawn(process.execPath, [SERVER], {
+    cwd: ROOT,
+    env: {
+      ...process.env,
+      PORT: String(port),
+      HOST: '127.0.0.1',
+      MODES: 'open',
+      WORLD_FILE: worldFile,
+      OPEN_PASSWORD: 'letmein',
+      OPEN_ALLOWLIST: 'Keeper, Builder',
+      ADMIN_TOKEN: 'secret-token',
+    },
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+  const clients = [];
+  server.stdout.resume();
+  server.stderr.resume();
+  const open = () => {
+    const client = connect(port);
+    clients.push(client);
+    return client;
+  };
+  try {
+    const info = await waitForHealth(port);
+    assert.equal(info.openAccess.locked, true);
+    assert.equal(info.openAccess.private, true);
+    assert.equal(info.admin, true);
+
+    const stranger = open();
+    await stranger.send({ t: 'hello', protocol: 1, name: 'Builder', version: '0.1.0' });
+    await stranger.waitFor((m) => m.t === 'hello');
+    await stranger.send({ t: 'join_open', name: 'Builder', password: 'nope', world: WORLD });
+    const bad = await stranger.waitFor((m) => m.t === 'error' && m.code === 'bad_password');
+    assert.equal(bad.code, 'bad_password');
+
+    await stranger.send({ t: 'join_open', name: 'Gatecrasher', password: 'letmein', world: WORLD });
+    const denied = await stranger.waitFor((m) => m.t === 'error' && m.code === 'not_allowlisted');
+    assert.equal(denied.code, 'not_allowlisted');
+
+    await stranger.send({ t: 'check_open', name: 'Keeper', password: 'letmein' });
+    const gate = await stranger.waitFor((m) => m.t === 'open_ok');
+    assert.equal(gate.locked, true);
+    assert.equal(gate.private, true);
+    const beforeGenesis = await health(port);
+    assert.equal(beforeGenesis.openWorld, null);
+
+    const keeper = open();
+    await keeper.send({ t: 'hello', protocol: 1, name: 'Keeper', version: '0.1.0' });
+    await keeper.waitFor((m) => m.t === 'hello');
+    await keeper.send({ t: 'join_open', name: 'Keeper', password: 'letmein', world: WORLD });
+    const joined = await keeper.waitFor((m) => m.t === 'room_joined');
+    assert.equal(joined.you.op, false);
+
+    await keeper.send({ t: 'chat', text: '/time 5' });
+    const refusal = await keeper.waitFor((m) => m.t === 'chat' && m.text.includes('Only operators'));
+    assert.match(refusal.text, /Only operators/);
+
+    server.stdin.write('op Keeper\n');
+    const granted = await keeper.waitFor((m) => m.t === 'op' && m.op === true);
+    assert.equal(granted.by, 'server console');
+
+    await keeper.send({ t: 'chat', text: '/time 5.5' });
+    const time = await keeper.waitFor((m) => m.t === 'time');
+    assert.equal(time.value, 5.5);
+
+    await keeper.send({ t: 'chat', text: '/say hello ops' });
+    await keeper.waitFor((m) => m.t === 'chat' && m.text.includes('hello ops'));
+
+    const builder = open();
+    await builder.send({ t: 'hello', protocol: 1, name: 'Builder', version: '0.1.0' });
+    await builder.waitFor((m) => m.t === 'hello');
+    await builder.send({ t: 'join_open', name: 'Builder', password: 'letmein' });
+    const joinedLate = await builder.waitFor((m) => m.t === 'room_joined');
+    assert.equal(joinedLate.world.skyTime, 5.5);
+
+    await keeper.send({ t: 'chat', text: '/kick Builder' });
+    const closed = await builder.waitFor((m) => m.t === 'room_closed');
+    assert.match(closed.reason, /removed/);
+
+    await keeper.send({ t: 'chat', text: '/save' });
+    await keeper.waitFor((m) => m.t === 'chat' && m.text.includes('Saved the shared world'));
+    await waitForFile(worldFile);
+    const saved = JSON.parse(await readFile(worldFile, 'utf8'));
+    assert.equal(saved.world.skyTime, 5.5);
+
+    const tokenClient = open();
+    await tokenClient.send({ t: 'hello', protocol: 1, name: 'Keeper', version: '0.1.0' });
+    await tokenClient.waitFor((m) => m.t === 'hello');
+    await tokenClient.send({ t: 'op', token: 'wrong' });
+    const rejected = await tokenClient.waitFor((m) => m.t === 'error');
+    assert.equal(rejected.code, 'bad_token');
+    await tokenClient.send({ t: 'op', token: 'secret-token' });
+    await tokenClient.waitFor((m) => m.t === 'op' && m.op === true);
+    await tokenClient.send({ t: 'join_open', name: 'Keeper', password: 'letmein' });
+    const tokenWelcome = await tokenClient.waitFor((m) => m.t === 'room_joined');
+    assert.equal(tokenWelcome.you.op, true);
+
+    const after = await health(port);
+    assert.equal(after.openWorld.locked, true);
+    assert.equal(after.openWorld.private, true);
+    assert.equal(after.openWorld.players, 2);
+  } catch (error) {
+    console.error('gated test failed:', error);
+    throw error;
+  } finally {
+    for (const client of clients) {
+      try {
+        client.ws.close();
+      } catch {
+        /* already gone */
+      }
+    }
+    await stopServer(server);
+    await rm(dir, { recursive: true, force: true });
+  }
+});

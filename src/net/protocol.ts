@@ -26,6 +26,14 @@ export interface NetOpenWorldInfo {
   templateName: string;
   players: number;
   edits: number;
+  locked: boolean;
+  private: boolean;
+}
+
+/** Non-secret description of how the shared world is gated. */
+export interface NetOpenAccess {
+  locked: boolean;
+  private: boolean;
 }
 
 export interface NetServerHello {
@@ -35,6 +43,8 @@ export interface NetServerHello {
   playerId: string;
   serverTime: number;
   modes: NetMode[];
+  openAccess: NetOpenAccess;
+  admin: boolean;
   openWorld: NetOpenWorldInfo | null;
 }
 
@@ -61,6 +71,7 @@ export interface NetPlayerState {
   id: string;
   name: string;
   host: boolean;
+  op?: boolean;
   x: number;
   y: number;
   z: number;
@@ -80,7 +91,7 @@ export interface NetRoomInfo {
 
 export interface NetWelcome {
   room: NetRoomInfo;
-  you: { id: string; name: string; host: boolean; spawn: NetVec3; yaw: number };
+  you: { id: string; name: string; host: boolean; op: boolean; spawn: NetVec3; yaw: number };
   world: NetWorld;
   players: NetPlayerState[];
 }
@@ -97,12 +108,14 @@ export type NetClientMessage =
   | { t: 'hello'; protocol: number; name: string; version: string }
   | { t: 'create_room'; name: string; world: NetWorld; settings: Partial<NetRoomSettings> }
   | { t: 'join_room'; name: string; code: string }
-  | { t: 'join_open'; name: string; world?: NetWorld; settings?: Partial<NetRoomSettings> }
+  | { t: 'join_open'; name: string; password?: string; world?: NetWorld; settings?: Partial<NetRoomSettings> }
+  | { t: 'check_open'; name: string; password?: string }
   | { t: 'input'; seq: number; x: number; y: number; z: number; yaw: number; pitch: number; moving: boolean }
   | { t: 'block'; x: number; y: number; z: number; id: number }
   | { t: 'chat'; text: string }
   | { t: 'settings'; patch: Partial<NetRoomSettings> }
   | { t: 'kick'; playerId: string }
+  | { t: 'op'; token: string }
   | { t: 'leave' }
   | { t: 'ping'; at: number };
 
@@ -116,6 +129,9 @@ export type NetServerMessage =
   | ({ t: 'chat' } & NetChatMessage)
   | { t: 'settings'; settings: NetRoomSettings; by: string }
   | { t: 'host_changed'; hostId: string; name: string }
+  | { t: 'time'; value: number }
+  | { t: 'op'; op: boolean; by?: string }
+  | { t: 'open_ok'; locked: boolean; private: boolean }
   | { t: 'room_closed'; reason: string }
   | { t: 'error'; code: string; message: string }
   | { t: 'pong'; at: number; serverTime: number };

@@ -1,7 +1,8 @@
 # VoxelForge Multiplayer — Design & Implementation
 
-**Status:** Phase 1 (invite rooms) and the first Phase 2 slice (persistent shared world) are implemented
-and shipped behind a server flag. The remaining Phase 2–4 work is still design.
+**Status:** Phase 1 (invite rooms) and the Phase 2 shared-world slices — persistence, access control and
+operator tools — are implemented and shipped behind a server flag. The remaining Phase 2–4 work is still
+design.
 **Scope:** an *additional* way to play. Single-player stays first-class and fully offline.
 
 ---
@@ -34,7 +35,16 @@ The server reads:
 | `MODES` | `rooms` | `rooms`, `open`, or `both` (`--open` = open only) |
 | `WORLD_FILE` | `data/worlds/open.json` | Shared-world save location |
 | `WORLD_BACKUPS` | `8` | Rolling backups kept beside the save |
+| `OPEN_PASSWORD` | *(empty)* | Shared-world password; unset means no password |
+| `OPEN_ALLOWLIST` | *(empty)* | Comma-separated display names allowed into the shared world |
+| `ADMIN_TOKEN` | *(empty)* | Token a client may claim per-session operator rights with |
 | `ALLOWED_ORIGINS` | *(any)* | Comma-separated browser-origin allowlist |
+
+`OPEN_PASSWORD` and `OPEN_ALLOWLIST` gate the shared world *before* genesis, so an unauthorized
+visitor cannot create the world or fill the save file with a stranger's template. Both are operator
+secrets and are never sent to clients; the lobby only learns whether a password or allowlist exists.
+Set `ADMIN_TOKEN` when the operator cannot reach the server console (hosted deployments) — otherwise
+grant op with the console `op <name>` command.
 
 Set `ALLOWED_ORIGINS` before exposing the socket publicly, and terminate TLS in front of it.
 
@@ -49,11 +59,51 @@ Set `ALLOWED_ORIGINS` before exposing the socket publicly, and terminate TLS in 
 | World | Host/first player uploads `seed`, `baseY`, `skyTime`, `rules`, `spawn` and the edit list; everyone regenerates the same deterministic terrain and replays the edits |
 | Movement | 66 ms client input (≈15 Hz), 12 Hz server snapshots, remote avatars smoothed toward the latest snapshot |
 | Blocks | Place/break apply locally first, are relayed, then reach peers through `Game.applyRemoteBlock` (never re-recorded in the local edit log) |
-| Chat | Enter opens chat, Enter sends, Esc cancels; 180 chars, 5 messages / 10 s |
-| Roster | Live player list with host badge, player count and round-trip latency |
+| Chat | Enter opens chat, Enter sends, Esc cancels; 180 chars, 5 messages / 10 s; `/help` and operator commands |
+| Roster | Live player list with host and op badges, player count and round-trip latency |
+| Access | Optional `OPEN_PASSWORD` and/or `OPEN_ALLOWLIST`, checked before genesis; the lobby shows only "password"/"private" flags |
+| Operators | Per-session rights from the console (`op <name>`) or `ADMIN_TOKEN`; `/kick`, `/time`, `/save`, `/say`, `/op`, `/deop` |
 | Persistence | Shared world: atomic JSON write + rolling backups, autosave every 30 s, on last leave, and on shutdown |
 | Saves | `saveGame()` is a no-op while `game.multiplayerActive`; the local slot is never written from a server world |
 | Leaving | Pause menu → *Leave multiplayer room*; the host leaving closes an invite room, a shared world stays open |
+
+### Shared-world access and operators
+
+The shared world is public by default. Two independent gates can be added before launch:
+
+```bash
+OPEN_PASSWORD=hunter2 OPEN_ALLOWLIST="Ada, Grace" npm run server:open
+```
+
+- The password is compared as SHA-256 digests with `timingSafeEqual`; the plaintext never leaves the
+  process.
+- The allowlist matches display names case-insensitively. Names are not identities, so the allowlist
+  is a filter for friendly servers, not an account system.
+- Failed password/allowlist attempts share the 5-per-minute per-IP join limiter.
+- The lobby renders the lock flags, a password field, and a Join/Start button. The client performs
+  a `check_open` preflight, so a typo is rejected in the lobby instead of after terrain generation.
+
+Operators are **per session**, not a property of a display name (which could be spoofed). An operator
+is created by:
+
+1. the server console (`op <name>`), or
+2. a client claiming `ADMIN_TOKEN` with the `op` message; the browser keeps the token in
+   `sessionStorage` and re-claims it after a reload.
+
+Operator chat commands:
+
+| Command | Effect |
+|---|---|
+| `/help` | Show the command list (everyone can run this) |
+| `/kick <name> [reason]` | Remove one player and close their socket; the world stays open |
+| `/time <0-24>` | Set the shared-world sky time and push it to every client |
+| `/save` | Write the shared world to disk immediately |
+| `/say <text>` | Broadcast a system chat line |
+| `/op <name>` / `/deop <name>` | Grant/revoke operator rights for a connected session in this room |
+
+Server console: `help`, `status`/`players`, `say <text>`, `kick <name> [reason]`,
+`op <name>`, `deop <name>`, `save`, `time <0-24>`, `quit`. The console is line-based and safe to
+pipe from a process manager, and its `kick`/`op`/`deop` search every room.
 
 ### Deliberate limits
 
@@ -64,9 +114,11 @@ Set `ALLOWED_ORIGINS` before exposing the socket publicly, and terminate TLS in 
 - **Shared-world genesis comes from the first player.** The server cannot compute a template's base
   height on its own yet, so whichever client starts an empty shared world uploads its descriptor. From
   then on the server's saved copy is authoritative.
-- **Shared-world settings are operator-managed.** There is no host, so the room settings/kick messages
-  are rejected in open mode; no allowlist, password or op commands yet.
-- **Sky time is frozen at genesis.** Day/night does not advance the saved descriptor.
+- **Shared-world settings are operator-managed.** There is no player host, so ordinary clients cannot
+  change room settings; operators moderate through chat commands or the server console. Time and
+  persistence commands apply to the shared world only.
+- **Sky time is frozen at genesis until an operator changes it.** `/time` updates the descriptor and
+  all connected clients; day/night still does not advance on its own.
 - **No reconnect loop.** A dropped socket returns to the main menu; rejoining reloads the world.
 - **JSON, not binary.** Frames stay human-inspectable until the message set settles.
 - **Per-client systems.** Entities, damage, objectives and sims still run locally and are not
@@ -133,8 +185,9 @@ concept and no per-group instancing.
 
 **Implemented subset (2026-11-15):** one shard per process (`MODES=open|both`), joins without a code,
 genesis from the first player's descriptor, atomic JSON save with 8 rolling backups, autosave every
-30 s / on last leave / on shutdown. Not yet: SQLite + 48 h retention, permissions, allowlist/password,
-join queue, public server list.
+30 s / on last leave / on shutdown, optional password + allowlist gates, per-session operators with
+kick/time/save/say/op commands and a server console. Not yet: SQLite + 48 h retention, a full
+guest/member/op account model, join queue, public server list.
 
 **The distinction in one line:** *a room creates a world for a group; open world is a world that
 people join.*
@@ -210,18 +263,21 @@ touching session logic. Every frame is `{ "t": "<type>", … }`:
 
 ```
 C→S  hello        { protocol, name, version }
-S→C  hello        { protocol, version, playerId, serverTime, modes, openWorld }
+S→C  hello        { protocol, version, playerId, serverTime, modes, openAccess, admin, openWorld }
 C→S  create_room  { name, world: { templateKey, seed, baseY, skyTime, rules, spawn, edits[] }, settings }
 C→S  join_room    { name, code }
-C→S  join_open    { name, world? }   // world only for genesis
-S→C  room_joined  { room, you: { id, spawn, yaw }, world, players[] }
+C→S  check_open   { name, password? }   // gate preflight, no join
+S→C  open_ok      { locked, private }
+C→S  join_open    { name, password?, world? }   // world only for genesis
+S→C  room_joined  { room, you: { id, op, spawn, yaw }, world, players[] }
 S→C  player_joined / player_left / host_changed / room_closed
+C→S  op           { token }             S→C  op      { op, by? }
 C→S  input        { seq, x, y, z, yaw, pitch, moving }
-S→C  snapshot     { tick, players: [{ id, x, y, z, yaw, pitch, moving, host }] }
+S→C  snapshot     { tick, players: [{ id, x, y, z, yaw, pitch, moving, host, op }] }
 C→S  block        { x, y, z, id }
 S→C  block        { x, y, z, id, from }
-C→S  chat         { text }          S→C  chat   { from, name, text, at }
-C→S  settings|kick|leave|ping       S→C  settings|error|pong
+C→S  chat         { text }              S→C  chat   { from, name, text, at, system? }
+C→S  settings|kick|leave|ping           S→C  settings|time|error|pong
 ```
 
 The binary target (still the goal for Phase 2+) is:
@@ -285,7 +341,11 @@ rename (atomic), keeping the previous version as a backup.
   enforces reach ≤ 7.5 blocks, a known block id, and a per-room edit cap; line-of-sight and
   target-cell checks come with server-side simulation.
 - Rate-limit inputs (drop clients sending > 60/s), chat (5 msgs / 10 s), and room-code attempts.
-  Phase 1 ships the chat limit and 5 failed joins per IP per minute.
+  Phase 1 ships the chat limit and 5 failed joins per IP per minute. Failed shared-world passwords
+  and operator tokens use the same per-IP limiter.
+- Shared-world passwords and `ADMIN_TOKEN` are compared by SHA-256 digest with `timingSafeEqual`;
+  the plaintexts stay on the server. Operator rights are per session, so a copied display name
+  cannot inherit them. The name allowlist is a friendly-server filter, not an identity system.
 - Server owns damage and drops; the client only renders the result. Not yet — each client still owns
   its own entities.
 - Cap snapshot size per player per tick (drop far entities before dropping nearby ones).
@@ -328,7 +388,9 @@ own entities. The checklist stays the gate for server-authoritative movement, da
 - [x] Singleton shard mode — `MODES=open|both`, one shared world per process
 - [x] Persistent world file, autosave + backups — `server/world-store.mjs`, `data/worlds/open.json`
 - [ ] SQLite world file + 48 h retention
-- [ ] Allowlist / password / op commands (`/op`, `/kick`, `/save`, `/time`)
+- [x] Allowlist / password / op commands — `OPEN_PASSWORD`, `OPEN_ALLOWLIST`, `ADMIN_TOKEN`, console,
+      `/kick`, `/time`, `/save`, `/say`, `/op`, `/deop`
+- [ ] Full guest/member/op account model and a durable allowlist UI
 - [ ] Join queue and capacity handling
 - [ ] Public server-list JSON endpoint (optional)
 
@@ -368,7 +430,7 @@ roughly 2 MB/s outbound at peak, which any small VPS handles.
 |---|---|
 | Phase 0 (core split) | 1–2 weeks |
 | Phase 1 (rooms MVP) — shipped 2026-11-15 as a relay slice | 2–3 weeks |
-| Phase 2 (open world + admin) — shared-world slice shipped 2026-11-15 | 2 weeks |
+| Phase 2 (open world + admin) — shared-world, access-control and operator slices shipped 2026-11-15 | 2 weeks |
 | Phase 3 (online game modes) | 3–4 weeks |
 | Phase 4 (ops polish) | 1 week |
 | **Total to product-grade** | **~2–3 months of focused work** |
@@ -425,4 +487,7 @@ server tick) is still the target, and the remaining Phase 1 checklist items are 
 | 2026-11-15 | Shared world: one shard per process, selected with `MODES=open` or `MODES=both`; rooms stay invite-only and in memory. |
 | 2026-11-15 | Shared-world genesis comes from the first player's descriptor because the server cannot derive a template's `baseY` yet; the saved copy is authoritative afterwards. |
 | 2026-11-15 | Shared world persists as atomic JSON with 8 rolling backups; SQLite and 48 h retention wait for the multi-world layout. |
-| 2026-11-15 | Open mode has no host: settings and kick messages are rejected, moderation/allowlist/op work is Phase 2 remainder. |
+| 2026-11-15 | Shared-world access is optional and checked **before** genesis: `OPEN_PASSWORD` plus a comma-separated, case-insensitive `OPEN_ALLOWLIST`. Secrets are compared as SHA-256 digests with `timingSafeEqual`, and failed gate attempts share the join limiter. |
+| 2026-11-15 | Operators are per session, never name-based: the console can `op <name>`, or a client can claim `ADMIN_TOKEN`. The token lives in `sessionStorage` and is re-claimed after a reload. |
+| 2026-11-15 | Operator chat commands are `/help`, `/kick`, `/time`, `/save`, `/say`, `/op`, `/deop`; the same actions exist on the stdin console. `/time` and `/save` apply to the shared world only. |
+| 2026-11-15 | The lobby preflights the gate with `check_open`, so a wrong password is rejected before terrain generation. If two players race genesis, the server's saved descriptor wins and the losing client regenerates. |

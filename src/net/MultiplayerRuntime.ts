@@ -19,6 +19,7 @@ import {
 } from './protocol';
 
 const NAME_KEY = 'voxelforge.net.name';
+const OP_TOKEN_KEY = 'voxelforge.net.optoken';
 
 /** Server URL from the query string, then the build-time environment. */
 export function configuredServerUrl(): string {
@@ -53,6 +54,23 @@ function saveName(name: string): void {
   }
 }
 
+function loadOpToken(): string {
+  try {
+    return sessionStorage.getItem(OP_TOKEN_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
+function saveOpToken(token: string): void {
+  try {
+    if (token) sessionStorage.setItem(OP_TOKEN_KEY, token);
+    else sessionStorage.removeItem(OP_TOKEN_KEY);
+  } catch {
+    /* private mode */
+  }
+}
+
 interface RemoteAvatar {
   entity: GameEntity;
   target: THREE.Vector3;
@@ -69,6 +87,7 @@ export class MultiplayerRuntime {
   private attached = false;
   private room: NetWelcome['room'] | null = null;
   private selfId = '';
+  private isOp = false;
   private players = new Map<string, NetPlayerState>();
   private avatars = new Map<string, RemoteAvatar>();
   private lobbyEl?: HTMLDivElement;
@@ -149,12 +168,29 @@ export class MultiplayerRuntime {
         this.renderRoster();
         this.game.toast(`${name} is now the host.`, 'info');
       },
+      onTime: (value) => {
+        if (!this.attached) return;
+        this.game.scriptSetTime(value);
+      },
+      onOp: (op) => {
+        this.isOp = op;
+        this.renderRoster();
+        if (this.lobbyEl) {
+          this.setLobbyStatus(op ? 'Operator mode enabled. Type /help in chat.' : 'Operator rights removed.', op ? 'good' : 'info');
+        }
+        if (this.attached) this.game.toast(op ? 'Operator mode enabled.' : 'Operator rights removed.', op ? 'good' : 'info');
+      },
       onRoomClosed: (reason) => {
         if (!this.attached) return;
         this.game.toast(reason || 'The room closed.', 'warn');
         this.exitToMenu();
       },
       onError: (code, message) => {
+        if (code === 'bad_token' || code === 'admin_disabled') {
+          saveOpToken('');
+          this.isOp = false;
+          this.renderRoster();
+        }
         if (this.lobbyEl) this.setLobbyStatus(message, 'bad');
         else if (this.attached) this.game.toast(message, 'warn');
         console.warn(`[net] ${code}: ${message}`);
@@ -244,6 +280,10 @@ export class MultiplayerRuntime {
       if (target.closest('[data-net-retry]')) {
         this.setLobbyStatus('Connecting…', 'info');
         void this.prepareLobby();
+        return;
+      }
+      if (target.closest('[data-net-op-signin]')) {
+        this.promptOpToken();
       }
     });
     overlay.addEventListener('keydown', (event) => {
@@ -280,6 +320,8 @@ export class MultiplayerRuntime {
     if (this.lobbyEl !== overlay) return;
     this.renderLobbyBody();
     this.setLobbyStatus(this.lobbyReadyText(), 'info');
+    const token = loadOpToken();
+    if (token && this.client.adminAllowed) this.client.claimOp(token);
     const codeInput = overlay.querySelector('[data-net-code]') as HTMLInputElement | null;
     if (codeInput && this.prefillCode) codeInput.focus();
     else (overlay.querySelector('[data-net-name]') as HTMLInputElement | null)?.focus();
@@ -311,10 +353,18 @@ export class MultiplayerRuntime {
     const rooms = modes.includes('rooms');
     const open = modes.includes('open');
     const shared = this.client.openWorld;
+    const access = this.client.openAccess;
+    const gated = access.locked || access.private;
     const templateOptions = TEMPLATES.map(
       (template) =>
         `<option value="${template.key}"${template.key === 'creative' ? ' selected' : ''}>${escapeHtml(template.name)} — ${escapeHtml(template.subtitle)}</option>`,
     ).join('');
+    const passwordField = access.locked
+      ? `<div class="field">
+           <label>Password</label>
+           <input class="input" type="password" data-net-open-password autocomplete="off" spellcheck="false" placeholder="Shared-world password"/>
+         </div>`
+      : '';
     const roomsHtml = rooms
       ? `<div class="net-grid">
             <section class="net-card">
@@ -340,15 +390,17 @@ export class MultiplayerRuntime {
     const sharedHtml = open
       ? `<section class="net-shared">
             <div class="net-shared-info">
-              <h4>Shared world</h4>
+              <h4>Shared world${access.private ? ' <span class="pill gold tiny-pill">Private</span>' : ''}</h4>
               <p class="muted">One persistent world for everyone on this server. Blocks are saved on the server, not in this browser.</p>
               <div class="net-shared-meta">${
                 shared
                   ? `${escapeHtml(shared.templateName)} · ${shared.edits} edits · ${shared.players} online`
                   : 'Not created yet — the first player picks the template.'
               }</div>
+              ${gated ? `<div class="net-shared-flags">${access.locked ? 'Password required' : ''}${access.locked && access.private ? ' · ' : ''}${access.private ? 'Allowlisted names only' : ''}</div>` : ''}
             </div>
             <div class="net-shared-actions">
+              ${passwordField}
               ${
                 shared
                   ? '<button class="btn blue wide" data-net-open-join>Join shared world</button>'
@@ -358,6 +410,7 @@ export class MultiplayerRuntime {
                      </div>
                      <button class="btn primary wide" data-net-open-start>Start shared world</button>`
               }
+              ${this.client.adminAllowed ? '<button class="btn ghost small wide" data-net-op-signin>Operator sign-in</button>' : ''}
             </div>
           </section>`
       : '';
@@ -385,6 +438,24 @@ export class MultiplayerRuntime {
     return value;
   }
 
+  private readOpenPassword(): string {
+    const input = this.lobbyEl?.querySelector('[data-net-open-password]') as HTMLInputElement | null;
+    return (input?.value || '').trim();
+  }
+
+  private promptOpToken(): void {
+    const entered = window.prompt('Operator token for this server');
+    if (entered === null) return;
+    const token = entered.trim();
+    saveOpToken(token);
+    if (!token) {
+      this.setLobbyStatus('Operator token cleared.', 'info');
+      return;
+    }
+    this.client.claimOp(token);
+    this.setLobbyStatus('Checking the operator token…', 'info');
+  }
+
   private setLobbyStatus(text: string, kind: 'info' | 'good' | 'bad' = 'info'): void {
     const el = this.lobbyEl?.querySelector('[data-net-status]') as HTMLElement | null;
     if (!el) return;
@@ -400,11 +471,17 @@ export class MultiplayerRuntime {
       '[data-net-open-start]',
       '[data-net-open-join]',
       '[data-net-retry]',
+      '[data-net-op-signin]',
     ]) {
       const button = this.lobbyEl?.querySelector(selector);
       if (button instanceof HTMLButtonElement) button.disabled = busy;
     }
-    for (const selector of ['[data-net-name]', '[data-net-template]', '[data-net-open-template]']) {
+    for (const selector of [
+      '[data-net-name]',
+      '[data-net-template]',
+      '[data-net-open-template]',
+      '[data-net-open-password]',
+    ]) {
       const input = this.lobbyEl?.querySelector(selector) as HTMLInputElement | HTMLSelectElement | null;
       if (input) input.disabled = busy;
     }
@@ -488,12 +565,18 @@ export class MultiplayerRuntime {
       this.setLobbyStatus('This server does not host a shared world.', 'bad');
       return;
     }
+    const password = this.readOpenPassword();
+    if (this.client.openAccess.locked && !password) {
+      this.setLobbyStatus('This shared world needs a password.', 'bad');
+      (this.lobbyEl?.querySelector('[data-net-open-password]') as HTMLInputElement | null)?.focus();
+      return;
+    }
     const name = this.readName();
     this.setLobbyBusy(true);
     this.setLobbyStatus('Joining the shared world…', 'info');
     let welcome: NetWelcome;
     try {
-      welcome = await this.client.joinOpen(name);
+      welcome = await this.client.joinOpen(name, password);
       this.rememberOpenWorld(welcome);
     } catch (error) {
       this.setLobbyBusy(false);
@@ -510,10 +593,24 @@ export class MultiplayerRuntime {
       this.setLobbyStatus('This server does not host a shared world.', 'bad');
       return;
     }
+    const password = this.readOpenPassword();
+    if (this.client.openAccess.locked && !password) {
+      this.setLobbyStatus('This shared world needs a password.', 'bad');
+      (this.lobbyEl?.querySelector('[data-net-open-password]') as HTMLInputElement | null)?.focus();
+      return;
+    }
     const name = this.readName();
+    this.setLobbyBusy(true);
+    this.setLobbyStatus('Checking shared-world access…', 'info');
+    try {
+      await this.client.checkOpen(name, password);
+    } catch (error) {
+      this.setLobbyBusy(false);
+      this.setLobbyStatus(error instanceof Error ? error.message : 'Could not check shared-world access.', 'bad');
+      return;
+    }
     const select = this.lobbyEl?.querySelector('[data-net-open-template]') as HTMLSelectElement | null;
     const template = getTemplate((select?.value || 'creative') as Parameters<typeof getTemplate>[0]);
-    this.setLobbyBusy(true);
     this.setLobbyStatus('Generating the shared world…', 'info');
     this.closeLobby();
     await this.game.launch(template);
@@ -523,8 +620,14 @@ export class MultiplayerRuntime {
     }
     this.game.multiplayerActive = true;
     try {
-      const welcome = await this.client.joinOpen(name, this.worldDescriptor());
+      const welcome = await this.client.joinOpen(name, password, this.worldDescriptor());
       this.rememberOpenWorld(welcome);
+      // Another player may have created the world while ours was generating.
+      // In that case the server's descriptor wins and we regenerate to match it.
+      if (welcome.world.seed !== this.game.seed || welcome.world.templateKey !== this.game.template.key) {
+        await this.launchFromWelcome(welcome);
+        return;
+      }
       this.attach(welcome);
     } catch (error) {
       this.game.toast(error instanceof Error ? error.message : 'Could not start the shared world.', 'bad');
@@ -538,6 +641,8 @@ export class MultiplayerRuntime {
       templateName: welcome.world.templateName,
       players: welcome.players.length,
       edits: welcome.world.edits.length,
+      locked: this.client.openAccess.locked,
+      private: this.client.openAccess.private,
     };
   }
 
@@ -570,6 +675,7 @@ export class MultiplayerRuntime {
     this.attached = true;
     this.room = welcome.room;
     this.selfId = welcome.you.id;
+    this.isOp = welcome.you.op === true;
     const shared = welcome.room.code === 'SHARED';
     this.players.clear();
     for (const player of welcome.players) this.players.set(player.id, player);
@@ -625,7 +731,7 @@ export class MultiplayerRuntime {
       </div>
       <div class="net-feed" data-net-feed></div>
       <div class="net-chat-bar">
-        <div class="net-chat-hint" data-net-hint>Press <kbd>Enter</kbd> to chat</div>
+        <div class="net-chat-hint" data-net-hint>Press <kbd>Enter</kbd> to chat${shared ? ' · <kbd>/help</kbd> for commands' : ''}</div>
         <input class="net-chat-input hidden" data-net-chat maxlength="180" autocomplete="off" placeholder="Say something…"/>
       </div>
     `;
@@ -666,16 +772,18 @@ export class MultiplayerRuntime {
       if (b.id === this.selfId) return 1;
       return a.name.localeCompare(b.name);
     });
-    const signature = players.map((p) => `${p.id}:${p.name}:${p.host}`).join('|');
+    const signature = players.map((p) => `${p.id}:${p.name}:${p.host}:${p.id === this.selfId ? this.isOp : p.op}`).join('|');
     if (signature === this.rosterSignature) return;
     this.rosterSignature = signature;
     this.rosterEl.innerHTML = players
       .map((player) => {
         const self = player.id === this.selfId;
+        const op = self ? this.isOp : player.op === true;
         return `<div class="net-player${self ? ' self' : ''}">
           <span class="net-player-dot" style="background:${player.host ? '#f7c65a' : self ? '#8ce05f' : '#7bb7dd'}"></span>
           <span class="net-player-name">${escapeHtml(player.name)}${self ? ' (you)' : ''}</span>
           ${player.host ? '<span class="pill gold tiny-pill">Host</span>' : ''}
+          ${op && !player.host ? '<span class="pill gold tiny-pill">Op</span>' : ''}
         </div>`;
       })
       .join('');
@@ -685,7 +793,8 @@ export class MultiplayerRuntime {
     if (!this.metaEl || !this.room) return;
     const max = this.room.settings.maxPlayers || 8;
     const latency = Math.round(this.client.latency);
-    this.metaEl.textContent = `${this.players.size}/${max} players · ${latency > 0 ? `${latency} ms` : 'syncing…'}`;
+    const op = this.isOp ? ' · operator' : '';
+    this.metaEl.textContent = `${this.players.size}/${max} players · ${latency > 0 ? `${latency} ms` : 'syncing…'}${op}`;
   }
 
   private spawnAvatar(player: NetPlayerState): void {
