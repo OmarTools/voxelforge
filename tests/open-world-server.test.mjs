@@ -287,6 +287,7 @@ test('shared world enforces password and allowlist, and operators can moderate',
     await builder.send({ t: 'join_open', name: 'Builder', password: 'letmein' });
     const joinedLate = await builder.waitFor((m) => m.t === 'room_joined');
     assert.equal(joinedLate.world.skyTime, 5.5);
+    assert.equal(joinedLate.you.op, false);
 
     await keeper.send({ t: 'chat', text: '/kick Builder' });
     const closed = await builder.waitFor((m) => m.t === 'room_closed');
@@ -310,10 +311,24 @@ test('shared world enforces password and allowlist, and operators can moderate',
     const tokenWelcome = await tokenClient.waitFor((m) => m.t === 'room_joined');
     assert.equal(tokenWelcome.you.op, true);
 
+    // Rejoin the kicked player, then grant operator rights over chat from a fresh
+    // session (the original Keeper has spent its 5-messages-per-10-s budget).
+    const builderAgain = open();
+    await builderAgain.send({ t: 'hello', protocol: 1, name: 'Builder', version: '0.1.0' });
+    await builderAgain.waitFor((m) => m.t === 'hello');
+    await builderAgain.send({ t: 'join_open', name: 'Builder', password: 'letmein' });
+    const rejoined = await builderAgain.waitFor((m) => m.t === 'room_joined');
+    assert.equal(rejoined.you.op, false);
+
+    await tokenClient.send({ t: 'chat', text: '/op Builder' });
+    const builderOp = await builderAgain.waitFor((m) => m.t === 'op' && m.op === true);
+    assert.equal(builderOp.by, 'Keeper');
+    await builderAgain.waitFor((m) => m.t === 'snapshot' && m.players.some((p) => p.name === 'Builder' && p.op === true));
+
     const after = await health(port);
     assert.equal(after.openWorld.locked, true);
     assert.equal(after.openWorld.private, true);
-    assert.equal(after.openWorld.players, 2);
+    assert.equal(after.openWorld.players, 3);
   } catch (error) {
     console.error('gated test failed:', error);
     throw error;
